@@ -66,10 +66,10 @@ class autoencoder_fall_detection():
         x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
         x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
-        encoded = MaxPooling2D((2, 2), border_mode='same')(x)
-        
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
+        encoded = Dense(32,activation='tanh')(x)
         # at this point the representation is (8, 4, 4) i.e. 128-dimensional
-        
+        x = Dense(32,activation='tanh')(encoded)
         x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(encoded)
         x = UpSampling2D((2, 2))(x)
         x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)

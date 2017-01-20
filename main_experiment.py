@@ -8,7 +8,7 @@ Created on Thu Jan 19 15:11:09 2017
 import autoencoder_diego
 import numpy as np
 ###set theao flag
-
+ssss
 number_of_kernel=np.array(  [16,    8,      8]);
 kernel_shape=np.array([     [3,3],  [3,3],  [3,3]]);
 experiment_mnist=autoencoder_diego.autoencoder_fall_detection(kernel_shape,number_of_kernel) ;
