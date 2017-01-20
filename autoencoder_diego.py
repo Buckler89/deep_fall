@@ -10,7 +10,7 @@ import os
 os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
           
           
-from keras.layers import Input, Dense, Convolution2D, MaxPooling2D, UpSampling2D
+from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D
 from keras.models import Model
 from keras import backend as K
 from keras.datasets import mnist
@@ -67,10 +67,16 @@ class autoencoder_fall_detection():
         x = MaxPooling2D((2, 2), border_mode='same')(x)
         x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        encoded = Dense(32,activation='tanh')(x)
         # at this point the representation is (8, 4, 4) i.e. 128-dimensional
-        x = Dense(32,activation='tanh')(encoded)
-        x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(encoded)
+        
+        x = Flatten()(x)
+        x = Dense(128,activation='relu')(x)
+        encoded = Dense(64,activation='relu')(x)
+        #-------------------------------------
+        x = Dense(128,activation='relu')(encoded)
+        x = Reshape((8, 4, 4))(x)
+        
+        x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
         x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
@@ -96,7 +102,7 @@ class autoencoder_fall_detection():
     
         return config, weight
         
-    def reconstruct_image(self,x_test, net_config, net_weight):
+    def reconstruct_images(self,x_test, net_config, net_weight):
     
         #autoencoder = load_model('my_model.h5')
         #autoencoder.load_weights('my_model_weights.h5')
@@ -122,3 +128,33 @@ class autoencoder_fall_detection():
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
         plt.show()
+        
+    def reconstruct_image(self,x_test, net_config, net_weight):
+        '''
+        vuole in ingresso un vettore con shape (1,1,28,28), la configurazione del modello e i pesi 
+        '''
+        #autoencoder = load_model('my_model.h5')
+        #autoencoder.load_weights('my_model_weights.h5')
+        autoencoder = Model.from_config(net_config)
+        autoencoder.set_weights(net_weight)
+        
+        decoded_imgs = autoencoder.predict(x_test)
+        
+        plt.figure()
+        
+        # display original
+        ax = plt.subplot(2, 1, 1)
+        plt.imshow(x_test.reshape(28, 28))
+        plt.gray()
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+        
+        # display reconstruction
+        ax = plt.subplot(2, 1, 2)
+        plt.imshow(decoded_imgs.reshape(28, 28))
+        plt.gray()
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+        plt.show()       
+        
+        
