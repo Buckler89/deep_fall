@@ -12,6 +12,8 @@ import matplotlib.image as img
 #config variable
 number_of_kernel=np.array(  [16,    8,      8]);
 kernel_shape=np.array([     [3,3],  [3,3],  [3,3]]);
+
+#define model and fit it                    
 experiment_mnist=autoencoder_diego.autoencoder_fall_detection(kernel_shape,number_of_kernel) ;
                                                                 
 X_train, y_train, x_test, y_test = experiment_mnist.pre_process_data_mnist();
