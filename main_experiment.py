@@ -9,7 +9,7 @@ import autoencoder_diego
 import numpy as np
 import matplotlib.image as img
 
-
+#config variable
 number_of_kernel=np.array(  [16,    8,      8]);
 kernel_shape=np.array([     [3,3],  [3,3],  [3,3]]);
 experiment_mnist=autoencoder_diego.autoencoder_fall_detection(kernel_shape,number_of_kernel) ;
