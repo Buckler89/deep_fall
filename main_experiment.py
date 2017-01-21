@@ -26,4 +26,4 @@ imageBN2=np.zeros((1,1,28,28))
 imageBN2[0,0,:,:]=imageBN;
 experiment_mnist.reconstruct_image(imageBN2, config, weight);               
 
-                                  
+                                   
