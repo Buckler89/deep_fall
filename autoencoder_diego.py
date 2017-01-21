@@ -157,4 +157,5 @@ class autoencoder_fall_detection():
         ax.get_yaxis().set_visible(False)
         plt.show()       
         
-        
+    def data_spectrogram():
+        print("start calculate spectrogram e save it to disk")
