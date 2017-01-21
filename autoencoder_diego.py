@@ -158,4 +158,5 @@ class autoencoder_fall_detection():
         plt.show()       
         
     def data_spectrogram():
-        print("start calculate spectrogram e save it to disk")bbb
+        print("start calculate spectrogram e save it to disk")
+
