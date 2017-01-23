@@ -157,7 +157,7 @@ class autoencoder_fall_detection():
         ax.get_yaxis().set_visible(False)
         plt.show()       
         
-    def data_spectrogram():# Diego is warking on this - not touch!!!!
+    def data_spectrogram():# Daniele is warking on this - not touch!!!!
         print("start calculate spectrogram e save it to disk")
         
 
