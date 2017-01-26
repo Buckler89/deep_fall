@@ -21,8 +21,11 @@ import matplotlib.pyplot as plt
 class autoencoder_fall_detection():
     
     def __init__(self, kernel_shape, number_of_kernel):
-        self.ks = kernel_shape
-        self.nk = number_of_kernel
+        self._ks = kernel_shape
+        self._nk = number_of_kernel
+        self._config=0;
+        self._weight=0;
+        self._autoencoder=0
     ############LOAD DATA
 
     def pre_process_data_mnist(self,):
@@ -44,22 +47,22 @@ class autoencoder_fall_detection():
     
         input_img = Input(shape=(1, 28, 28))
         
-#        x = Convolution2D(int(self.nk[0]), int(self.ks[0,0]), int(self.ks[0,1]), activation='relu', border_mode='same')(input_img)
+#        x = Convolution2D(int(self._nk[0]), int(self._ks[0,0]), int(self._ks[0,1]), activation='relu', border_mode='same')(input_img)
 #        x = MaxPooling2D((2, 2), border_mode='same')(x)
-#        x = Convolution2D(self.nk[1], self.ks[1,0], self.ks[1,1], activation='relu', border_mode='same')(x)
+#        x = Convolution2D(self._nk[1], self._ks[1,0], self._ks[1,1], activation='relu', border_mode='same')(x)
 #        x = MaxPooling2D((2, 2), border_mode='same')(x)
-#        x = Convolution2D(self.nk[2], self.ks[1,0], self.ks[2,1], activation='relu', border_mode='same')(x)
+#        x = Convolution2D(self._nk[2], self._ks[1,0], self._ks[2,1], activation='relu', border_mode='same')(x)
 #        encoded = MaxPooling2D((2, 2), border_mode='same')(x)
 #        
 #        # at this point the representation is (8, 4, 4) i.e. 128-dimensional
 #        
-#        x = Convolution2D(self.nk[2], self.ks[2,0], self.ks[2,1], activation='relu', border_mode='same')(encoded)
+#        x = Convolution2D(self._nk[2], self._ks[2,0], self._ks[2,1], activation='relu', border_mode='same')(encoded)
 #        x = UpSampling2D((2, 2))(x)
-#        x = Convolution2D(self.nk[1], self.ks[1,0], self.ks[1,1], activation='relu', border_mode='same')(x)
+#        x = Convolution2D(self._nk[1], self._ks[1,0], self._ks[1,1], activation='relu', border_mode='same')(x)
 #        x = UpSampling2D((2, 2))(x)
-#        x = Convolution2D(self.nk[0], self.ks[0,0], self.ks[0,1], activation='relu')(x)
+#        x = Convolution2D(self._nk[0], self._ks[0,0], self._ks[0,1], activation='relu')(x)
 #        x = UpSampling2D((2, 2))(x)
-#        decoded = Convolution2D(1, self.ks[0,0], self.ks[0,1], activation='sigmoid', border_mode='same')(x)
+#        decoded = Convolution2D(1, self._ks[0,0], self._ks[0,1], activation='sigmoid', border_mode='same')(x)
 
         x = Convolution2D(16, 3, 3, activation='relu', border_mode='same')(input_img)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
@@ -88,9 +91,9 @@ class autoencoder_fall_detection():
      
         autoencoder = Model(input_img, decoded)
         autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
-        
+        self._autoencoder=autoencoder;
         autoencoder.fit(X_train, X_train,
-                        nb_epoch=50,
+                        nb_epoch=5,
                         batch_size=128,
                         shuffle=True,
                         validation_data=(x_test, x_test))
@@ -98,20 +101,21 @@ class autoencoder_fall_detection():
         #save the model an weights
         autoencoder.save('my_model.h5')
         autoencoder.save_weights('my_model_weights.h5')
-        config = autoencoder.get_config();
-        weight=autoencoder.get_weights()
-    
-        return config, weight
+        self._config = autoencoder.get_config();
+        self._weight = autoencoder.get_weights()
         
-    def reconstruct_images(self,x_test, net_config, net_weight):
+        return 
+        
+    def reconstruct_images(self,x_test):
     
         #autoencoder = load_model('my_model.h5')
         #autoencoder.load_weights('my_model_weights.h5')
-        autoencoder = Model.from_config(net_config)
-        autoencoder.set_weights(net_weight)
-        
-        decoded_imgs = autoencoder.predict(x_test)
-        
+#        autoencoder = Model.from_config(net_config)
+#        autoencoder.set_weights(net_weight)
+
+        #decoded_imgs = autoencoder.predict(x_test)
+        decoded_imgs=self._autoencoder.predict(x_test)
+
         n = 41
         plt.figure(figsize=(20*4, 4*4))
         for i in range(1,n):
@@ -130,17 +134,19 @@ class autoencoder_fall_detection():
             ax.get_yaxis().set_visible(False)
         plt.show()
         
-    def reconstruct_image(self,x_test, net_config, net_weight):
+    def reconstruct_image(self,x_test):
         '''
         vuole in ingresso un vettore con shape (1,1,28,28), la configurazione del modello e i pesi 
         '''
+        #how to load model from hard disk
         #autoencoder = load_model('my_model.h5')
         #autoencoder.load_weights('my_model_weights.h5')
-        autoencoder = Model.from_config(net_config)
-        autoencoder.set_weights(net_weight)
+        #how to load model from python variables
+#        autoencoder = Model.from_config(net_config)
+#        autoencoder.set_weights(net_weight)
         
-        decoded_imgs = autoencoder.predict(x_test)
-        
+        #decoded_imgs = autoencoder.predict(x_test)
+        decoded_imgs=self._autoencoder.predict(x_test)
         plt.figure()
         
         # display original
@@ -161,4 +167,5 @@ class autoencoder_fall_detection():
     def data_spectrogram():# Daniele is warking on this - not touch!!!!
         print("start calculate spectrogram e save it to disk")
         
-
+    def compute_distance(self,x_test):
+        print()
