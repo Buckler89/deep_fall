@@ -83,7 +83,8 @@ class autoencoder_fall_detection():
         x = Convolution2D(16, 3, 3, activation='relu')(x)
         x = UpSampling2D((2, 2))(x)
         decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same')(x)  
-
+        layer1 = Model(input_img, decoded);
+        layer1.summary();
      
         autoencoder = Model(input_img, decoded)
         autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
