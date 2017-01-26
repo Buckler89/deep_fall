@@ -18,6 +18,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from scipy.spatial.distance import euclidean
+import matplotlib.image as img
+import random
 
 __load_directly__=0;
 
@@ -29,7 +31,30 @@ class autoencoder_fall_detection():
         self._config=0;
         self._weight=0;
         self._autoencoder=0
+        
     ############LOAD DATA
+    def load_dataset(self,spectrogramsPath,listsPath):
+        '''
+        Carico il dataset (spettrogrammi) e lo splitto semplicemente in train e test set. Solo per fare i primi test. Qui non considero 
+        la validation phase
+        '''
+        print("Loading A3FFALL dataset");
+        n_channels=1#questo andrebbe modificato se gli spetteri hanno pure i delta e deltadelta
+
+        #leggo un immagine a caso dentro il dataset per sapere le dimensioni e inizializzare il vettore
+        #che conterrà tutte le immagini. Tutte le immagini devo essere della stessa dimensione.
+        example_image=img.imread(os.path.join(spectrogramsPath,random.choice(os.listdir(spectrogramsPath))))
+        #inizialixe matrix 4D shape (n_nample,n_channel,row,col)
+        n_sample=(len([name for name in os.listdir(spectrogramsPath) if os.path.isfile(os.path.join(spectrogramsPath,name))]))
+        allData=np.zeros((n_sample,n_channels,example_image.shape[1],example_image.shape[0]))#controllare se righe colonne sono al posto giusto!!
+
+        for root, dirnames, filenames in os.walk(spectrogramsPath):
+            i=0;
+            for file in filenames:
+                allData[i,0,:,:]=img.imread(os.path.join(root,file))[:,:,0];
+                i+=1;
+        self.allData=allData;
+        
 
     def pre_process_data_mnist(self,):
         (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -40,7 +65,7 @@ class autoencoder_fall_detection():
         x_test = np.reshape(x_test, (len(x_test), 1, 28, 28))
         
         #remove some data 4 from trainset
-        X_train=[x for x, y in zip(x_train, y_train) if (y < 2)]
+        X_train=[x for x, y in zip(x_train, y_train) if (y < 9)]
         X_train=np.array(X_train)
         return  (X_train, y_train, x_test, y_test)
     
@@ -207,7 +232,7 @@ class autoencoder_fall_detection():
         
         e_d=self.compute_distance(x_test,decoded_images);
         print("roc curve:");                         
-        fpr, tpr, thresholds = roc_curve(y_test, e_d, pos_label=0);
+        fpr, tpr, thresholds = roc_curve(y_test, e_d, pos_label=9);
         roc_auc = auc(fpr, tpr)
                                                 # Plot of a ROC curve for a specific class
         plt.figure()
@@ -229,5 +254,5 @@ class autoencoder_fall_detection():
 #        for i in range(matrix_e_d_target.shape[1]):
 #            if matrix_e_d_target[1,i]!=0:
                 
-        return e_d
+        return 
         
