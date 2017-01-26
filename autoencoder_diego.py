@@ -11,12 +11,15 @@ os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
           
           
 from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D
-from keras.models import Model
+from keras.models import Model,load_model
 from keras import backend as K
 from keras.datasets import mnist
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
+from scipy.spatial.distance import euclidean
 
+__load_directly__=0;
 
 class autoencoder_fall_detection():
     
@@ -37,7 +40,7 @@ class autoencoder_fall_detection():
         x_test = np.reshape(x_test, (len(x_test), 1, 28, 28))
         
         #remove some data 4 from trainset
-        X_train=[x for x, y in zip(x_train, y_train) if (y < 1)]
+        X_train=[x for x, y in zip(x_train, y_train) if (y < 2)]
         X_train=np.array(X_train)
         return  (X_train, y_train, x_test, y_test)
     
@@ -89,32 +92,38 @@ class autoencoder_fall_detection():
         layer1 = Model(input_img, decoded);
         layer1.summary();
      
-        autoencoder = Model(input_img, decoded)
-        autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
-        self._autoencoder=autoencoder;
-        autoencoder.fit(X_train, X_train,
-                        nb_epoch=5,
+        self._autoencoder = Model(input_img, decoded)
+        self._autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+        self._autoencoder.fit(X_train, X_train,
+                        nb_epoch=50,
                         batch_size=128,
                         shuffle=True,
                         validation_data=(x_test, x_test))
         
-        #save the model an weights
-        autoencoder.save('my_model.h5')
-        autoencoder.save_weights('my_model_weights.h5')
-        self._config = autoencoder.get_config();
-        self._weight = autoencoder.get_weights()
+        #save the model an weights on disk
+        self._autoencoder.save('my_model.h5')
+        self._autoencoder.save_weights('my_model_weights.h5')
+        #save the model and wetight on varibles
+#        self._config = self._autoencoder.get_config();
+#        self._weight = self._autoencoder.get_weights()
         
         return 
         
     def reconstruct_images(self,x_test):
-    
-        #autoencoder = load_model('my_model.h5')
-        #autoencoder.load_weights('my_model_weights.h5')
-#        autoencoder = Model.from_config(net_config)
-#        autoencoder.set_weights(net_weight)
 
-        #decoded_imgs = autoencoder.predict(x_test)
-        decoded_imgs=self._autoencoder.predict(x_test)
+        if __load_directly__:
+            #if i want to load from disk the model
+            autoencoder=load_model('my_model.h5')
+            autoencoder.load_weights('my_model_weights.h5')
+            decoded_imgs = autoencoder.predict(x_test)
+
+        else:
+            #norma operation
+            decoded_imgs=self._autoencoder.predict(x_test)
+            
+#to load from variable
+#autoencoder = Model.from_config(net_config)
+#autoencoder.set_weights(net_weight)
 
         n = 41
         plt.figure(figsize=(20*4, 4*4))
@@ -133,7 +142,8 @@ class autoencoder_fall_detection():
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
         plt.show()
-        
+        return decoded_imgs
+
     def reconstruct_image(self,x_test):
         '''
         vuole in ingresso un vettore con shape (1,1,28,28), la configurazione del modello e i pesi 
@@ -146,9 +156,17 @@ class autoencoder_fall_detection():
 #        autoencoder.set_weights(net_weight)
         
         #decoded_imgs = autoencoder.predict(x_test)
-        decoded_imgs=self._autoencoder.predict(x_test)
-        plt.figure()
+        if __load_directly__:
+            #if i want to load from disk the model
+            autoencoder=load_model('my_model.h5')
+            autoencoder.load_weights('my_model_weights.h5')
+            decoded_imgs = autoencoder.predict(x_test)
+
+        else:
+            #norma operation
+            decoded_imgs=self._autoencoder.predict(x_test)       
         
+        plt.figure()
         # display original
         ax = plt.subplot(2, 1, 1)
         plt.imshow(x_test.reshape(28, 28))
@@ -162,10 +180,54 @@ class autoencoder_fall_detection():
         plt.gray()
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
-        plt.show()       
+        plt.show() 
+        
         
     def data_spectrogram():# Daniele is warking on this - not touch!!!!
         print("start calculate spectrogram e save it to disk")
         
-    def compute_distance(self,x_test):
+    def compute_distance(self,x_test,decoded_images):
+        '''
+        calcola le distanze euclide tra 2 vettori di immagini con shape (n_img,1,row,col)
+        ritorna un vettore con le distanze con shape .....
+        '''
+        #e_d2d = np.zeros(x_test.shape)
+        e_d = np.zeros(x_test.shape[0])
+
+            
+        for i in range(decoded_images.shape[0]):
+            #e_d2d[i,0,:,:] = euclidean_distances(decoded_images[i,0,:,:],x_test[i,0,:,:])
+            #e_d[i] = euclidean_distances(decoded_images[i,0,:,:],x_test[i,0,:,:]).sum();
+            e_d[i] = euclidean(decoded_images[i,0,:,:].flatten(),x_test[i,0,:,:].flatten())
+                
+        return e_d;
         print()
+
+    def compute_score(self,x_test,decoded_images,y_test):
+        
+        e_d=self.compute_distance(x_test,decoded_images);
+        print("roc curve:");                         
+        fpr, tpr, thresholds = roc_curve(y_test, e_d, pos_label=0);
+        roc_auc = auc(fpr, tpr)
+                                                # Plot of a ROC curve for a specific class
+        plt.figure()
+        plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver operating characteristic')
+        plt.legend(loc="lower right")
+        plt.show()
+#        matrix_e_d_target=np.zeros((2,x_test.shape[0]));
+#        matrix_e_d_target[0,:]=e_d;
+#        matrix_e_d_target[1,:]=y_test;
+#        thrshold=np.arange(0,max(e_d),0.1);
+#        for t in thrashold:
+#            e_d[t]<t
+#        for i in range(matrix_e_d_target.shape[1]):
+#            if matrix_e_d_target[1,i]!=0:
+                
+        return e_d
+        
