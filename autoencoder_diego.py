@@ -21,7 +21,7 @@ from scipy.spatial.distance import euclidean
 import matplotlib.image as img
 import random
 
-__load_directly__=0;
+__load_directly__=0;#se è a 1 carica il modello e i pesi dal disco.
 
 class autoencoder_fall_detection():
     
