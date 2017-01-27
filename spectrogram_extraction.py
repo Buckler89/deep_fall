@@ -28,17 +28,18 @@ for w in wav_filenames:
     f, t, Sxx = signal.spectrogram(x, fs, window_type, window_length, overlap)
     if len(Sxx[1])>longest:
         longest=len(Sxx[1])
-    spec.append(Sxx)
+    spec.append([w, Sxx])
 
 ###################### uniforma il vettore degli spettri: zero padding
 
-for i in range(len(spec)):
-    spec[i]=np.lib.pad(spec[i], ((0, 0), (0, longest-len(spec[i][1]))),'constant', constant_values=(0, 0))
-
+for w in spec:
+    w[1]=np.lib.pad(w[1], ((0, 0), (0, longest-len(w[1][1]))),'constant', constant_values=(0, 0))
+    np.save(wav_dir_path + "_spectrograms/" + w[0][0:-4],w[1],False)
+    
 
 ############################## salva tutto
 # x=np.load(filename) to load
-np.save('data',spec,False)
+#np.save('data',spec,False)
 
 
 
