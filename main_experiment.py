@@ -39,6 +39,7 @@ model=experiment_prova.network_architecture_autoencoder();
 model.summary();
             
 experiment_prova.load_dataset('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/','_')
+TODO: NORMALIZZARE PARTENDO DAL DATASET NON ZERO PADDATO E POI ZEROPADDARE--->FARE LISTA DI ARRAY/O CONCATENA TUTTI GLI SPETTRI SULLO STESSA MATRICE
 experiment_prova.standardize_data(experiment_prova.allData)
 a=experiment_prova.data_std;
 #
