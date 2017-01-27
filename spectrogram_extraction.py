@@ -8,7 +8,8 @@ from os import walk
 
 ####################### da spostare sul file di configurazione dell'esperimento
 
-wav_dir_path = '/home/daniele/Scrivania/all_file'
+wav_dir_path = '/media/buckler/DataSSD/Phd/fall_detection/dataset/all_file/'
+dest_path='/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrogram_zero_pad/'
 window_type = 'hamming'
 window_length = 256
 overlap = 128
@@ -34,7 +35,7 @@ for w in wav_filenames:
 
 for w in spec:
     w[1]=np.lib.pad(w[1], ((0, 0), (0, longest-len(w[1][1]))),'constant', constant_values=(0, 0))
-    np.save(wav_dir_path + "_spectrograms/" + w[0][0:-4],w[1],False)
+    #np.save(dest_path + w[0][0:-4],w[1],False)
     
 
 ############################## salva tutto

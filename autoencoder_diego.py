@@ -31,8 +31,30 @@ class autoencoder_fall_detection():
         self._config=0;
         self._weight=0;
         self._autoencoder=0
-        
+    
     ############LOAD DATA
+#    def load_dataset_img(self,spectrogramsPath,listsPath):
+#        '''
+#        Carico il dataset di immagini generiche e lo splitto semplicemente in train e test set. Solo per fare i primi test. Qui non considero 
+#        la validation phase
+#        '''
+#        print("Loading A3FFALL dataset");
+#        n_channels=1#questo andrebbe modificato se gli spetteri hanno pure i delta e deltadelta
+#
+#        #leggo un immagine a caso dentro il dataset per sapere le dimensioni e inizializzare il vettore
+#        #che conterrà tutte le immagini. Tutte le immagini devo essere della stessa dimensione.
+#        example_image=img.imread(os.path.join(spectrogramsPath,random.choice(os.listdir(spectrogramsPath))))
+#        #inizialixe matrix 4D shape (n_nample,n_channel,row,col)
+#        n_sample=(len([name for name in os.listdir(spectrogramsPath) if os.path.isfile(os.path.join(spectrogramsPath,name))]))
+#        allData=np.zeros((n_sample,n_channels,example_image.shape[1],example_image.shape[0]))#controllare se righe colonne sono al posto giusto!!
+#
+#        for root, dirnames, filenames in os.walk(spectrogramsPath):
+#            i=0;
+#            for file in filenames:
+#                allData[i,0,:,:]=img.imread(os.path.join(root,file))[:,:,0];
+#                i+=1;
+#        self.allData=allData;
+        
     def load_dataset(self,spectrogramsPath,listsPath):
         '''
         Carico il dataset (spettrogrammi) e lo splitto semplicemente in train e test set. Solo per fare i primi test. Qui non considero 
@@ -43,19 +65,19 @@ class autoencoder_fall_detection():
 
         #leggo un immagine a caso dentro il dataset per sapere le dimensioni e inizializzare il vettore
         #che conterrà tutte le immagini. Tutte le immagini devo essere della stessa dimensione.
-        example_image=img.imread(os.path.join(spectrogramsPath,random.choice(os.listdir(spectrogramsPath))))
+        example_image=np.load(os.path.join(spectrogramsPath,random.choice(os.listdir(spectrogramsPath))))
         #inizialixe matrix 4D shape (n_nample,n_channel,row,col)
-        n_sample=(len([name for name in os.listdir(spectrogramsPath) if os.path.isfile(os.path.join(spectrogramsPath,name))]))
-        allData=np.zeros((n_sample,n_channels,example_image.shape[1],example_image.shape[0]))#controllare se righe colonne sono al posto giusto!!
+        n_sample=(len([name for name in os.listdir(spectrogramsPath) if os.path.join(spectrogramsPath,name).endswith('.npy')])) #leggo solo i file
+        allData=np.zeros((n_sample,n_channels,example_image.shape[0],example_image.shape[1]))#controllare se righe colonne sono al posto giusto!!
 
         for root, dirnames, filenames in os.walk(spectrogramsPath):
             i=0;
             for file in filenames:
-                allData[i,0,:,:]=img.imread(os.path.join(root,file))[:,:,0];
+                allData[i,0,:,:]=np.load(os.path.join(root,file));
                 i+=1;
         self.allData=allData;
         
-
+        
     def pre_process_data_mnist(self,):
         (x_train, y_train), (x_test, y_test) = mnist.load_data()
         
