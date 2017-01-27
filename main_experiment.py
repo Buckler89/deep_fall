@@ -34,8 +34,13 @@ kernel_shape=np.array([     [3,3],  [3,3],  [3,3]]);
 #TEST load_dataset function
                                  
 experiment_prova=autoencoder_diego.autoencoder_fall_detection(kernel_shape,number_of_kernel);
-experiment_prova.load_dataset('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrogram_zero_pad/','_')
-a=experiment_prova.allData;
 
-plt.figure()
-plt.matshow(a[1,0,:,:], fignum=100)
+model=experiment_prova.network_architecture_autoencoder();
+model.summary();
+            
+experiment_prova.load_dataset('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/','_')
+experiment_prova.standardize_data(experiment_prova.allData)
+a=experiment_prova.data_std;
+#
+#plt.figure()
+#plt.matshow(a[1,0,:,:], fignum=100)

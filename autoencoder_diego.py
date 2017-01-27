@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from scipy.spatial.distance import euclidean
-import matplotlib.image as img
+#import matplotlib.image as img
 import random
 
 __load_directly__=0;#se è a 1 carica il modello e i pesi dal disco.
@@ -31,7 +31,7 @@ class autoencoder_fall_detection():
         self._config=0;
         self._weight=0;
         self._autoencoder=0
-    
+        
     ############LOAD DATA
 #    def load_dataset_img(self,spectrogramsPath,listsPath):
 #        '''
@@ -55,12 +55,12 @@ class autoencoder_fall_detection():
 #                i+=1;
 #        self.allData=allData;
         
-    def load_dataset(self,spectrogramsPath,listsPath):
+    def load_dataset(self,spectrogramsPath,listsPath):#TODO gestione liste liste !!!
         '''
-        Carico il dataset (spettrogrammi) e lo splitto semplicemente in train e test set. Solo per fare i primi test. Qui non considero 
-        la validation phase
+        Carico il dataset (spettrogrammi) e lo splitto semplicemente in train e test set. Solo per fare i primi test. Qui ancora non considero 
+        la validation phase:listpath è inutilizzato
         '''
-        print("Loading A3FFALL dataset");
+        print("Loading A3FALL dataset");
         n_channels=1#questo andrebbe modificato se gli spetteri hanno pure i delta e deltadelta
 
         #leggo un immagine a caso dentro il dataset per sapere le dimensioni e inizializzare il vettore
@@ -77,6 +77,14 @@ class autoencoder_fall_detection():
                 i+=1;
         self.allData=allData;
         
+    def standardize_data(self,data_std): #controllare uso memoria: sto tenendo troppi narray
+        self.data_std=data_std;
+        self.mean=np.mean(data_std, axis=(0,2,3))#faccio la media senza cosiderare i channel ( ovvero asse 1)
+        self.data_std -= self.mean
+        self.std=np.std(data_std, axis=(0,2,3))
+        self.data_std /= (self.std + K.epsilon())
+        
+        return self.data_std, self.mean , self.std 
         
     def pre_process_data_mnist(self,):
         (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -93,54 +101,59 @@ class autoencoder_fall_detection():
     
     ############END LOAD DATA
     
-    def network_architecture_autoencoder(self,X_train, y_train, x_test, y_test):
+    def network_architecture_autoencoder(self):
     
         input_img = Input(shape=(1, 28, 28))
         
-#        x = Convolution2D(int(self._nk[0]), int(self._ks[0,0]), int(self._ks[0,1]), activation='relu', border_mode='same')(input_img)
+#        x = Convolution2D(int(self._nk[0]), int(self._ks[0,0]), int(self._ks[0,1]), activation='tanh', border_mode='same')(input_img)
 #        x = MaxPooling2D((2, 2), border_mode='same')(x)
-#        x = Convolution2D(self._nk[1], self._ks[1,0], self._ks[1,1], activation='relu', border_mode='same')(x)
+#        x = Convolution2D(self._nk[1], self._ks[1,0], self._ks[1,1], activation='tanh', border_mode='same')(x)
 #        x = MaxPooling2D((2, 2), border_mode='same')(x)
-#        x = Convolution2D(self._nk[2], self._ks[1,0], self._ks[2,1], activation='relu', border_mode='same')(x)
+#        x = Convolution2D(self._nk[2], self._ks[1,0], self._ks[2,1], activation='tanh', border_mode='same')(x)
 #        encoded = MaxPooling2D((2, 2), border_mode='same')(x)
 #        
 #        # at this point the representation is (8, 4, 4) i.e. 128-dimensional
 #        
-#        x = Convolution2D(self._nk[2], self._ks[2,0], self._ks[2,1], activation='relu', border_mode='same')(encoded)
+#        x = Convolution2D(self._nk[2], self._ks[2,0], self._ks[2,1], activation='tanh', border_mode='same')(encoded)
 #        x = UpSampling2D((2, 2))(x)
-#        x = Convolution2D(self._nk[1], self._ks[1,0], self._ks[1,1], activation='relu', border_mode='same')(x)
+#        x = Convolution2D(self._nk[1], self._ks[1,0], self._ks[1,1], activation='tanh', border_mode='same')(x)
 #        x = UpSampling2D((2, 2))(x)
-#        x = Convolution2D(self._nk[0], self._ks[0,0], self._ks[0,1], activation='relu')(x)
+#        x = Convolution2D(self._nk[0], self._ks[0,0], self._ks[0,1], activation='tanh')(x)
 #        x = UpSampling2D((2, 2))(x)
 #        decoded = Convolution2D(1, self._ks[0,0], self._ks[0,1], activation='sigmoid', border_mode='same')(x)
 
-        x = Convolution2D(16, 3, 3, activation='relu', border_mode='same')(input_img)
+        x = Convolution2D(16, 3, 3, activation='tanh', border_mode='same')(input_img)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(8, 3, 3, activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(8, 3, 3, activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
         # at this point the representation is (8, 4, 4) i.e. 128-dimensional
         
         x = Flatten()(x)
-        x = Dense(128,activation='relu')(x)
-        encoded = Dense(64,activation='relu')(x)
+        x = Dense(128,activation='tanh')(x)
+        encoded = Dense(64,activation='tanh')(x)
         #-------------------------------------
-        x = Dense(128,activation='relu')(encoded)
+        x = Dense(128,activation='tanh')(encoded)
         x = Reshape((8, 4, 4))(x)
         
-        x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(8, 3, 3, activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(8, 3, 3, activation='relu', border_mode='same')(x)
+        x = Convolution2D(8, 3, 3, activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(16, 3, 3, activation='relu')(x)
+        x = Convolution2D(16, 3, 3, activation='tanh')(x)
         x = UpSampling2D((2, 2))(x)
         decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same')(x)  
-        layer1 = Model(input_img, decoded);
-        layer1.summary();
-     
+#        layer1 = Model(input_img, decoded);
+#        layer1.summary();
         self._autoencoder = Model(input_img, decoded)
         self._autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+        autoencoder_model = self._autoencoder
+        
+        return autoencoder_model
+    
+    def network_architecture_autoencoder_fit(self,X_train, y_train, x_test, y_test):
+
         self._autoencoder.fit(X_train, X_train,
                         nb_epoch=50,
                         batch_size=128,
@@ -153,8 +166,8 @@ class autoencoder_fall_detection():
         #save the model and wetight on varibles
 #        self._config = self._autoencoder.get_config();
 #        self._weight = self._autoencoder.get_weights()
-        
-        return 
+        fitted_autoencoder = self._autoencoder
+        return fitted_autoencoder
         
     def reconstruct_images(self,x_test):
 
@@ -248,7 +261,6 @@ class autoencoder_fall_detection():
             e_d[i] = euclidean(decoded_images[i,0,:,:].flatten(),x_test[i,0,:,:].flatten())
                 
         return e_d;
-        print()
 
     def compute_score(self,x_test,decoded_images,y_test):
         

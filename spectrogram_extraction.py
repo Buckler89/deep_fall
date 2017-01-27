@@ -9,7 +9,8 @@ from os import walk
 ####################### da spostare sul file di configurazione dell'esperimento
 
 wav_dir_path = '/media/buckler/DataSSD/Phd/fall_detection/dataset/all_file/'
-dest_path='/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrogram_zero_pad/'
+dest_path='/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/'
+dest_path_zero_pad='/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms_zero_pad/'
 window_type = 'hamming'
 window_length = 256
 overlap = 128
@@ -34,8 +35,9 @@ for w in wav_filenames:
 ###################### uniforma il vettore degli spettri: zero padding
 
 for w in spec:
+    np.save(dest_path + w[0][0:-4],w[1],False)  
     w[1]=np.lib.pad(w[1], ((0, 0), (0, longest-len(w[1][1]))),'constant', constant_values=(0, 0))
-    #np.save(dest_path + w[0][0:-4],w[1],False)
+    np.save(dest_path_zero_pad + w[0][0:-4],w[1],False)
     
 
 ############################## salva tutto
