@@ -38,10 +38,12 @@ experiment_prova=autoencoder_diego.autoencoder_fall_detection(kernel_shape,numbe
 model=experiment_prova.network_architecture_autoencoder();
 model.summary();
             
-experiment_prova.load_dataset('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/','_')
-TODO: NORMALIZZARE PARTENDO DAL DATASET NON ZERO PADDATO E POI ZEROPADDARE--->FARE LISTA DI ARRAY/O CONCATENA TUTTI GLI SPETTRI SULLO STESSA MATRICE
-experiment_prova.standardize_data(experiment_prova.allData)
-a=experiment_prova.data_std;
+a3fall = experiment_prova.load_A3FALL('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/')
+trainset, testset  = experiment_prova.split_A3FALL_simple();
+                                    
+#TODO: NORMALIZZARE PARTENDO DAL DATASET NON ZERO PADDATO E POI ZEROPADDARE--->FARE LISTA DI ARRAY/O CONCATENA TUTTI GLI SPETTRI SULLO STESSA MATRICE
+#experiment_prova.normalize_A3FALL(experiment_prova.allData)
+#a=experiment_prova.data_std;
 #
 #plt.figure()
 #plt.matshow(a[1,0,:,:], fignum=100)

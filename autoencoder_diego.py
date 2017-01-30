@@ -9,7 +9,7 @@ Created on Wed Jan 18 18:43:32 2017
 import os
 os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
           
-          
+import sys
 from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D
 from keras.models import Model,load_model
 from keras import backend as K
@@ -55,7 +55,7 @@ class autoencoder_fall_detection():
 #                i+=1;
 #        self.allData=allData;
         
-    def load_dataset(self,spectrogramsPath,listsPath):#TODO gestione liste liste !!!
+    def load_zp_dataset(self,zp_spectrogramsPath,listsPath):#TODO gestione liste liste !!!
         '''
         Carico il dataset (spettrogrammi) e lo splitto semplicemente in train e test set. Solo per fare i primi test. Qui ancora non considero 
         la validation phase:listpath è inutilizzato
@@ -65,17 +65,72 @@ class autoencoder_fall_detection():
 
         #leggo un immagine a caso dentro il dataset per sapere le dimensioni e inizializzare il vettore
         #che conterrà tutte le immagini. Tutte le immagini devo essere della stessa dimensione.
-        example_image=np.load(os.path.join(spectrogramsPath,random.choice(os.listdir(spectrogramsPath))))
+        example_image=np.load(os.path.join(zp_spectrogramsPath,random.choice(os.listdir(zp_spectrogramsPath))))
         #inizialixe matrix 4D shape (n_nample,n_channel,row,col)
-        n_sample=(len([name for name in os.listdir(spectrogramsPath) if os.path.join(spectrogramsPath,name).endswith('.npy')])) #leggo solo i file
+        n_sample=(len([name for name in os.listdir(zp_spectrogramsPath) if os.path.join(zp_spectrogramsPath,name).endswith('.npy')])) #leggo solo i file
         allData=np.zeros((n_sample,n_channels,example_image.shape[0],example_image.shape[1]))#controllare se righe colonne sono al posto giusto!!
 
-        for root, dirnames, filenames in os.walk(spectrogramsPath):
+        for root, dirnames, filenames in os.walk(zp_spectrogramsPath):
             i=0;
             for file in filenames:
                 allData[i,0,:,:]=np.load(os.path.join(root,file));
                 i+=1;
         self.allData=allData;
+    
+    def load_A3FALL(self,spectrogramsPath):
+        '''
+        Carica tutto il dataset (spettri) in una lista di elementi [filename , matrix ]
+        '''
+        print("Loading A3FALL dataset");
+        a3fall=list();
+        for root, dirnames, filenames in os.walk(spectrogramsPath):
+            i=0;
+            for file in filenames:
+                matrix=np.load(os.path.join(root,file));
+                data=[file,matrix];
+                a3fall.append(data)
+                i+=1;
+        self.a3fall=a3fall
+        return a3fall
+        
+    def split_A3FALL_simple(self,train_tag=None):
+        '''
+        splitta il dataset in train e test set: train tutti i background, mentre test tutto il resto
+        '''
+        if train_tag==None:
+            train_tag=['classic_','rock_','ha_']
+#        if test_tag=None:
+#            test_tag=[]
+        
+        self.a3fall_train=[d for d in self.a3fall if any(word in d[0] for word in train_tag)] #controlla se uno dei tag è presente nnel nome del file e lo assegna al trainset
+        self.a3fall_test=[d for d in self.a3fall if d not in self.a3fall_train]#tutto cioò che non è train diventa test
+        
+        return self.a3fall_train, self.a3fall_test
+        
+    def normalize_data(self,data=None,mean=None,variance=None):
+        '''
+        normalizza media e varianza del dataset passato
+        se data=None viene normalizzato tutto il dataset A3FALL
+        se mean e variance = None essi vengono calcolati in place sui data
+        '''
+        if data==None:
+            data=self.a3fall
+
+        if bool(mean) ^ bool(variance):#xor operator
+            raise("Error!!! Provide both mean and variance")
+        elif mean==None and variance==None: #compute mean and variance of the passed data
+            self.concatenate_matrix(data);      DA FINIRE
+                                               RIPRENDERE DA QUI
+        for s in data:
+            print(s)
+            
+    def concatenate_matrix(self,data):da finire
+        '''
+        concatena gli spettri in un unica matrice: vule una lista e restituisce un array
+        '''
+        
+        for d in data:
+            
         
     def standardize_data(self,data_std): #controllare uso memoria: sto tenendo troppi narray
         self.data_std=data_std;
@@ -243,7 +298,7 @@ class autoencoder_fall_detection():
         plt.show() 
         
         
-    def data_spectrogram():# Daniele is warking on this - not touch!!!!
+    def data_spectrogram():
         print("start calculate spectrogram e save it to disk")
         
     def compute_distance(self,x_test,decoded_images):
