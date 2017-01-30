@@ -93,7 +93,7 @@ class autoencoder_fall_detection():
         self.a3fall=a3fall
         return a3fall
     
-    def zeropadding_set(set_to_pad):
+    def zeropadding_set(self,set_to_pad):
         # find matrix with biggest second axis
         dim_pad=np.amax([len(k[1][2]) for k in set_to_pad]);
         padded_set = [];
@@ -185,8 +185,8 @@ class autoencoder_fall_detection():
     ############END LOAD DATA
     
     def network_architecture_autoencoder(self):
-    
-        input_img = Input(shape=(1, 28, 28))
+        k=3
+        input_img = Input(shape=(1, 129, 197))
         
 #        x = Convolution2D(int(self._nk[0]), int(self._ks[0,0]), int(self._ks[0,1]), activation='tanh', border_mode='same')(input_img)
 #        x = MaxPooling2D((2, 2), border_mode='same')(x)
@@ -205,28 +205,28 @@ class autoencoder_fall_detection():
 #        x = UpSampling2D((2, 2))(x)
 #        decoded = Convolution2D(1, self._ks[0,0], self._ks[0,1], activation='sigmoid', border_mode='same')(x)
 
-        x = Convolution2D(16, 3, 3, activation='tanh', border_mode='same')(input_img)
+        x = Convolution2D(32, k, k, activation='tanh', border_mode='same')(input_img)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(8, 3, 3, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(8, 3, 3, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
         # at this point the representation is (8, 4, 4) i.e. 128-dimensional
         
         x = Flatten()(x)
-        x = Dense(128,activation='tanh')(x)
+        x = Dense(6800,activation='tanh')(x)
         encoded = Dense(64,activation='tanh')(x)
         #-------------------------------------
-        x = Dense(128,activation='tanh')(encoded)
-        x = Reshape((8, 4, 4))(x)
+        x = Dense(6800,activation='tanh')(encoded)
+        x = Reshape((16, 17, 25))(x)
         
-        x = Convolution2D(8, 3, 3, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(8, 3, 3, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(16, 3, 3, activation='tanh')(x)
+        x = Convolution2D(32, k, k, activation='tanh')(x)
         x = UpSampling2D((2, 2))(x)
-        decoded = Convolution2D(1, 3, 3, activation='sigmoid', border_mode='same')(x)  
+        decoded = Convolution2D(1, k, k, activation='tanh', border_mode='same')(x)  
 #        layer1 = Model(input_img, decoded);
 #        layer1.summary();
         self._autoencoder = Model(input_img, decoded)
@@ -235,9 +235,9 @@ class autoencoder_fall_detection():
         
         return autoencoder_model
     
-    def network_architecture_autoencoder_fit(self,X_train, y_train, x_test, y_test):
+    def network_architecture_autoencoder_fit(self,x_train, y_train, x_test, y_test):
 
-        self._autoencoder.fit(X_train, X_train,
+        self._autoencoder.fit(x_train, x_train,
                         nb_epoch=50,
                         batch_size=128,
                         shuffle=True,
