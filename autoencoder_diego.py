@@ -10,7 +10,7 @@ import os
 os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
           
 import sys
-from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D
+from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D, Cropping2D
 from keras.models import Model,load_model
 from keras import backend as K
 from keras.datasets import mnist
@@ -226,7 +226,10 @@ class autoencoder_fall_detection():
         x = UpSampling2D((2, 2))(x)
         x = Convolution2D(32, k, k, activation='tanh')(x)
         x = UpSampling2D((2, 2))(x)
-        decoded = Convolution2D(1, k, k, activation='tanh', border_mode='same')(x)  
+        x = ZeroPadding2D(padding=(0,0,0,1))(x);
+        x = Cropping2D(cropping=((1, 2), (0, 0)))(x)              
+        decoded = Convolution2D(1, k, k, activation='tanh', border_mode='same')(x) 
+        
 #        layer1 = Model(input_img, decoded);
 #        layer1.summary();
         self._autoencoder = Model(input_img, decoded)
