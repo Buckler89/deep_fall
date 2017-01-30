@@ -53,7 +53,7 @@ y_test , x_test = experiment_prova.reshape_set(testset_z)
 model=experiment_prova.network_architecture_autoencoder();#define net architecture
 model.summary();     
 
-experiment_prova.network_architecture_autoencoder_fit(x_train, y_train, x_test, y_test); 
+#experiment_prova.network_architecture_autoencoder_fit(x_train, y_train, x_test, y_test); 
                      
 #experiment_prova.normalize_A3FALL(experiment_prova.allData)
 #a=experiment_prova.data_std;

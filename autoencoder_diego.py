@@ -21,7 +21,7 @@ from scipy.spatial.distance import euclidean
 #import matplotlib.image as img
 import random
 
-__load_directly__=0;#se è a 1 carica il modello e i pesi dal disco.
+__load_directly__=1;#se è a 1 carica il modello e i pesi dal disco.
 
 class autoencoder_fall_detection():
     
@@ -205,26 +205,26 @@ class autoencoder_fall_detection():
 #        x = UpSampling2D((2, 2))(x)
 #        decoded = Convolution2D(1, self._ks[0,0], self._ks[0,1], activation='sigmoid', border_mode='same')(x)
 
-        x = Convolution2D(32, k, k, activation='tanh', border_mode='same')(input_img)
+        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(input_img)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(8, k, k, activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(8, k, k, activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
         # at this point the representation is (8, 4, 4) i.e. 128-dimensional
         
         x = Flatten()(x)
-        x = Dense(6800,activation='tanh')(x)
+        x = Dense(3400,activation='tanh')(x)
         encoded = Dense(64,activation='tanh')(x)
         #-------------------------------------
-        x = Dense(6800,activation='tanh')(encoded)
-        x = Reshape((16, 17, 25))(x)
+        x = Dense(3400,activation='tanh')(encoded)
+        x = Reshape((8, 17, 25))(x)
         
-        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(8, k, k, activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(8, k, k, activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(32, k, k, activation='tanh')(x)
+        x = Convolution2D(16, k, k, activation='tanh')(x)
         x = UpSampling2D((2, 2))(x)
         x = ZeroPadding2D(padding=(0,0,0,1))(x);
         x = Cropping2D(cropping=((1, 2), (0, 0)))(x)              
@@ -271,23 +271,23 @@ class autoencoder_fall_detection():
 #autoencoder = Model.from_config(net_config)
 #autoencoder.set_weights(net_weight)
 
-        n = 41
-        plt.figure(figsize=(20*4, 4*4))
-        for i in range(1,n):
-            # display original
-            ax = plt.subplot(2, n, i)
-            plt.imshow(x_test[i].reshape(28, 28))
-            plt.gray()
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-        
-            # display reconstruction
-            ax = plt.subplot(2, n, i + n)
-            plt.imshow(decoded_imgs[i].reshape(28, 28))
-            plt.gray()
-            ax.get_xaxis().set_visible(False)
-            ax.get_yaxis().set_visible(False)
-        plt.show()
+#        n = 41
+#        plt.figure(figsize=(20*4, 4*4))
+#        for i in range(1,n):
+#            # display original
+#            ax = plt.subplot(2, n, i)
+#            plt.imshow(x_test[i].reshape(28, 28))
+#            plt.gray()
+#            ax.get_xaxis().set_visible(False)
+#            ax.get_yaxis().set_visible(False)
+#        
+#            # display reconstruction
+#            ax = plt.subplot(2, n, i + n)
+#            plt.imshow(decoded_imgs[i].reshape(28, 28))
+#            plt.gray()
+#            ax.get_xaxis().set_visible(False)
+#            ax.get_yaxis().set_visible(False)
+#        plt.show()
         return decoded_imgs
 
     def reconstruct_image(self,x_test):
@@ -347,12 +347,28 @@ class autoencoder_fall_detection():
             e_d[i] = euclidean(decoded_images[i,0,:,:].flatten(),x_test[i,0,:,:].flatten())
                 
         return e_d;
-
-    def compute_score(self,x_test,decoded_images,y_test):
+    
+    def labelize_data(self,y):
+        '''
+        labellzza numericamente i nomi dei file
         
+        '''
+        i=0
+        numeric_label=list();
+        for d in y:
+            if 'rndy' in d:
+                numeric_label.append(1);
+            else:
+                numeric_label.append(0);
+            i+=1;
+                             
+        return numeric_label
+    
+    def compute_score(self,x_test,decoded_images,y_test):
+        numeric_label=self.labelize_data(y_test);
         e_d=self.compute_distance(x_test,decoded_images);
         print("roc curve:");                         
-        fpr, tpr, thresholds = roc_curve(y_test, e_d, pos_label=9);
+        fpr, tpr, thresholds = roc_curve(numeric_label, e_d, pos_label=1);
         roc_auc = auc(fpr, tpr)
                                                 # Plot of a ROC curve for a specific class
         plt.figure()
