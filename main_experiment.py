@@ -33,15 +33,19 @@ kernel_shape=np.array([     [3,3],  [3,3],  [3,3]]);
 
 #TEST load_dataset function
                                  
-experiment_prova=autoencoder_diego.autoencoder_fall_detection(kernel_shape,number_of_kernel);
+experiment_prova=autoencoder_diego.autoencoder_fall_detection(kernel_shape,number_of_kernel);#init class
 
-model=experiment_prova.network_architecture_autoencoder();
-model.summary();
             
-a3fall = experiment_prova.load_A3FALL('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/')
-trainset, testset  = experiment_prova.split_A3FALL_simple();
-                                    
-#TODO: NORMALIZZARE PARTENDO DAL DATASET NON ZERO PADDATO E POI ZEROPADDARE--->FARE LISTA DI ARRAY/O CONCATENA TUTTI GLI SPETTRI SULLO STESSA MATRICE
+a3fall = experiment_prova.load_A3FALL('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/') #load dataset
+trainset, testset  = experiment_prova.split_A3FALL_simple();  #split the data
+trainset, mean, std =experiment_prova.normalize_data(trainset); #compute mean and std of the trainset and normalize the trainset     
+testset, _ , _ = experiment_prova.normalize_data(testset,mean,std)  # normalize testset with the mean and std of the trainset
+#to do: reshape of the train and test for the network: partire dalle matrici già caricate e non utilizzare piu la vecchia funzione che leggeva dal dico gli spettri zeropaddati
+      
+
+
+model=experiment_prova.network_architecture_autoencoder();#define net architecture
+model.summary();                              
 #experiment_prova.normalize_A3FALL(experiment_prova.allData)
 #a=experiment_prova.data_std;
 #

@@ -96,6 +96,7 @@ class autoencoder_fall_detection():
     def split_A3FALL_simple(self,train_tag=None):
         '''
         splitta il dataset in train e test set: train tutti i background, mentre test tutto il resto
+        (da amplicare in modo che consenta lo split per la validation)
         '''
         if train_tag==None:
             train_tag=['classic_','rock_','ha_']
@@ -107,7 +108,7 @@ class autoencoder_fall_detection():
         
         return self.a3fall_train, self.a3fall_test
         
-    def normalize_data(self,data=None,mean=None,variance=None):
+    def normalize_data(self,data=None,mean=None,std=None):
         '''
         normalizza media e varianza del dataset passato
         se data=None viene normalizzato tutto il dataset A3FALL
@@ -116,21 +117,27 @@ class autoencoder_fall_detection():
         if data==None:
             data=self.a3fall
 
-        if bool(mean) ^ bool(variance):#xor operator
+        if bool(mean) ^ bool(std):#xor operator
             raise("Error!!! Provide both mean and variance")
-        elif mean==None and variance==None: #compute mean and variance of the passed data
-            self.concatenate_matrix(data);      DA FINIRE
-                                               RIPRENDERE DA QUI
-        for s in data:
-            print(s)
-            
-    def concatenate_matrix(self,data):da finire
+        elif mean==None and std==None: #compute mean and variance of the passed data
+            data_conc = self.concatenate_matrix(data);
+            mean=np.mean(data_conc)
+            std=np.std(data_conc)   
+                                            
+        data_std= [[d[0],((d[1]-mean)/std)] for d in data]#normalizza i dati: togle mean e divide per std
+        
+        return data_std, mean , std;
+        
+    def concatenate_matrix(self,data):
         '''
         concatena gli spettri in un unica matrice: vule una lista e restituisce un array
         '''
-        
-        for d in data:
-            
+        data_=data.copy()
+        data_.pop(0)
+        matrix=data[0][1]
+        for d in data_:
+            np.append(matrix,d[1], axis=1)
+        return matrix
         
     def standardize_data(self,data_std): #controllare uso memoria: sto tenendo troppi narray
         self.data_std=data_std;
