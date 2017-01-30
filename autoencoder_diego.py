@@ -92,7 +92,28 @@ class autoencoder_fall_detection():
                 i+=1;
         self.a3fall=a3fall
         return a3fall
-        
+    
+    def zeropadding_set(set_to_pad):
+        # find matrix with biggest second axis
+        dim_pad=np.amax([len(k[1][2]) for k in set_to_pad]);
+        padded_set = [];
+        for e in set_to_pad:
+            pad_matrix=np.lib.pad(e[1], ((0, 0), (0, dim_pad-len(e[1][1]))),'constant', constant_values=(0, 0));
+            padded_set.append([e[0], pad_matrix]);
+        return padded_set 
+    
+    def reshape_set(self,set_to_reshape, channels=1):
+        # if not yet, zeropadding 
+        set_to_reshape = self.zeropadding_set(set_to_reshape);
+        n_sample=len(set_to_reshape);
+        row, col = set_to_reshape[0][1].shape;
+        name_list = []
+        shaped_matrix = np.empty((n_sample,channels,row,col));
+        for i in range(len(set_to_reshape)):
+            name_list.append(set_to_reshape[i][0]);
+            shaped_matrix[i][0]=set_to_reshape[i][1]
+        return name_list, shaped_matrix 
+    
     def split_A3FALL_simple(self,train_tag=None):
         '''
         splitta il dataset in train e test set: train tutti i background, mentre test tutto il resto
