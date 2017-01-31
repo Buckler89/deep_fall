@@ -93,18 +93,20 @@ class autoencoder_fall_detection():
         self.a3fall=a3fall
         return a3fall
     
-    def zeropadding_set(set_to_pad):
+    def awgn_padding_set(set_to_pad, loc=0.0, scale=1.0):
         # find matrix with biggest second axis
         dim_pad=np.amax([len(k[1][2]) for k in set_to_pad]);
-        padded_set = [];
+        awgn_padded_set = []
         for e in set_to_pad:
-            pad_matrix=np.lib.pad(e[1], ((0, 0), (0, dim_pad-len(e[1][1]))),'constant', constant_values=(0, 0));
-            padded_set.append([e[0], pad_matrix]);
-        return padded_set 
+            row, col = e[1].shape;
+            # crete an rowXcol matrix with awgn samples
+            awgn_matrix = np.random.normal(loc, scale, size=(row,dim_pad-col));
+            awgn_padded_set.append([e[0],np.hstack((e[1],awgn_matrix))]);
+        return awgn_padded_set 
     
     def reshape_set(self,set_to_reshape, channels=1):
-        # if not yet, zeropadding 
-        set_to_reshape = self.zeropadding_set(set_to_reshape);
+        # if not yet, padding with awgn
+        set_to_reshape = self.awgn_padding_set(set_to_reshape);
         n_sample=len(set_to_reshape);
         row, col = set_to_reshape[0][1].shape;
         name_list = []
