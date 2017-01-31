@@ -93,7 +93,7 @@ class autoencoder_fall_detection():
         self.a3fall=a3fall
         return a3fall
     
-    def awgn_padding_set(set_to_pad, loc=0.0, scale=1.0):
+    def awgn_padding_set(self, set_to_pad, loc=0.0, scale=1.0):
         # find matrix with biggest second axis
         dim_pad=np.amax([len(k[1][2]) for k in set_to_pad]);
         awgn_padded_set = []
