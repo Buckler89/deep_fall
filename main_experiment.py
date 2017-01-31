@@ -41,8 +41,8 @@ trainset, testset  = experiment_prova.split_A3FALL_simple();  #split the data
 trainset, mean, std =experiment_prova.normalize_data(trainset); #compute mean and std of the trainset and normalize the trainset     
 testset, _ , _ = experiment_prova.normalize_data(testset,mean,std)  # normalize testset with the mean and std of the trainset
 #to do: reshape of the train and test for the network: partire dalle matrici già caricate e non utilizzare piu la vecchia funzione che leggeva dal dico gli spettri zeropaddati
-trainset_z = experiment_prova.zeropadding_set(trainset);
-testset_z = experiment_prova.zeropadding_set(testset);
+trainset_z = experiment_prova.awgn_padding_set(trainset);
+testset_z = experiment_prova.awgn_padding_set(testset);
                                             
 y_train , x_train = experiment_prova.reshape_set(trainset_z);
 y_test , x_test = experiment_prova.reshape_set(testset_z)
@@ -53,7 +53,7 @@ y_test , x_test = experiment_prova.reshape_set(testset_z)
 model=experiment_prova.network_architecture_autoencoder();#define net architecture
 model.summary();     
 
-#experiment_prova.network_architecture_autoencoder_fit(x_train, y_train, x_test, y_test); 
+experiment_prova.network_architecture_autoencoder_fit(x_train, y_train, x_test, y_test); 
                      
 #experiment_prova.normalize_A3FALL(experiment_prova.allData)
 #a=experiment_prova.data_std;
