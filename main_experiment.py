@@ -27,16 +27,18 @@ devNameLists=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst']
 #gestione dataset       
 a3fall = dm.load_A3FALL('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/') #load dataset
 
-trainsets = dm.split_A3FALL_from_lists(a3fall,listTrainpath,trainNameLists)
-devsets = dm.split_A3FALL_from_lists(a3fall,listPath,devNameLists)
-testsets = dm.split_A3FALL_from_lists(a3fall,listPath,testNamesLists)
+                       #il trainset è 1 e sempre lo stesso per tutti gli esperimenti
+trainset = dm.split_A3FALL_from_lists(a3fall,listTrainpath,trainNameLists)[0]; #creo i trainset per calcolare media e varianza per poter normalizzare 
+trainset , mean, std =dm.normalize_data(trainset); #compute mean and std of the trainset and normalize the trainset  
 
 
-trainsets[0], mean, std =dm.normalize_data(trainsets[0]); #compute mean and std of the trainset and normalize the trainset     
-testsets[1], _ , _ = dm.normalize_data(testsets[1],mean,std)  # normalize testset with the mean and std of the trainset
-trainset_z = dm.awgn_padding_set(trainsets[0]);
-testset_z = dm.awgn_padding_set(testsets[1]);
-                                           
+a3fall_n = dm.normalize_data(a3fall); #ormalize the dataset with the mean and std of the trainset
+a3fall_n_z = dm.reshape_set(a3fall_n);
+#creo le gli altri set partendo dal dataset normalizzato e ridimensionato
+devsets = dm.split_A3FALL_from_lists(a3fall_n,listPath,devNameLists);
+testsets = dm.split_A3FALL_from_lists(a3fall_n,listPath,testNamesLists);
+
+                                        
 y_train , x_train = dm.reshape_set(trainset_z);
 y_test , x_test = dm.reshape_set(testset_z);
        
