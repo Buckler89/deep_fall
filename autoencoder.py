@@ -9,17 +9,13 @@ Created on Wed Jan 18 18:43:32 2017
 import os
 os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
           
-import sys
 from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D, Cropping2D
 from keras.models import Model,load_model
-from keras import backend as K
-from keras.datasets import mnist
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from scipy.spatial.distance import euclidean
 #import matplotlib.image as img
-import random
 
 __load_directly__=1;#se è a 1 carica il modello e i pesi dal disco.
 
@@ -33,156 +29,10 @@ class autoencoder_fall_detection():
         self._autoencoder=0
         
     ############LOAD DATA
-#    def load_dataset_img(self,spectrogramsPath,listsPath):
-#        '''
-#        Carico il dataset di immagini generiche e lo splitto semplicemente in train e test set. Solo per fare i primi test. Qui non considero 
-#        la validation phase
-#        '''
-#        print("Loading A3FFALL dataset");
-#        n_channels=1#questo andrebbe modificato se gli spetteri hanno pure i delta e deltadelta
-#
-#        #leggo un immagine a caso dentro il dataset per sapere le dimensioni e inizializzare il vettore
-#        #che conterrà tutte le immagini. Tutte le immagini devo essere della stessa dimensione.
-#        example_image=img.imread(os.path.join(spectrogramsPath,random.choice(os.listdir(spectrogramsPath))))
-#        #inizialixe matrix 4D shape (n_nample,n_channel,row,col)
-#        n_sample=(len([name for name in os.listdir(spectrogramsPath) if os.path.isfile(os.path.join(spectrogramsPath,name))]))
-#        allData=np.zeros((n_sample,n_channels,example_image.shape[1],example_image.shape[0]))#controllare se righe colonne sono al posto giusto!!
-#
-#        for root, dirnames, filenames in os.walk(spectrogramsPath):
-#            i=0;
-#            for file in filenames:
-#                allData[i,0,:,:]=img.imread(os.path.join(root,file))[:,:,0];
-#                i+=1;
-#        self.allData=allData;
-        
-    def load_zp_dataset(self,zp_spectrogramsPath,listsPath):#TODO gestione liste liste !!!
-        '''
-        Carico il dataset (spettrogrammi) e lo splitto semplicemente in train e test set. Solo per fare i primi test. Qui ancora non considero 
-        la validation phase:listpath è inutilizzato
-        '''
-        print("Loading A3FALL dataset");
-        n_channels=1#questo andrebbe modificato se gli spetteri hanno pure i delta e deltadelta
 
-        #leggo un immagine a caso dentro il dataset per sapere le dimensioni e inizializzare il vettore
-        #che conterrà tutte le immagini. Tutte le immagini devo essere della stessa dimensione.
-        example_image=np.load(os.path.join(zp_spectrogramsPath,random.choice(os.listdir(zp_spectrogramsPath))))
-        #inizialixe matrix 4D shape (n_nample,n_channel,row,col)
-        n_sample=(len([name for name in os.listdir(zp_spectrogramsPath) if os.path.join(zp_spectrogramsPath,name).endswith('.npy')])) #leggo solo i file
-        allData=np.zeros((n_sample,n_channels,example_image.shape[0],example_image.shape[1]))#controllare se righe colonne sono al posto giusto!!
+    
 
-        for root, dirnames, filenames in os.walk(zp_spectrogramsPath):
-            i=0;
-            for file in filenames:
-                allData[i,0,:,:]=np.load(os.path.join(root,file));
-                i+=1;
-        self.allData=allData;
-    
-    def load_A3FALL(self,spectrogramsPath):
-        '''
-        Carica tutto il dataset (spettri) in una lista di elementi [filename , matrix ]
-        '''
-        print("Loading A3FALL dataset");
-        a3fall=list();
-        for root, dirnames, filenames in os.walk(spectrogramsPath):
-            i=0;
-            for file in filenames:
-                matrix=np.load(os.path.join(root,file));
-                data=[file,matrix];
-                a3fall.append(data)
-                i+=1;
-        self.a3fall=a3fall
-        return a3fall
-    
-    def awgn_padding_set(self, set_to_pad, loc=0.0, scale=1.0):
-        # find matrix with biggest second axis
-        dim_pad=np.amax([len(k[1][2]) for k in set_to_pad]);
-        awgn_padded_set = []
-        for e in set_to_pad:
-            row, col = e[1].shape;
-            # crete an rowXcol matrix with awgn samples
-            awgn_matrix = np.random.normal(loc, scale, size=(row,dim_pad-col));
-            awgn_padded_set.append([e[0],np.hstack((e[1],awgn_matrix))]);
-        return awgn_padded_set 
-    
-    def reshape_set(self,set_to_reshape, channels=1):
-        # if not yet, padding with awgn
-        set_to_reshape = self.awgn_padding_set(set_to_reshape);
-        n_sample=len(set_to_reshape);
-        row, col = set_to_reshape[0][1].shape;
-        name_list = []
-        shaped_matrix = np.empty((n_sample,channels,row,col));
-        for i in range(len(set_to_reshape)):
-            name_list.append(set_to_reshape[i][0]);
-            shaped_matrix[i][0]=set_to_reshape[i][1]
-        return name_list, shaped_matrix 
-    
-    def split_A3FALL_simple(self,train_tag=None):
-        '''
-        splitta il dataset in train e test set: train tutti i background, mentre test tutto il resto
-        (da amplicare in modo che consenta lo split per la validation)
-        '''
-        if train_tag==None:
-            train_tag=['classic_','rock_','ha_']
-#        if test_tag=None:
-#            test_tag=[]
         
-        self.a3fall_train=[d for d in self.a3fall if any(word in d[0] for word in train_tag)] #controlla se uno dei tag è presente nnel nome del file e lo assegna al trainset
-        self.a3fall_test=[d for d in self.a3fall if d not in self.a3fall_train]#tutto cioò che non è train diventa test
-        
-        return self.a3fall_train, self.a3fall_test
-        
-    def normalize_data(self,data=None,mean=None,std=None):
-        '''
-        normalizza media e varianza del dataset passato
-        se data=None viene normalizzato tutto il dataset A3FALL
-        se mean e variance = None essi vengono calcolati in place sui data
-        '''
-        if data==None:
-            data=self.a3fall
-
-        if bool(mean) ^ bool(std):#xor operator
-            raise("Error!!! Provide both mean and variance")
-        elif mean==None and std==None: #compute mean and variance of the passed data
-            data_conc = self.concatenate_matrix(data);
-            mean=np.mean(data_conc)
-            std=np.std(data_conc)   
-                                            
-        data_std= [[d[0],((d[1]-mean)/std)] for d in data]#normalizza i dati: togle mean e divide per std
-        
-        return data_std, mean , std;
-        
-    def concatenate_matrix(self,data):
-        '''
-        concatena gli spettri in un unica matrice: vule una lista e restituisce un array
-        '''
-        data_=data.copy()
-        data_.pop(0)
-        matrix=data[0][1]
-        for d in data_:
-            np.append(matrix,d[1], axis=1)
-        return matrix
-        
-    def standardize_data(self,data_std): #controllare uso memoria: sto tenendo troppi narray
-        self.data_std=data_std;
-        self.mean=np.mean(data_std, axis=(0,2,3))#faccio la media senza cosiderare i channel ( ovvero asse 1)
-        self.data_std -= self.mean
-        self.std=np.std(data_std, axis=(0,2,3))
-        self.data_std /= (self.std + K.epsilon())
-        
-        return self.data_std, self.mean , self.std 
-        
-    def pre_process_data_mnist(self,):
-        (x_train, y_train), (x_test, y_test) = mnist.load_data()
-        
-        x_train = x_train.astype('float32') / 255.
-        x_test = x_test.astype('float32') / 255.
-        x_train = np.reshape(x_train, (len(x_train), 1, 28, 28))
-        x_test = np.reshape(x_test, (len(x_test), 1, 28, 28))
-        
-        #remove some data 4 from trainset
-        X_train=[x for x, y in zip(x_train, y_train) if (y < 9)]
-        X_train=np.array(X_train)
-        return  (X_train, y_train, x_test, y_test)
     
     ############END LOAD DATA
     
@@ -235,7 +85,7 @@ class autoencoder_fall_detection():
 #        layer1 = Model(input_img, decoded);
 #        layer1.summary();
         self._autoencoder = Model(input_img, decoded)
-        self._autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
+        self._autoencoder.compile(optimizer='adadelta', loss='mse')
         autoencoder_model = self._autoencoder
         
         return autoencoder_model
