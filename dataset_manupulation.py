@@ -37,8 +37,7 @@ def awgn_padding_set( set_to_pad, loc=0.0, scale=1.0):
     return awgn_padded_set 
 
 def reshape_set(set_to_reshape, channels=1):
-    # if not yet, padding with awgn
-    set_to_reshape = awgn_padding_set(set_to_reshape);
+
     n_sample=len(set_to_reshape);
     row, col = set_to_reshape[0][1].shape;
     label = []

@@ -71,8 +71,14 @@ class autoencoder_fall_detection():
                 
         return self._autoencoder
     
-    def model_compile(model, optimizer='adadelta', loss='mse'):
-        model.compile(optimizer='adadelta', loss='mse')
+    def model_compile(self, model=None, optimizer='adadelta', loss='mse'):
+        '''
+        compila il modello con i parametri passati: se non viene passato compila il modello istanziato dalla classe
+        '''
+        if model==None:
+            self._autoencoder.compile(optimizer='adadelta', loss='mse');
+        else:
+            model.compile(optimizer='adadelta', loss='mse');
         
     def model_fit(self,x_train, y_train, x_test, y_test, nb_epoch=50, batch_size=128, shuffle=True, ):
 
@@ -164,10 +170,7 @@ class autoencoder_fall_detection():
         ax.get_yaxis().set_visible(False)
         plt.show() 
         
-        
-    def data_spectrogram():
-        print("start calculate spectrogram e save it to disk")
-        
+ 
     def compute_distance(self,x_test,decoded_images):
         '''
         calcola le distanze euclide tra 2 vettori di immagini con shape (n_img,1,row,col)
@@ -200,9 +203,9 @@ class autoencoder_fall_detection():
                              
         return numeric_label
     
-    def compute_score(self,x_test,decoded_images,y_test):
-        numeric_label=self.labelize_data(y_test);
-        e_d=self.compute_distance(x_test,decoded_images);
+    def compute_score(self, original_image, decoded_images, labels):
+        numeric_label=self.labelize_data(labels);
+        e_d=self.compute_distance(original_image,decoded_images);
         print("roc curve:");                         
         fpr, tpr, thresholds = roc_curve(numeric_label, e_d, pos_label=1);
         roc_auc = auc(fpr, tpr)
