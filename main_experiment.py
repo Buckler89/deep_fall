@@ -36,7 +36,7 @@ a3fall_n_z = dm.awgn_padding_set(a3fall_n);
                                 
                                 
 #creo i set partendo dal dataset normalizzato e paddato
-trainset = dm.split_A3FALL_from_lists(a3fall,listTrainpath,trainNameLists)
+trainsets = dm.split_A3FALL_from_lists(a3fall_n_z,listTrainpath,trainNameLists)
 devsets = dm.split_A3FALL_from_lists(a3fall_n_z,listPath,devNameLists);
 testsets = dm.split_A3FALL_from_lists(a3fall_n_z,listPath,testNamesLists);
 
@@ -49,7 +49,7 @@ y_devs = list()
 x_tests = list()
 y_tests = list()
 
-for s in devsets:
+for s in trainsets:
     x, y = dm.reshape_set(s)
     x_trains.append(x)
     y_trains.append(y)
@@ -69,7 +69,7 @@ for s in testsets:
                         #for param in paramlist:
                         #    #carico modello 
                         #    #setto hyperparametri della funzione fit e compile
-                        #    net.fit(trainset)     #se il trainset è unico allora questa fit può stare fuori dal "for fold"!!!
+                        #    net.fit(trainset,validationset?)     #se il trainset è unico allora questa fit può stare fuori dal "for fold"!!!
                         #    for fold in folds:
                         #        net.predict(devset)
                         #        net.compute_score+=score #sommole score di tutte le fold
@@ -91,11 +91,11 @@ for param in params:
     
     #parametri di defautl anche per compile e fit
     net.model_compile()
+    
+    net.model_fit(x_trains[0], _ )
     for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
-        net.model_compile();
-        net.model_fit(x_trains[0], _ , x_dev , y_dev)
-        decoded_images = net.reconstruct_images(x_dev);  
 
+        decoded_images = net.reconstruct_images(x_dev);  
         net.compute_score(x_dev, decoded_images, y_dev)
     
         #raggruppare ora i dati per fold: modifica la funzione compute score per fare questo

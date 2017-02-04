@@ -80,14 +80,18 @@ class autoencoder_fall_detection():
         else:
             model.compile(optimizer='adadelta', loss='mse');
         
-    def model_fit(self,x_train, y_train, x_test, y_test, nb_epoch=50, batch_size=128, shuffle=True, ):
-
-        self._autoencoder.fit(x_train, x_train,
-                        nb_epoch=50,
-                        batch_size=128,
-                        shuffle=True,
-                        validation_data=(x_test, x_test))
-        
+    def model_fit(self,x_train, y_train, x_test=None, y_test=None, nb_epoch=50, batch_size=128, shuffle=True, ):
+        if x_test != None and y_test != None:
+            self._autoencoder.fit(x_train, x_train,
+                            nb_epoch=50,
+                            batch_size=128,
+                            shuffle=True,
+                            validation_data=(x_test, x_test))
+        else:
+            self._autoencoder.fit(x_train, x_train,
+                    nb_epoch=50,
+                    batch_size=128,
+                    shuffle=True)
         #save the model an weights on disk
         self._autoencoder.save('my_model.h5')
         self._autoencoder.save_weights('my_model_weights.h5')
