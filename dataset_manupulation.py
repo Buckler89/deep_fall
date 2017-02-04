@@ -41,12 +41,12 @@ def reshape_set(set_to_reshape, channels=1):
     set_to_reshape = awgn_padding_set(set_to_reshape);
     n_sample=len(set_to_reshape);
     row, col = set_to_reshape[0][1].shape;
-    name_list = []
+    label = []
     shaped_matrix = np.empty((n_sample,channels,row,col));
     for i in range(len(set_to_reshape)):
-        name_list.append(set_to_reshape[i][0]);
+        label.append(set_to_reshape[i][0]);
         shaped_matrix[i][0]=set_to_reshape[i][1]
-    return name_list, shaped_matrix 
+    return shaped_matrix,  label
 
 def split_A3FALL_simple(data,train_tag=None):
     '''

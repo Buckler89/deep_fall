@@ -21,7 +21,7 @@ __load_directly__=1;#se è a 1 carica il modello e i pesi dal disco.
 
 class autoencoder_fall_detection():
     
-    def __init__(self, kernel_shape, number_of_kernel):
+    def __init__(self, kernel_shape=[3,3], number_of_kernel=[16,8,8]):
         self._ks = kernel_shape
         self._nk = number_of_kernel
         self._config=0;
@@ -36,32 +36,15 @@ class autoencoder_fall_detection():
     
     ############END LOAD DATA
     
-    def network_architecture_autoencoder(self):
-        k=3
+    def define_arch(self):
         input_img = Input(shape=(1, 129, 197))
-        
-#        x = Convolution2D(int(self._nk[0]), int(self._ks[0,0]), int(self._ks[0,1]), activation='tanh', border_mode='same')(input_img)
-#        x = MaxPooling2D((2, 2), border_mode='same')(x)
-#        x = Convolution2D(self._nk[1], self._ks[1,0], self._ks[1,1], activation='tanh', border_mode='same')(x)
-#        x = MaxPooling2D((2, 2), border_mode='same')(x)
-#        x = Convolution2D(self._nk[2], self._ks[1,0], self._ks[2,1], activation='tanh', border_mode='same')(x)
-#        encoded = MaxPooling2D((2, 2), border_mode='same')(x)
-#        
-#        # at this point the representation is (8, 4, 4) i.e. 128-dimensional
-#        
-#        x = Convolution2D(self._nk[2], self._ks[2,0], self._ks[2,1], activation='tanh', border_mode='same')(encoded)
-#        x = UpSampling2D((2, 2))(x)
-#        x = Convolution2D(self._nk[1], self._ks[1,0], self._ks[1,1], activation='tanh', border_mode='same')(x)
-#        x = UpSampling2D((2, 2))(x)
-#        x = Convolution2D(self._nk[0], self._ks[0,0], self._ks[0,1], activation='tanh')(x)
-#        x = UpSampling2D((2, 2))(x)
-#        decoded = Convolution2D(1, self._ks[0,0], self._ks[0,1], activation='sigmoid', border_mode='same')(x)
 
-        x = Convolution2D(16, k, k, activation='tanh', border_mode='same')(input_img)
+
+        x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(input_img)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(8, k, k, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(self._nk[1], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(8, k, k, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(self._nk[2], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
         # at this point the representation is (8, 4, 4) i.e. 128-dimensional
         
@@ -72,25 +55,26 @@ class autoencoder_fall_detection():
         x = Dense(3400,activation='tanh')(encoded)
         x = Reshape((8, 17, 25))(x)
         
-        x = Convolution2D(8, k, k, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(self._nk[2], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(8, k, k, activation='tanh', border_mode='same')(x)
+        x = Convolution2D(self._nk[1], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(16, k, k, activation='tanh')(x)
+        x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh')(x)
         x = UpSampling2D((2, 2))(x)
         x = ZeroPadding2D(padding=(0,0,0,1))(x);
         x = Cropping2D(cropping=((1, 2), (0, 0)))(x)              
-        decoded = Convolution2D(1, k, k, activation='tanh', border_mode='same')(x) 
+        decoded = Convolution2D(1, self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x) 
         
 #        layer1 = Model(input_img, decoded);
 #        layer1.summary();
         self._autoencoder = Model(input_img, decoded)
-        self._autoencoder.compile(optimizer='adadelta', loss='mse')
-        autoencoder_model = self._autoencoder
-        
-        return autoencoder_model
+                
+        return self._autoencoder
     
-    def network_architecture_autoencoder_fit(self,x_train, y_train, x_test, y_test):
+    def model_compile(model, optimizer='adadelta', loss='mse'):
+        model.compile(optimizer='adadelta', loss='mse')
+        
+    def model_fit(self,x_train, y_train, x_test, y_test, nb_epoch=50, batch_size=128, shuffle=True, ):
 
         self._autoencoder.fit(x_train, x_train,
                         nb_epoch=50,
