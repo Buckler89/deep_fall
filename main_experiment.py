@@ -83,7 +83,7 @@ for s in testsets:
                         #   net.predict(testset)
                         #   net.compute_score+=score #sommole score di tutte le fold
 
-params=[1]; #quesa variabile rappresenta tutti i parametri che dovranno essere variati.
+params=[1]; #quesa variabile rappresenta tutti i parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
 for param in params:                        
     #carico modello con parametri di defautl
     net=autoencoder.autoencoder_fall_detection();
