@@ -11,6 +11,7 @@ os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
           
 from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D, Cropping2D
 from keras.models import Model,load_model
+from keras.metrics import fmeasure
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
@@ -224,14 +225,8 @@ class autoencoder_fall_detection():
         plt.title('Receiver operating characteristic')
         plt.legend(loc="lower right")
         plt.show()
-#        matrix_e_d_target=np.zeros((2,x_test.shape[0]));
-#        matrix_e_d_target[0,:]=e_d;
-#        matrix_e_d_target[1,:]=y_test;
-#        thrshold=np.arange(0,max(e_d),0.1);
-#        for t in thrashold:
-#            e_d[t]<t
-#        for i in range(matrix_e_d_target.shape[1]):
-#            if matrix_e_d_target[1,i]!=0:
+        
+        #fmeasure(numeric_label,e_d) ??? su quale theshold?
                 
         return 
         
