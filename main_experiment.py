@@ -82,6 +82,7 @@ for s in testsets:
                         #   net.load_model(parametri ottimi)
                         #   net.predict(testset)
                         #   net.compute_score+=score #sommole score di tutte le fold
+print("------------------------CROSS VALIDATION---------------")
 
 params=[1,2]; #quesa variabile rappresenta tutti i set parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
 #init scoreMatrix
@@ -111,16 +112,17 @@ idxBestParamPerFolds=scoreMatrix.argmax(axis=1);
 
              
 #test-finale-------------------------------
+print("------------------------TEST---------------")
 idx=0;
-for x_test, y_test in zip (x_trains, y_trains):
+for x_test, y_test in zip (x_tests, y_tests):
     
-    param=params[idx];#carico i parametri ottimi per una data fold
+    param=params[idxBestParamPerFolds[idx]];#carico i parametri ottimi per una data fold
     #poi questi parametri verrano utilizzani nella creazione del modello/nel compile/e nel fit
     net.model_compile();
     net.model_fit(x_trains[0], _ );
                  
     decoded_images = net.reconstruct_spectrogram(x_test);  
-    auc = net.compute_score(x_dev, decoded_images, y_dev);      
+    auc = net.compute_score(x_test, decoded_images, y_test);      
                 
     idx+=1;
         
