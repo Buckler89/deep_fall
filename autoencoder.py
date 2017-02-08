@@ -11,7 +11,6 @@ os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
           
 from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D, Cropping2D
 from keras.models import Model,load_model
-from keras.metrics import fmeasure
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
@@ -82,37 +81,40 @@ class autoencoder_fall_detection():
             model.compile(optimizer='adadelta', loss='mse');
         
     def model_fit(self,x_train, y_train, x_test=None, y_test=None, nb_epoch=50, batch_size=128, shuffle=True, ):
-        if x_test != None and y_test != None:
-            self._autoencoder.fit(x_train, x_train,
-                            nb_epoch=50,
-                            batch_size=128,
-                            shuffle=True,
-                            validation_data=(x_test, x_test))
-        else:
-            self._autoencoder.fit(x_train, x_train,
-                    nb_epoch=50,
-                    batch_size=128,
-                    shuffle=True)
-        #save the model an weights on disk
-        self._autoencoder.save('my_model.h5')
-        self._autoencoder.save_weights('my_model_weights.h5')
-        #save the model and wetight on varibles
-#        self._config = self._autoencoder.get_config();
-#        self._weight = self._autoencoder.get_weights()
-        fitted_autoencoder = self._autoencoder
-        return fitted_autoencoder
         
-    def reconstruct_images(self,x_test):
-
         if __load_directly__:
             #if i want to load from disk the model
             autoencoder=load_model('my_model.h5')
             autoencoder.load_weights('my_model_weights.h5')
-            decoded_imgs = autoencoder.predict(x_test)
-
+            self._autoencoder=autoencoder;
         else:
-            #norma operation
-            decoded_imgs=self._autoencoder.predict(x_test)
+            if x_test != None and y_test != None:
+                self._autoencoder.fit(x_train, x_train,
+                                nb_epoch=50,
+                                batch_size=128,
+                                shuffle=True,
+                                validation_data=(x_test, x_test))
+            else:
+                self._autoencoder.fit(x_train, x_train,
+                        nb_epoch=50,
+                        batch_size=128,
+                        shuffle=True)
+            #save the model an weights on disk
+            self._autoencoder.save('my_model.h5')
+            self._autoencoder.save_weights('my_model_weights.h5')
+            #save the model and wetight on varibles
+    #        self._config = self._autoencoder.get_config();
+    #        self._weight = self._autoencoder.get_weights()
+            
+            
+        return self._autoencoder
+        
+    def reconstruct_spectrogram(self,x_test):
+        '''
+        decodifica i vettori in ingresso.
+        '''
+
+        decoded_imgs=self._autoencoder.predict(x_test)
             
 #to load from variable
 #autoencoder = Model.from_config(net_config)
@@ -137,27 +139,11 @@ class autoencoder_fall_detection():
 #        plt.show()
         return decoded_imgs
 
-    def reconstruct_image(self,x_test):
+    def reconstruct_handwritedigit_mnist(self,x_test):
         '''
         vuole in ingresso un vettore con shape (1,1,28,28), la configurazione del modello e i pesi 
         '''
-        #how to load model from hard disk
-        #autoencoder = load_model('my_model.h5')
-        #autoencoder.load_weights('my_model_weights.h5')
-        #how to load model from python variables
-#        autoencoder = Model.from_config(net_config)
-#        autoencoder.set_weights(net_weight)
-        
-        #decoded_imgs = autoencoder.predict(x_test)
-        if __load_directly__:
-            #if i want to load from disk the model
-            autoencoder=load_model('my_model.h5')
-            autoencoder.load_weights('my_model_weights.h5')
-            decoded_imgs = autoencoder.predict(x_test)
-
-        else:
-            #norma operation
-            decoded_imgs=self._autoencoder.predict(x_test)       
+        decoded_imgs=self._autoencoder.predict(x_test)       
         
         plt.figure()
         # display original
@@ -228,5 +214,5 @@ class autoencoder_fall_detection():
         
         #fmeasure(numeric_label,e_d) ??? su quale theshold?
                 
-        return 
+        return roc_auc
         

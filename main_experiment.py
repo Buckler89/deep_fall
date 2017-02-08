@@ -83,9 +83,13 @@ for s in testsets:
                         #   net.predict(testset)
                         #   net.compute_score+=score #sommole score di tutte le fold
 
-params=[1]; #quesa variabile rappresenta tutti i parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
-for param in params:                        
-    #carico modello con parametri di defautl
+params=[1,2]; #quesa variabile rappresenta tutti i set parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
+#init scoreMatrix
+scoreMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
+f=p=0; #indici della scoreMatrix
+for param in params: 
+    f=0;    
+    #carico modello con parametri di default
     net=autoencoder.autoencoder_fall_detection();
     net.define_arch();                                         
     
@@ -95,8 +99,29 @@ for param in params:
     net.model_fit(x_trains[0], _ )
     for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
-        decoded_images = net.reconstruct_images(x_dev);  
-        net.compute_score(x_dev, decoded_images, y_dev)
+        decoded_images = net.reconstruct_spectrogram(x_dev);  
+        auc = net.compute_score(x_dev, decoded_images, y_dev);
+        scoreMatrix[f,p]=auc;
+        f+=1;
+    p+=1;
+
+#score=np.amax(scoreMatrix,axis=1);
+#
+idxBestParamPerFolds=scoreMatrix.argmax(axis=1);
+
+             
+#test-finale-------------------------------
+idx=0;
+for x_test, y_test in zip (x_trains, y_trains):
     
-        #raggruppare ora i dati per fold: modifica la funzione compute score per fare questo
+    param=params[idx];#carico i parametri ottimi per una data fold
+    #poi questi parametri verrano utilizzani nella creazione del modello/nel compile/e nel fit
+    net.model_compile();
+    net.model_fit(x_trains[0], _ );
+                 
+    decoded_images = net.reconstruct_spectrogram(x_test);  
+    auc = net.compute_score(x_dev, decoded_images, y_dev);      
+                
+    idx+=1;
+        
     
