@@ -13,18 +13,18 @@ from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooli
 from keras.models import Model,load_model
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import roc_curve, auc, confusion_matrix
 import matplotlib
 
 from scipy.spatial.distance import euclidean
 #import matplotlib.image as img
 
-__load_directly__=1;#se è a 1 carica il modello e i pesi dal disco.
 
 class autoencoder_fall_detection():
     
     def __init__(self, kernel_shape=[3,3], number_of_kernel=[16,8,8]):
         print("__init__")
+        self._debug_load_directly=0;#se è a 1 carica il modello e i pesi dal disco.
 
         self._ks = kernel_shape
         self._nk = number_of_kernel
@@ -85,7 +85,7 @@ class autoencoder_fall_detection():
     def model_fit(self,x_train, y_train, x_test=None, y_test=None, nb_epoch=50, batch_size=128, shuffle=True, ):
         print("model_fit")
         
-        if __load_directly__:
+        if self._debug_load_directly:
             #if i want to load from disk the model
             autoencoder=load_model('my_model.h5')
             autoencoder.load_weights('my_model_weights.h5')
@@ -109,7 +109,7 @@ class autoencoder_fall_detection():
     #        self._config = self._autoencoder.get_config();
     #        self._weight = self._autoencoder.get_weights()
             
-            
+        self._debug_load_directly=1;     
         return self._autoencoder
         
     def reconstruct_spectrogram(self,x_test):
@@ -209,6 +209,8 @@ class autoencoder_fall_detection():
 
         numeric_label=self.labelize_data(labels);
         e_d=self.compute_distance(original_image,decoded_images);
+             
+           
         print("roc curve:");                         
         fpr, tpr, thresholds = roc_curve(numeric_label, e_d, pos_label=1);
         roc_auc = auc(fpr, tpr)
@@ -257,7 +259,12 @@ class autoencoder_fall_detection():
         fnr=fn/(fn+tp)
         self.DETCurve(fpr,fnr)
         
-        #fmeasure(numeric_label,e_d) ??? su quale theshold?
+        
+        #su quale theshold?
+#        print("confusion matrix:");  
+#             
+#        confusion_matrix(numeric_label,)  
+        #fmeasure(numeric_label,e_d) ??? 
                 
         return roc_auc 
         
