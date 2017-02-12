@@ -1,5 +1,5 @@
 import numpy as np
-from scipy import signal
+from scipy import signal #usare librosa
 from scipy.io import wavfile
 #import matplotlib.pyplot as plt
 from os import walk
