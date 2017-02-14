@@ -1,58 +1,63 @@
 import numpy as np
-from scipy import signal #usare librosa
-from scipy.io import wavfile
-#import matplotlib.pyplot as plt
-from os import walk
+from scipy import signal
+import librosa
+from os import walk, path
 
-
-
-####################### da spostare sul file di configurazione dell'esperimento
-
-wav_dir_path = '/media/buckler/DataSSD/Phd/fall_detection/dataset/all_file/'
-dest_path='/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/'
-dest_path_zero_pad='/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms_zero_pad/'
-window_type = 'hamming'
-window_length = 256
-overlap = 128
-
-
-
-# all file in wav_dir_path directory  <-----TODO subdie & drop from list no wav file 
-wav_filenames = []
-for (dirpath, dirnames,  wav_filenames) in walk(wav_dir_path):
-    break
-
-spec = []
-longest = 0
-for w in wav_filenames:
-    ###################### calcola gli spettri
-    [fs,x] = wavfile.read(dirpath + "/" + w)
-    f, t, Sxx = signal.spectrogram(x, fs, window_type, window_length, overlap)
-    if len(Sxx[1])>longest:
-        longest=len(Sxx[1])
-    spec.append([w, Sxx])
-
-###################### uniforma il vettore degli spettri: zero padding
-
-for w in spec:
-    np.save(dest_path + w[0][0:-4],w[1],False)  
-    w[1]=np.lib.pad(w[1], ((0, 0), (0, longest-len(w[1][1]))),'constant', constant_values=(0, 0))
-    np.save(dest_path_zero_pad + w[0][0:-4],w[1],False)
+# estrae gli spettrogrammi dei file contenuti in source e li salva in dest
+def spectrograms(source, dest, fs, N, overlap, win_type='hamming'):
     
+    # list all file in source directory
+    filenames = []
+    for (dirpath, dirnames,  filenames) in walk(source):
+        break
+    # drop all non wav file
+    wav_filenames = [f for f in filenames if f.lower().endswith('.wav')]
 
-############################## salva tutto
-# x=np.load(filename) to load
-#np.save('data',spec,False)
+    for w in wav_filenames:
+        # Load an audio file as a floating point time series
+        x, fs  = librosa.core.load(path.join(source,w),sr=fs)
+        # Returns: np.ndarray [shape=(1 + n_fft/2, t), dtype=dtype], dtype=64-bit complex
+        X = librosa.core.stft(x, n_fft=N, window=signal.get_window(win_type,N), hop_length=N-overlap, center=False)
+        #Sxx = np.abs(X)**2
+        Sxx = librosa.logamplitude(np.abs(X)**2,ref_power=np.max)
+        np.save(path.join(dest,w[0:-4]),Sxx)
+        
 
 
 
+###############################################################################################    
+#    spec = []
+#    longest = 0
+#    for w in wav_filenames:
+#        ###################### calcola gli spettri
+#        if len(Sxx[1])>longest:
+#            longest=len(Sxx[1])
+#        spec.append([w, Sxx])
+#
+#
+## zeropadda gli spettrogrammi salvati in source e li salva in dest
+#def zeropads(source, dest):
+#    
+#
+#
+#
+#
+#
+#for w in spec:
+#    np.save(dest_path + w[0][0:-4],w[1],False)  
+#    w[1]=np.lib.pad(w[1], ((0, 0), (0, longest-len(w[1][1]))),'constant', constant_values=(0, 0))
+#    np.save(dest_path_zero_pad + w[0][0:-4],w[1],False)
 
-#plt.pcolormesh(t, f, Sxx)
-#plt.ylabel('Frequency [Hz]')
-#plt.xlabel('Time [sec]')
-#plt.show()
-#from os import listdir
-#from os.path import isfile, join
-#onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
 
 
+if __name__ == "__main__":
+
+    wav_dir_path = '/home/daniele/Scrivania/all_file/'
+    dest_path='/home/daniele/Scrivania/spectrograms/'
+    dest_path_zero_pad='//home/daniele/Scrivania/spectrograms_zero_pad/'
+    window_type = 'hamming'
+    fft_length = 256
+    overlap = 128
+    Fs = 8000    
+    
+    spectrograms(wav_dir_path, dest_path, Fs, fft_length, overlap, 'hamming')
