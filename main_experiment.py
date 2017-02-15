@@ -102,9 +102,9 @@ for param in params:
     for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
         decoded_images = net.reconstruct_spectrogram(x_dev);  
-        auc,fpr,tpr ,ths,euclidean_distances= net.compute_score(x_dev, decoded_images, y_dev);
+        auc = net.compute_score(x_dev, decoded_images, y_dev);
         scoreAucMatrix[f,p]=auc;
-        scoreThMatrix[f,p]=th
+        #scoreThMatrix[f,p]=th
         f+=1;
     p+=1;
 

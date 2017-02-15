@@ -266,7 +266,7 @@ class autoencoder_fall_detection():
         #fmeasure(numericy_pred_label,e_d) ??? 
         
         
-        return roc_auc,fpr,tpr ,ths,euclidean_distances;
+        return roc_auc;
     
     def compute_optimal_th(self,fpr,tpr,method='std'):
         '''
