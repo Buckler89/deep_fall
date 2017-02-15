@@ -18,7 +18,7 @@ kernel_shape=np.array([     [3,3],  [3,3],  [3,3]]);
 listTrainpath='/media/buckler/DataSSD/Phd/fall_detection/lists/novelty/skf4FoldDevTest/train/';
 trainNameLists=['trainset.lst']
 
-listPath='/media/buckler/DataSSD/Phd/fall_detection/lists/novelty/skf4FoldDevTest/dev+test/case1/'  
+listPath='/media/buckler/DataSSD/Phd/fall_detection/lists/novelty/skf4FoldDevTest/dev+test/case5/'  
 testNamesLists=['testset_1.lst','testset_2.lst','testset_3.lst','testset_4.lst']  
 devNameLists=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst']             
            
@@ -85,9 +85,10 @@ for s in testsets:
 print("------------------------CROSS VALIDATION---------------")
 
 params=[1,2]; #quesa variabile rappresenta tutti i set parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
-#init scoreMatrix
-scoreMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
-f=p=0; #indici della scoreMatrix
+#init scoreAucMatrix
+scoreAucMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
+scoreThMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
+f=p=0; #indici della scoreAucMatrix
 for param in params: 
     f=0;    
     #carico modello con parametri di default
@@ -101,14 +102,15 @@ for param in params:
     for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
         decoded_images = net.reconstruct_spectrogram(x_dev);  
-        auc = net.compute_score(x_dev, decoded_images, y_dev);
-        scoreMatrix[f,p]=auc;
+        auc,fpr,tpr ,ths,euclidean_distances= net.compute_score(x_dev, decoded_images, y_dev);
+        scoreAucMatrix[f,p]=auc;
+        scoreThMatrix[f,p]=th
         f+=1;
     p+=1;
 
-#score=np.amax(scoreMatrix,axis=1);
+#score=np.amax(scoreAucMatrix,axis=1);
 #
-idxBestParamPerFolds=scoreMatrix.argmax(axis=1);
+idxBestParamPerFolds=scoreAucMatrix.argmax(axis=1);
 
              
 #test-finale-------------------------------
