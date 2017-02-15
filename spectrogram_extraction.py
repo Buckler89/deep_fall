@@ -1,3 +1,11 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Feb  3 16:00:29 2017
+
+@author: daniele
+"""
+
 #import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
@@ -60,6 +68,7 @@ def log_mel(filepath, fs, N, overlap, win_type='hamming', n_mels=128, fmin=0.0, 
 
 
 # estrae i mel e ci calcola i delta e i delta-deltas dai file contenuti in source e li salva in dest
+# per la versione log è sufficiente eseguire librosa.logamplitude(.) alla singola sottomatrice o all'intera matrice
 def extract_log_mel(source, dest, fs, N, overlap, win_type='hamming', n_mels=128, fmin=0.0, fmax=None, htk=True, delta_width=2):
     
     wav_filenames = wav_file_list(source)
