@@ -9,7 +9,47 @@ from py_files import autoencoder
 from py_files import dataset_manupulation as dm
 from os import path
 import numpy as np
+import argparse
 #import matplotlib.image as img
+
+
+parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
+
+# Global params
+parser.add_argument("-c", "--config-file", dest = "config_filename", default = None)
+
+#Esempi di utilizzo argparse. Documentazione completa https://docs.python.org/3/library/argparse.html
+###############################################################################
+# parser.add_argument("--batch-size", dest = "batch_size", default = 128, type=int)
+# parser.add_argument("--no-shuffle", dest = "shuffle", action = 'store_false', default = True)
+# parser.add_argument("--noise-std", dest = "noise_std", default = 0.0, type=float)
+# parser.add_argument("--csv-file", dest ="csv_filename", default = None)
+# parser.add_argument("--error-file", dest = "error_filename", default = None)
+# parser.add_argument("--mode", dest="mode", default = "classic", choices = ["classic", "inverse", "goodfellow"])
+# parser.add_argument("--discriminator-decides", dest = "discriminator_decides", default = False, action = 'store_true')
+#
+###############################################################################
+
+np.random.seed(888)
+
+args = parser.parse_args()
+
+if (args.config_filename is not None):
+    with open(args.config_filename, 'r') as f:
+        lines = f.readlines()
+        arguments = []
+        for line in lines:
+            arguments.extend(line.split())
+        # First parse the arguments specified in the config file
+        args = parser.parse_args(args=arguments)
+        # Then append the command line arguments
+        # Command line arguments have the priority: an argument is specified both
+        # in the config file and in the command line, the latter is used
+        args = parser.parse_args(namespace=args)
+
+
+
+
 
 #config variable
 number_of_kernel=np.array([16,    8,      8]);
