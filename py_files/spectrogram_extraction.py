@@ -94,3 +94,6 @@ if __name__ == "__main__":
     
     extract_spectrograms(wav_dir_path, dest_path, Fs, fft_length, overlap, 'hamming')
     extract_log_mel(wav_dir_path, dest_path_log_mel, Fs, fft_length, overlap, window_type, n_mels, fmin, fmax, htk, delta_width)
+    
+    import os
+    print(os.path.realpath('.'))
