@@ -79,9 +79,11 @@ def extract_log_mel(source, dest, fs, N, overlap, win_type='hamming', n_mels=128
 
 if __name__ == "__main__":
 
-    wav_dir_path = '/home/daniele/Scrivania/all_file/'
-    dest_path='/home/daniele/Scrivania/spectrograms/'
-    dest_path_log_mel='/home/daniele/Scrivania/logMels/'
+    root_dir = path.realpath('..')
+
+    wav_dir_path = path.join(root_dir,'dataset','wav_files')
+    dest_path=path.join(root_dir,'dataset','spectrograms')
+    dest_path_log_mel=path.join(root_dir,'dataset','mel_coefficients')
     window_type = 'hamming'
     fft_length = 256
     overlap = 128

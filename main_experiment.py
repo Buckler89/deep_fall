@@ -5,27 +5,27 @@ Created on Thu Jan 19 15:11:09 2017
 
 @author: buckler
 """
-import autoencoder
+from py_files import autoencoder
+from py_files import dataset_manupulation as dm
+from os import path
 import numpy as np
-import dataset_manupulation as dm
 #import matplotlib.image as img
 
 #config variable
-number_of_kernel=np.array(  [16,    8,      8]);
-kernel_shape=np.array([     [3,3],  [3,3],  [3,3]]);
+number_of_kernel=np.array([16,    8,      8]);
+kernel_shape=np.array([[3,3],  [3,3],  [3,3]]);
 
-                      
-listTrainpath='/media/buckler/DataSSD/Phd/fall_detection/lists/novelty/skf4FoldDevTest/train/';
+root_dir = path.realpath('.')
+
+listTrainpath=path.join(root_dir,'lists','train');
 trainNameLists=['trainset.lst']
 
-listPath='/media/buckler/DataSSD/Phd/fall_detection/lists/novelty/skf4FoldDevTest/dev+test/case5/'  
+listPath=path.join(root_dir,'lists','dev+test','case5');
 testNamesLists=['testset_1.lst','testset_2.lst','testset_3.lst','testset_4.lst']  
 devNameLists=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst']             
-           
-
 
 #GESTIONE DATASET       
-a3fall = dm.load_A3FALL('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/') #load dataset
+a3fall = dm.load_A3FALL(path.join(root_dir,'dataset','spectrograms')) #load dataset
 
                        #il trainset è 1 e sempre lo stesso per tutti gli esperimenti
 trainset = dm.split_A3FALL_from_lists(a3fall,listTrainpath,trainNameLists)[0]; #creo i trainset per calcolare media e varianza per poter normalizzare 
@@ -98,7 +98,7 @@ for param in params:
     #parametri di defautl anche per compile e fit
     net.model_compile()
     
-    net.model_fit(x_trains[0], _ )
+    net.model_fit(x_trains[0], _ , nb_epoch=50)
     for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
         decoded_images = net.reconstruct_spectrogram(x_dev);  

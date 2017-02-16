@@ -99,8 +99,8 @@ class autoencoder_fall_detection():
                                 validation_data=(x_test, x_test))
             else:
                 self._autoencoder.fit(x_train, x_train,
-                        nb_epoch=50,
-                        batch_size=128,
+                        nb_epoch=nb_epoch,
+                        batch_size=batch_size,
                         shuffle=True)
             #save the model an weights on disk
             self._autoencoder.save('my_model.h5')
