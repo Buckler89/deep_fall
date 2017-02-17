@@ -111,7 +111,16 @@ class autoencoder_fall_detection():
             
         self._debug_load_directly=1;     
         return self._autoencoder
-        
+    
+    def save_model(model):
+            '''
+            salva il modello e i pesi. 
+            TODO gestire nomi dei file in maniera intelligente in base ai parametri e case, in 
+            modo tale che siano riconoscibili alla fine
+            '''
+            model.save('my_model.h5')
+            model.save_weights('my_model_weights.h5')       
+    
     def reconstruct_spectrogram(self,x_test):
         '''
         decodifica i vettori in ingresso.
