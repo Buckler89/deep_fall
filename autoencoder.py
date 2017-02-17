@@ -20,7 +20,7 @@ from scipy.spatial.distance import euclidean
 #import matplotlib.image as img
 
 
-class autoencoder_fall_detection():
+class autoencoder_fall_detection(): 
     
     def __init__(self, kernel_shape=[3,3], number_of_kernel=[16,8,8]):
         print("__init__")
