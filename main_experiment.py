@@ -84,7 +84,7 @@ for s in testsets:
                         #   net.compute_score+=score #sommole score di tutte le fold
 print("------------------------CROSS VALIDATION---------------")
 
-params=[1,2]; #quesa variabile rappresenta tutti i set parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
+params=[1]; #quesa variabile rappresenta tutti i set parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
 #init scoreAucMatrix
 scoreAucMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
 scoreThMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
@@ -102,7 +102,7 @@ for param in params:
     for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
         decoded_images = net.reconstruct_spectrogram(x_dev);  
-        auc = net.compute_score(x_dev, decoded_images, y_dev);
+        auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev);
         scoreAucMatrix[f,p]=auc;
         #scoreThMatrix[f,p]=th
         f+=1;
@@ -116,6 +116,10 @@ idxBestParamPerFolds=scoreAucMatrix.argmax(axis=1);
 #test-finale-------------------------------
 print("------------------------TEST---------------")
 idx=0;
+my_cm=np.zeros((2,2));
+sk_cm=np.zeros((2,2));
+tot_y_pred=[];
+tot_y_true=[];
 for x_test, y_test in zip (x_tests, y_tests):
     
     param=params[idxBestParamPerFolds[idx]];#carico i parametri ottimi per una data fold
@@ -124,8 +128,21 @@ for x_test, y_test in zip (x_tests, y_tests):
     net.model_fit(x_trains[0], _ );
                  
     decoded_images = net.reconstruct_spectrogram(x_test);  
-    auc = net.compute_score(x_test, decoded_images, y_test);      
-                
+    auc, my_cm, y_true , y_pred = net.compute_score(x_test, decoded_images, y_test);
+    #raccolto tutti i risultati delle fold, per poter fare un report generale
+    for x in y_pred:
+        tot_y_pred.append(x);
+    for x in y_true:
+        tot_y_true.append(x);                                             
+    my_cm+=my_cm;  
     idx+=1;
+    
+    
+#report finale
+print('\n\n\n')
+print("------------------------FINAL REPORT---------------")
+
+net.print_score(my_cm,tot_y_pred,tot_y_true);
+               
         
     

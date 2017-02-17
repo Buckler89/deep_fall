@@ -10,24 +10,44 @@ Created on Fri Feb  3 16:00:29 2017
 import autoencoder
 import numpy as np
 import dataset_manupulation as dm
+import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc, confusion_matrix, classification_report, f1_score
+
 #config variable
-number_of_kernel=np.array(  [16,    8,      8]);
-kernel_shape=np.array([     [3,3],  [3,3],  [3,3]]);
 
 
-                                 
-listTrainpath='/media/buckler/DataSSD/Phd/fall_detection/lists/novelty/skf4FoldDevTest/train/';
-trainNameLists=['trainset.lst']
+tp=0;
+fn=0;
+tn=0;
+fp=0;
+i=0;
+y_pred=np.zeros(len(euclidean_distances))
+for d in euclidean_distances:
+    if d > optimal_th:
+        y_pred[i]=1;
+        if numeric_label[i]==1:
+            tp+=1;
+        else:
+            fp+=1;
+    else:
+        y_pred[i]=0;
+        if numeric_label[i]==1:
+            fn+=1;
+        else:
+            tn+=1;
+    i+=1;
+#        tpr=tp/(tp+fn)
+#        tnr=tn/(tn+fp)
+#        fpr=fp/(fp+tn)
+#        fnr=fn/(fn+tp)
+print("confusion matrix:");  
+print("\t Fall \t NoFall")
+print("Fall \t"+str(tp)+"\t"+str(fn))
+print("NoFall \t"+str(fp)+"\t"+str(tn))
+print("F1measure: "+str(f1_score(numeric_label,y_pred,pos_label=0)))
+print(classification_report(numeric_label,y_pred,target_names=['NoFall','Fall']))
 
-listPath='/media/buckler/DataSSD/Phd/fall_detection/lists/novelty/skf4FoldDevTest/dev+test/case1/'  
-testNamesLists=['testset_1.lst','testset_2.lst','testset_3.lst','testset_4.lst']  
-devNameLists=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst']             
-           
 
-
-#gestione dataset       
-a3fall = dm.load_A3FALL('/media/buckler/DataSSD/Phd/fall_detection/dataset/spectrograms/') #load dataset
-
-trainsets = dm.split_A3FALL_from_lists(a3fall,listTrainpath,trainNameLists)
-devsets = dm.split_A3FALL_from_lists(a3fall,listPath,devNameLists)
-testsets = dm.split_A3FALL_from_lists(a3fall,listPath,testNamesLists)
+print("\t Fall \t NoFall")
+print("Fall \t"+str(my_cm[0,0])+"\t"+str(my_cm[0,1]))
+print("NoFall \t"+str(my_cm[1,0])+"\t"+str(my_cm[1,1]))

@@ -13,7 +13,7 @@ from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooli
 from keras.models import Model,load_model
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc, confusion_matrix
+from sklearn.metrics import roc_curve, auc, confusion_matrix, classification_report, f1_score
 import matplotlib
 
 from scipy.spatial.distance import euclidean
@@ -171,7 +171,7 @@ class autoencoder_fall_detection():
     def compute_distances(self,x_test,decoded_images):
         '''
         calcola le distanze euclide tra 2 vettori di immagini con shape (n_img,1,row,col)
-        ritorna un vettore con le distanze con shape .....
+        ritorna un vettore con le distanze con shape (n_img,1)
         '''
         print("compute_distance")
 
@@ -189,113 +189,157 @@ class autoencoder_fall_detection():
     def labelize_data(self,y):
         '''
         labellzza numericamente i nomi dei file
+        assegna 1 se è una caduta del manichino, 0 altrimenti
         
         '''
         print("labelize_data")
 
         i=0
-        numeric_label=list();
+        true_numeric_labels=list();
         for d in y:
             if 'rndy' in d:
-                numeric_label.append(1);
+                true_numeric_labels.append(1);
             else:
-                numeric_label.append(0);
+                true_numeric_labels.append(0);
             i+=1;
                              
-        return numeric_label
+        return true_numeric_labels
     
     def compute_score(self, original_image, decoded_images, labels):
         print("compute_score")
 
-        numeric_label=self.labelize_data(labels);
+        true_numeric_labels=self.labelize_data(labels);
         euclidean_distances=self.compute_distances(original_image,decoded_images);
         
-        fpr,tpr,roc_auc = self.ROCCurve(numeric_label, euclidean_distances, pos_label=1)
-        #optimal_th = self.compute_optimal_th(fpr,tpr,1);
+                                                  
+        fpr, tpr, roc_auc, thresholds = self.ROCCurve(true_numeric_labels, euclidean_distances, pos_label=1, makeplot='no', opt_th_plot='no')
+        if max(fpr)!=1 or max(tpr)!=1 or min(fpr)!=0 or min(tpr)!=0: #in teoria questi mi e max dovrebbero essere sempre 1 e 0 rispettivamente
+            print("max min tpr fpr error");
+        optimal_th, indx = self.compute_optimal_th(fpr,tpr,thresholds,method = 'std');
+        self.ROCCurve(true_numeric_labels, euclidean_distances, indx, pos_label=1, makeplot='yes', opt_th_plot='yes')
         
+                                            
+             
+        #compute tpr fpr fnr tnr metrics                
+#        npoint=5000
+#        minth=min(euclidean_distances);
+#        maxth=max(euclidean_distances);
+#        step=(maxth-minth)/npoint;
+#        ths=np.arange(minth,maxth,step);
+#        tp=np.zeros(len(ths));
+#        fn=np.zeros(len(ths));
+#        tn=np.zeros(len(ths));
+#        fp=np.zeros(len(ths));
+#        
+#        k=0;
+#        for th in ths:
+#            i=0;
+#            for d in euclidean_distances:
+#                if d > th:
+#                    if true_numeric_labels[i]==1:
+#                        tp[k]+=1;
+#                    else:
+#                        fp[k]+=1;
+#                else:
+#                    if true_numeric_labels[i]==1:
+#                        fn[k]+=1;
+#                    else:
+#                        tn[k]+=1;                
+#                i+=1;    
+#            k+=1;
+#        tpr=tp/(tp+fn)
+#        tnr=tn/(tn+fp)
+#        fpr=fp/(fp+tn)
+#        fnr=fn/(fn+tp)
         #---------------------------DET----------------------
-        npoint=5000
-        minth=min(euclidean_distances);
-        maxth=max(euclidean_distances);
-        step=(maxth-minth)/npoint;
-        ths=np.arange(minth,maxth,step);
-        tp=np.zeros(len(ths));
-        fn=np.zeros(len(ths));
-        tn=np.zeros(len(ths));
-        fp=np.zeros(len(ths));
-        
-        k=0;
-        for th in ths:
-            i=0;
-            for d in euclidean_distances:
-                if d > th:
-                    if numeric_label[i]==1:
-                        tp[k]+=1;
-                    else:
-                        fp[k]+=1;
-                else:
-                    if numeric_label[i]==1:
-                        fn[k]+=1;
-                    else:
-                        tn[k]+=1;                
-                i+=1;    
-            k+=1;
-        tpr=tp/(tp+fn)
-        tnr=tn/(tn+fp)
-        fpr=fp/(fp+tn)
-        fnr=fn/(fn+tp)
+
         #self.DETCurve(fpr,fnr)
-        #---------------------------DET----------------------
+       
+        #---------------------------myROC----------------------
         
-        plt.figure()
-        plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-        plt.plot([0, 1], [0, 1], 'k--')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('Receiver operating characteristic')
-        plt.legend(loc="lower right")
-        plt.show()        
+#        plt.figure()
+#        plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+#        plt.plot([0, 1], [0, 1], 'k--')
+#        plt.xlim([0.0, 1.0])
+#        plt.ylim([0.0, 1.05])
+#        plt.xlabel('False Positive Rate')
+#        plt.ylabel('True Positive Rate')
+#        plt.title('Receiver operating characteristic')
+#        plt.legend(loc="lower right")
+#        plt.show()
         
         #--------------------------CONFUSION MATRIX---------------------
-
-        print("confusion matrix:");  
-            
-        #confusion_matrix(numeric_label,)  
-        #fmeasure(numericy_pred_label,e_d) ??? 
+        tp=0;
+        fn=0;
+        tn=0;
+        fp=0;
+        i=0;
+        y_pred=np.zeros(len(euclidean_distances))
+        for d in euclidean_distances:
+            if d > optimal_th:
+                y_pred[i]=1;
+                if true_numeric_labels[i]==1:
+                    tp+=1;
+                else:
+                    fp+=1;
+            else:
+                y_pred[i]=0;
+                if true_numeric_labels[i]==1:
+                    fn+=1;
+                else:
+                    tn+=1;
+            i+=1;
+#        tpr=tp/(tp+fn)
+#        tnr=tn/(tn+fp)
+#        fpr=fp/(fp+tn)
+#        fnr=fn/(fn+tp)
+        print("confusion matrix:");
+        #sk_cm=confusion_matrix(true_numeric_labels,y_pred);
+        my_cm=np.array([[tp,fn],[fp,tn]]);
+        print("\t Fall \t NoFall")
+        print("Fall \t"+str(tp)+"\t"+str(fn))
+        print("NoFall \t"+str(fp)+"\t"+str(tn))
+        print("F1measure: "+str(f1_score(true_numeric_labels,y_pred,pos_label=1)))
+        print(classification_report(true_numeric_labels,y_pred,target_names=['NoFall','Fall']))
         
         
-        return roc_auc;
+        return roc_auc, optimal_th, my_cm, true_numeric_labels, y_pred;
     
-    def compute_optimal_th(self,fpr,tpr,method='std'):
+    def compute_optimal_th(self,fpr, tpr, thresholds, method='std'):
         '''
         http://medind.nic.in/ibv/t11/i4/ibvt11i4p277.pdf
         ci sono molti metodi per trovare l ottima th:
             1-'std' minumum of distances from point (0,1)
-                min(d^2), d^2=[(1-fpr)^2+(1-tpr)^2]
+                min(d^2), d^2=[(0-fpr)^2+(1-tpr)^2]
             2-'xxx' definire delle funzioni costo TODO
         '''
         if method=='std':
-            return ((1-fpr)**2+(1-tpr)**2).argmax();
+            indx = ((0-fpr)**2+(1-tpr)**2).argmin();
+            optimal_th = thresholds[indx];
+            return optimal_th, indx;
         
-    def ROCCurve(self,y_true, y_score, pos_label=1):
+    def ROCCurve(self,y_true, y_score, indx=None, pos_label=1, makeplot='yes',opt_th_plot='no'):
         print("roc curve:");                         
         fpr, tpr, thresholds = roc_curve(y_true, y_score, pos_label=pos_label);
         roc_auc = auc(fpr, tpr)
-                                                # Plot of a ROC curve for a specific class
-        plt.figure()
-        plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-        plt.plot([0, 1], [0, 1], 'k--')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('Receiver operating characteristic')
-        plt.legend(loc="lower right")
-        plt.show()
         
-        return fpr,tpr,roc_auc
+        if makeplot=='yes':
+        # Plot of a ROC curve for a specific class
+        
+            plt.figure()
+            plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+            plt.plot([0, 1], [0, 1], 'k--')
+            plt.xlim([0.0, 1.0])
+            plt.ylim([0.0, 1.05])
+            plt.xlabel('False Positive Rate')
+            plt.ylabel('True Positive Rate')
+            plt.title('Receiver operating characteristic')
+            plt.legend(loc="lower right")
+            if opt_th_plot=='yes' and indx!=None:
+                plt.plot(fpr[indx],tpr[indx], 'ro');
+            plt.show()
+            
+        return fpr,tpr,roc_auc,thresholds
         
     def DETCurve(self,fpr,fnr):
         """
@@ -316,3 +360,16 @@ class autoencoder_fall_detection():
         ax.set_xticks(ticks_to_use)
         ax.set_yticks(ticks_to_use)
         plt.axis([0.001,50,0.001,50])
+        
+        
+    def print_score(self, cm, y_pred, y_true):
+        '''
+        print the final results for the all fold test 
+        '''
+        print("FINAL REPORT")
+        print("\t Fall \t NoFall")
+        print("Fall \t"+str(cm[0,0])+"\t"+str(cm[0,1]))
+        print("NoFall \t"+str(cm[1,0])+"\t"+str(cm[1,1]))
+        
+        print("F1measure: "+str(f1_score(y_true,y_pred,pos_label=1)))
+        print(classification_report(y_true,y_pred,target_names=['NoFall','Fall']));
