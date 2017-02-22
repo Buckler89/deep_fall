@@ -22,12 +22,15 @@ from scipy.spatial.distance import euclidean
 
 class autoencoder_fall_detection(): 
     
-    def __init__(self, kernel_shape=[3,3], number_of_kernel=[16,8,8]):
+    def __init__(self, kernel_shape, number_of_kernel, fit=True):
         print("__init__")
-        self._debug_load_directly=1;#se è a 1 carica il modello e i pesi dal disco.
+        self._fit_net = fit; #se è False carica il modello e i pesi dal disco.
 
         self._ks = kernel_shape
         self._nk = number_of_kernel
+    
+        ###############################################################################################
+        
         self._config=0;
         self._weight=0;
         self._autoencoder=0
@@ -36,9 +39,11 @@ class autoencoder_fall_detection():
     
     def define_arch(self):
         print("define_arch")
+       #################################################################
+       # ToDo: architettura dinamica in base alla matrice kernel_shape #
+       #################################################################
 
         input_img = Input(shape=(1, 129, 197))
-
 
         x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(input_img)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
@@ -62,7 +67,8 @@ class autoencoder_fall_detection():
         x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh')(x)
         x = UpSampling2D((2, 2))(x)
         x = ZeroPadding2D(padding=(0,0,0,1))(x);
-        x = Cropping2D(cropping=((1, 2), (0, 0)))(x)              
+        x = Cropping2D(cropping=((1, 2), (0, 0)))(x)
+
         decoded = Convolution2D(1, self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x) 
         
 #        layer1 = Model(input_img, decoded);
@@ -85,7 +91,7 @@ class autoencoder_fall_detection():
     def model_fit(self,x_train, y_train, x_test=None, y_test=None, nb_epoch=50, batch_size=128, shuffle=True, ):
         print("model_fit")
         
-        if self._debug_load_directly:
+        if not self._fit_net:
             #if i want to load from disk the model
             autoencoder=load_model('my_model.h5')
             autoencoder.load_weights('my_model_weights.h5')

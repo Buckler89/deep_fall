@@ -16,7 +16,25 @@ import argparse
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
 
 # Global params
-parser.add_argument("-c", "--config-file", dest = "config_filename", default = None)
+parser.add_argument("-cf", "--config-file", dest="config_filename", default=None)
+parser.add_argument("-tl", "--trainset-list", dest="trainNameLists", nargs='+', default=['trainset.lst'])
+parser.add_argument("-c", "--case", dest="case", default='case1')
+parser.add_argument("-tln", "--test-list-names", dest="testNamesLists", nargs='+', default=['testset_1.lst','testset_2.lst','testset_3.lst','testset_4.lst'])
+parser.add_argument("-dln", "--dev-list-names", dest="devNamesLists", nargs='+', default=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst'])
+parser.add_argument("-it", "--input-type", dest="input_type", default='spectrograms')
+
+
+# CNN params 
+parser.add_argument('-kn','--kernels-number', dest="number_of_kernel", nargs='+', default=[16, 8, 8], type=int)
+parser.add_argument('-ks','--kernel-shape', dest="kernel_shape", nargs='+', action='append', type=int) # default after parser.parse_args()
+
+# fit params
+parser.add_argument("-e", "--epoch", dest = "epoch", default=50, type=int)
+parser.add_argument("-f", "--fit-net", dest = "fit_net", default = False, action = 'store_true')
+
+
+
+
 
 #Esempi di utilizzo argparse. Documentazione completa https://docs.python.org/3/library/argparse.html
 ###############################################################################
@@ -47,28 +65,20 @@ if (args.config_filename is not None):
         # in the config file and in the command line, the latter is used
         args = parser.parse_args(namespace=args)
 
+        if not args.kernel_shape:
+            args.kernel_shape = [[3, 3], [3, 3], [3, 3]]
 
-
-
-
-#config variable
-number_of_kernel=np.array([16,    8,      8]);
-kernel_shape=np.array([[3,3],  [3,3],  [3,3]]);
 
 root_dir = path.realpath('.')
 
 listTrainpath=path.join(root_dir,'lists','train');
-trainNameLists=['trainset.lst']
-
-listPath=path.join(root_dir,'lists','dev+test','case5');
-testNamesLists=['testset_1.lst','testset_2.lst','testset_3.lst','testset_4.lst']  
-devNameLists=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst']             
-
+listPath=path.join(root_dir,'lists','dev+test', args.case);
+          
 #GESTIONE DATASET       
-a3fall = dm.load_A3FALL(path.join(root_dir,'dataset','spectrograms')) #load dataset
+a3fall = dm.load_A3FALL(path.join(root_dir,'dataset',args.input_type)) #load dataset
 
-                       #il trainset è 1 e sempre lo stesso per tutti gli esperimenti
-trainset = dm.split_A3FALL_from_lists(a3fall,listTrainpath,trainNameLists)[0]; #creo i trainset per calcolare media e varianza per poter normalizzare 
+#il trainset è 1 e sempre lo stesso per tutti gli esperimenti
+trainset = dm.split_A3FALL_from_lists(a3fall,listTrainpath,args.trainNameLists)[0]; #creo i trainset per calcolare media e varianza per poter normalizzare 
 trainset , mean, std =dm.normalize_data(trainset); #compute mean and std of the trainset and normalize the trainset  
 
 a3fall_n , _, _= dm.normalize_data(a3fall, mean , std); #ormalize the dataset with the mean and std of the trainset
@@ -76,9 +86,9 @@ a3fall_n_z = dm.awgn_padding_set(a3fall_n);
                                 
                                 
 #creo i set partendo dal dataset normalizzato e paddato
-trainsets = dm.split_A3FALL_from_lists(a3fall_n_z,listTrainpath,trainNameLists)
-devsets = dm.split_A3FALL_from_lists(a3fall_n_z,listPath,devNameLists);
-testsets = dm.split_A3FALL_from_lists(a3fall_n_z,listPath,testNamesLists);
+trainsets = dm.split_A3FALL_from_lists(a3fall_n_z,listTrainpath,args.trainNameLists)
+devsets = dm.split_A3FALL_from_lists(a3fall_n_z,listPath,args.devNamesLists);
+testsets = dm.split_A3FALL_from_lists(a3fall_n_z,listPath,args.testNamesLists);
 
 #reshape dataset per darli in ingresso alla rete
 
@@ -132,13 +142,18 @@ f=p=0; #indici della scoreAucMatrix
 for param in params: 
     f=0;    
     #carico modello con parametri di default
-    net=autoencoder.autoencoder_fall_detection();
+    net=autoencoder.autoencoder_fall_detection(np.array(args.kernel_shape)[0], np.array(args.number_of_kernel), args.fit_net);
+    #### sopra: per ora faccio tutti i kernel uguali al kernel_shape[0]. Da cambiare in futuro
+    
+###################################################################################################################################    
+    da capire perchè mi fa la fit ogni volta
+    
     net.define_arch();                                         
     
     #parametri di defautl anche per compile e fit
     net.model_compile()
     
-    net.model_fit(x_trains[0], _ , nb_epoch=50)
+    net.model_fit(x_trains[0], _ , args.epoch)
     for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
         decoded_images = net.reconstruct_spectrogram(x_dev);  
