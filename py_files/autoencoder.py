@@ -27,14 +27,10 @@ class autoencoder_fall_detection():
         self._fit_net = fit; #se è False carica il modello e i pesi dal disco.
 
         self._ks = kernel_shape
-        self._nk = number_of_kernel
-    
-        ###############################################################################################
-        
+        self._nk = number_of_kernel        
         self._config=0;
         self._weight=0;
         self._autoencoder=0
-        
 
     
     def define_arch(self):
@@ -88,7 +84,7 @@ class autoencoder_fall_detection():
         else:
             model.compile(optimizer='adadelta', loss='mse');
         
-    def model_fit(self,x_train, y_train, x_test=None, y_test=None, nb_epoch=50, batch_size=128, shuffle=True, ):
+    def model_fit(self,x_train, y_train, x_test=None, y_test=None, nb_epoch=50, batch_size=128, shuffle=True ):
         print("model_fit")
         
         if not self._fit_net:
@@ -115,7 +111,7 @@ class autoencoder_fall_detection():
     #        self._config = self._autoencoder.get_config();
     #        self._weight = self._autoencoder.get_weights()
             
-        self._debug_load_directly=1;     
+        self._fit_net=False;     
         return self._autoencoder
     
     def save_model(model):
@@ -158,7 +154,7 @@ class autoencoder_fall_detection():
 #        plt.show()
         return decoded_imgs
 
-    def reconstruct_handwritedigit_mnist(self,x_test):
+    def reconstruct_handwritedigit_mnist(self,x_test):   # @Diego -> da cancellare?
         '''
         vuole in ingresso un vettore con shape (1,1,28,28), la configurazione del modello e i pesi 
         '''

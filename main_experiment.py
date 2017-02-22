@@ -23,17 +23,18 @@ parser.add_argument("-tln", "--test-list-names", dest="testNamesLists", nargs='+
 parser.add_argument("-dln", "--dev-list-names", dest="devNamesLists", nargs='+', default=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst'])
 parser.add_argument("-it", "--input-type", dest="input_type", default='spectrograms')
 
-
 # CNN params 
-parser.add_argument('-kn','--kernels-number', dest="number_of_kernel", nargs='+', default=[16, 8, 8], type=int)
-parser.add_argument('-ks','--kernel-shape', dest="kernel_shape", nargs='+', action='append', type=int) # default after parser.parse_args()
+#parser.add_argument('-kn','--kernels-number', dest="number_of_kernel", nargs='+', default=[16, 8, 8], type=int)
+#parser.add_argument('-ks','--kernel-shape', dest="kernel_shape", nargs='+', action='append', type=int) # default after parser.parse_args()
+#parser.add_argument('-is','--cnn-input-shape', dest="cnn_input_shape", nargs='+', default=[1, 129, 197], type=int)
 
 # fit params
 parser.add_argument("-e", "--epoch", dest = "epoch", default=50, type=int)
+parser.add_argument("-ns", "--no-shuffle", dest = "shuffle", default = True, action = 'store_false')
+parser.add_argument("-bs", "--batch-size", dest = "batch_size", default=128, type=int)
 parser.add_argument("-f", "--fit-net", dest = "fit_net", default = False, action = 'store_true')
-
-
-
+parser.add_argument("-o", "--optimizer", dest = "optimizer", default="adadelta", choices = ["adadelta","adam", "sgd"])
+parser.add_argument("-l", "--loss", dest = "loss", default="mse", choices = ["mse"])
 
 
 #Esempi di utilizzo argparse. Documentazione completa https://docs.python.org/3/library/argparse.html
@@ -55,18 +56,23 @@ args = parser.parse_args()
 if (args.config_filename is not None):
     with open(args.config_filename, 'r') as f:
         lines = f.readlines()
-        arguments = []
-        for line in lines:
+    arguments = []
+    for line in lines:
+        if '#' not in line:
             arguments.extend(line.split())
-        # First parse the arguments specified in the config file
-        args = parser.parse_args(args=arguments)
-        # Then append the command line arguments
-        # Command line arguments have the priority: an argument is specified both
-        # in the config file and in the command line, the latter is used
-        args = parser.parse_args(namespace=args)
+    # First parse the arguments specified in the config file
+    args = parser.parse_args(args=arguments)
+    # Then append the command line arguments
+    # Command line arguments have the priority: an argument is specified both
+    # in the config file and in the command line, the latter is used
+    args = parser.parse_args(namespace=args)
+    # default values
+    
+    
+    
+#    if not args.kernel_shape:
+#        args.kernel_shape = [[3, 3], [3, 3], [3, 3]]
 
-        if not args.kernel_shape:
-            args.kernel_shape = [[3, 3], [3, 3], [3, 3]]
 
 
 root_dir = path.realpath('.')
@@ -142,18 +148,27 @@ f=p=0; #indici della scoreAucMatrix
 for param in params: 
     f=0;    
     #carico modello con parametri di default
-    net=autoencoder.autoencoder_fall_detection(np.array(args.kernel_shape)[0], np.array(args.number_of_kernel), args.fit_net);
-    #### sopra: per ora faccio tutti i kernel uguali al kernel_shape[0]. Da cambiare in futuro
     
-###################################################################################################################################    
-    da capire perchè mi fa la fit ogni volta
-    
+    net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
     net.define_arch();                                         
-    
     #parametri di defautl anche per compile e fit
-    net.model_compile()
+    net.model_compile(optimizer=args.optimizer, loss=args.loss)
+    net.model_fit(x_trains[0], _ , nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle) 
     
-    net.model_fit(x_trains[0], _ , args.epoch)
+    
+    
+
+
+    
+    
+
+    
+    
+    
+    ##########################################################################################################################
+    
+    
+    
     for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
         decoded_images = net.reconstruct_spectrogram(x_dev);  
