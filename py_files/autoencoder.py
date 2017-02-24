@@ -105,8 +105,9 @@ class autoencoder_fall_detection():
                         batch_size=batch_size,
                         shuffle=True)
             #save the model an weights on disk
-            self._autoencoder.save('my_model.h5')
-            self._autoencoder.save_weights('my_model_weights.h5')
+            self.save_model(self._autoencoder);
+#            self._autoencoder.save('my_model.h5')
+#            self._autoencoder.save_weights('my_model_weights.h5')
             #save the model and wetight on varibles
     #        self._config = self._autoencoder.get_config();
     #        self._weight = self._autoencoder.get_weights()
@@ -377,6 +378,7 @@ class autoencoder_fall_detection():
         '''
         print the final results for the all fold test 
         '''
+        cm=cm.astype(int)
         print("FINAL REPORT")
         print("\t Fall \t NoFall")
         print("Fall \t"+str(cm[0,0])+"\t"+str(cm[0,1]))

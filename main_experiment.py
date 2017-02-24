@@ -5,10 +5,12 @@ Created on Thu Jan 19 15:11:09 2017
 
 @author: buckler
 """
+import numpy as np
+
+np.random.seed(888)#for experiment repetibility
 from py_files import autoencoder
 from py_files import dataset_manupulation as dm
 from os import path
-import numpy as np
 import argparse
 #import matplotlib.image as img
 
@@ -18,7 +20,7 @@ parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
 # Global params
 parser.add_argument("-cf", "--config-file", dest="config_filename", default=None)
 parser.add_argument("-tl", "--trainset-list", dest="trainNameLists", nargs='+', default=['trainset.lst'])
-parser.add_argument("-c", "--case", dest="case", default='case1')
+parser.add_argument("-c", "--case", dest="case", default='case6')
 parser.add_argument("-tln", "--test-list-names", dest="testNamesLists", nargs='+', default=['testset_1.lst','testset_2.lst','testset_3.lst','testset_4.lst'])
 parser.add_argument("-dln", "--dev-list-names", dest="devNamesLists", nargs='+', default=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst'])
 parser.add_argument("-it", "--input-type", dest="input_type", default='spectrograms')
@@ -32,7 +34,7 @@ parser.add_argument("-it", "--input-type", dest="input_type", default='spectrogr
 parser.add_argument("-e", "--epoch", dest = "epoch", default=50, type=int)
 parser.add_argument("-ns", "--no-shuffle", dest = "shuffle", default = True, action = 'store_false')
 parser.add_argument("-bs", "--batch-size", dest = "batch_size", default=128, type=int)
-parser.add_argument("-f", "--fit-net", dest = "fit_net", default = False, action = 'store_true')
+parser.add_argument("-f", "--fit-net", dest = "fit_net", default = True, action = 'store_true')
 parser.add_argument("-o", "--optimizer", dest = "optimizer", default="adadelta", choices = ["adadelta","adam", "sgd"])
 parser.add_argument("-l", "--loss", dest = "loss", default="mse", choices = ["mse"])
 
@@ -49,7 +51,7 @@ parser.add_argument("-l", "--loss", dest = "loss", default="mse", choices = ["ms
 #
 ###############################################################################
 
-np.random.seed(888)
+
 
 args = parser.parse_args()
 
@@ -187,6 +189,7 @@ idxBestParamPerFolds=scoreAucMatrix.argmax(axis=1);
 print("------------------------TEST---------------")
 idx=0;
 my_cm=np.zeros((2,2));
+old_my_cm=np.zeros((2,2));#matrice d'appoggio
 sk_cm=np.zeros((2,2));
 tot_y_pred=[];
 tot_y_true=[];
@@ -204,7 +207,8 @@ for x_test, y_test in zip (x_tests, y_tests):
         tot_y_pred.append(x);
     for x in y_true:
         tot_y_true.append(x);                                             
-    my_cm+=my_cm;  
+    my_cm = np.add(old_my_cm,my_cm); 
+    old_my_cm=my_cm;
     idx+=1;
     
     
