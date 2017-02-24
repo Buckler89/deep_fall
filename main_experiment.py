@@ -164,7 +164,7 @@ for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
     #scoreThMatrix[f,p]=th
     f+=1;
 
-    net.
+    
 #score=np.amax(scoreAucMatrix,axis=1);
 #
 idxBestParamPerFolds=scoreAucMatrix.argmax(axis=1);
