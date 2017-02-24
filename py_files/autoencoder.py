@@ -68,13 +68,13 @@ class autoencoder_fall_detection():
             w=(int(w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
             d=params.kernel_number[i]
 
-            if not params.m_pool_only_end:
+            if not params.pool_only_to_end:
                 x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
                 # if border=='valid' h=int(h/params.params.m_pool[i][0])
                 h=int(h/params.params.m_pool[i][0])+1
                 w=int(w/params.params.m_pool[i][1])+1
 
-        if params.m_pool_only_end:
+        if params.pool_only_to_end:
              x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
              # if border=='valid' h=int(h/params.params.m_pool[i][0])
              h=int(h/params.params.m_pool[i][0])+1
@@ -128,8 +128,6 @@ class autoencoder_fall_detection():
 
         x = Reshape((d,h,w))(x)
 
-
------------------------------------------------------------------------------------------------------------
         for i in range(len(params.kernel_number)-1,-1,-1):
 
             x = Convolution2D(params.kernel_number[i],
@@ -155,58 +153,48 @@ class autoencoder_fall_detection():
             w=(int(w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
             d=params.kernel_number[i]
 
-            if not params.m_pool_only_end:
+            if params.pool_only_to_end and i==len(params.kernel_number)-1:
+                x = UpSampling2D(params.m_pool[i])(x)
+                h=h*params.params.m_pool[i][0]
+                w=w*params.params.m_pool[i][1]
+            else if not params.pool_only_to_end:
                 x = UpSampling2D(params.m_pool[i])(x)
                 h=h*params.params.m_pool[i][0]
                 w=w*params.params.m_pool[i][1]
 
-        if params.m_pool_only_end:
-             x = UpSampling2D(params.m_pool[i])(x)
-             h=h*params.params.m_pool[i][0]
-             w=w*params.params.m_pool[i][1]
-
         dh=h-params.input_shape[1]
         dw=w-params.input_shape[2]
-        
+        h_zp=h_cr=w_zp=w_cr=(0,0)
         if dh>0:
-            
+            h_cr=(int(dh/2),dh-int(dh/2))
+        else:
+            h_zp=(-int(dh/2),int(dh/2)-dh)
+        if dw>0:
+            w_cr=(int(dw/2),dw-int(dw/2))
+        else:
+            w_zp=(-int(dw/2),int(dw/2)-dw)
 
+        x = ZeroPadding2D(padding=(h_zp,w_zp))(x);
+        x = Cropping2D(cropping=(h_cr,w_cr))(x)
 
+        decoded=Convolution2D(params.input_shape[0],
+                              params.kernel_shape[0][0],
+                              params.kernel_shape[0][1],
+                              init=params.init,
+                              activation=params.conv_activation,
+                              border_mode=params.border_mode,
+                              subsample=params.strides,
+                              W_regularizer=params.w_reg,
+                              b_regularizer=params.b_reg,
+                              activity_regularizer=params.a_reg,
+                              W_constraint=params.w_constr,
+                              b_constraint=params.b_constr,
+                              bias=params.bias)(x)
 
-
-calcolo differenze con l'input e croppo e zeropaddo
-
-
-
-        
-        x = ZeroPadding2D(padding=(0,0,0,1))(x);
-        x = Cropping2D(cropping=((1, 2), (0, 0)))(x)
-
-        decoded = Convolution2D(1, self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x) 
-        
-#        layer1 = Model(input_img, decoded);
-#        layer1.summary();
         self._autoencoder = Model(input_img, decoded)
-                
+        self._autoencoder.summary();
+
         return self._autoencoder
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
