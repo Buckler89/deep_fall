@@ -8,7 +8,7 @@ Created on Wed Jan 18 18:43:32 2017
 
 import os
 os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
-          
+
 from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D, Cropping2D
 from keras.models import Model,load_model
 import numpy as np
@@ -20,48 +20,165 @@ from scipy.spatial.distance import euclidean
 #import matplotlib.image as img
 
 
-class autoencoder_fall_detection(): 
-    
+class autoencoder_fall_detection():
+
     def __init__(self, kernel_shape, number_of_kernel, fit=True):
         print("__init__")
         self._fit_net = fit; #se è False carica il modello e i pesi dal disco.
 
         self._ks = kernel_shape
-        self._nk = number_of_kernel        
+        self._nk = number_of_kernel
         self._config=0;
         self._weight=0;
         self._autoencoder=0
 
-    
-    def define_arch(self):
+
+    def define_cnn_arch(self, params):
         print("define_arch")
-       #################################################################
-       # ToDo: architettura dinamica in base alla matrice kernel_shape #
-       #################################################################
+         # ---------------------------------------------------     - Encoding
+        d=params.input_shape[0]
+        h=params.input_shape[1]
+        w=params.input_shape[2]
 
-        input_img = Input(shape=(1, 129, 197))
+        input_img=Input(shape=params.input_shape)
+        x=input_img
 
-        x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(input_img)
-        x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(self._nk[1], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
-        x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(self._nk[2], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
-        x = MaxPooling2D((2, 2), border_mode='same')(x)
-        # at this point the representation is (8, 4, 4) i.e. 128-dimensional
-        
+        for i in range(len(params.kernel_number)):
+
+            x = Convolution2D(params.kernel_number[i],
+                              params.kernel_shape[i][0],
+                              params.kernel_shape[i][1],
+                              init=params.init,
+                              activation=params.conv_activation,
+                              border_mode=params.border_mode,
+                              subsample=params.strides,
+                              W_regularizer=params.w_reg,
+                              b_regularizer=params.b_reg,
+                              activity_regularizer=params.a_reg,
+                              W_constraint=params.w_constr,
+                              b_constraint=params.b_constr,
+                              bias=params.bias)(x)
+
+            if params.border_mode=='same':
+                ph=params.kernel_shape[i][0]-1
+                pw=params.kernel_shape[i][1]-1
+            else:
+                ph=pw=0
+            h=(int(h-params.kernel_shape[i][0]+ph)/params.strides[0])+1
+            w=(int(w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
+            d=params.kernel_number[i]
+
+            if not params.m_pool_only_end:
+                x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
+                # if border=='valid' h=int(h/params.params.m_pool[i][0])
+                h=int(h/params.params.m_pool[i][0])+1
+                w=int(w/params.params.m_pool[i][1])+1
+
+        if params.m_pool_only_end:
+             x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
+             # if border=='valid' h=int(h/params.params.m_pool[i][0])
+             h=int(h/params.params.m_pool[i][0])+1
+             w=int(w/params.params.m_pool[i][1])+1
+
         x = Flatten()(x)
-        x = Dense(3400,activation='tanh')(x)
-        encoded = Dense(64,activation='tanh')(x)
-        #-------------------------------------
-        x = Dense(3400,activation='tanh')(encoded)
-        x = Reshape((8, 17, 25))(x)
+
+        x=Dense(d*h*w,
+                init=params.init,
+                activation=params.dense_activation,
+                W_regularizer=params.w_reg,
+                b_regularizer=params.b_reg,
+                activity_regularizer=params.a_reg,
+                W_constraint=params.w_constr,
+                b_constraint=params.b_constr,
+                bias=params.bias)(x)
+
+        for i in range(len(params.dense_layers_inputs)):
+            x=Dense(params.dense_layers_inputs[i],
+                    init=params.init,
+                    activation=params.dense_activation,
+                    W_regularizer=params.w_reg,
+                    b_regularizer=params.b_reg,
+                    activity_regularizer=params.a_reg,
+                    W_constraint=params.w_constr,
+                    b_constraint=params.b_constr,
+                    bias=params.bias)(x)
+
+        # ---------------------------------------------------------- Decoding
+
+        for i in range(len(params.dense_layers_inputs)-2,-1,-1): # backwards indices last excluded
+            x=Dense(params.dense_layers_inputs[i],
+                    init=params.init,
+                    activation=params.dense_activation,
+                    W_regularizer=params.w_reg,
+                    b_regularizer=params.b_reg,
+                    activity_regularizer=params.a_reg,
+                    W_constraint=params.w_constr,
+                    b_constraint=params.b_constr,
+                    bias=params.bias)(x)
+
+        x=Dense(d*h*w,
+                init=params.init,
+                activation=params.dense_activation,
+                W_regularizer=params.w_reg,
+                b_regularizer=params.b_reg,
+                activity_regularizer=params.a_reg,
+                W_constraint=params.w_constr,
+                b_constraint=params.b_constr,
+                bias=params.bias)(x)
+
+        x = Reshape((d,h,w))(x)
+
+
+-----------------------------------------------------------------------------------------------------------
+        for i in range(len(params.kernel_number)-1,-1,-1):
+
+            x = Convolution2D(params.kernel_number[i],
+                              params.kernel_shape[i][0],
+                              params.kernel_shape[i][1],
+                              init=params.init,
+                              activation=params.conv_activation,
+                              border_mode=params.border_mode,
+                              subsample=params.strides,
+                              W_regularizer=params.w_reg,
+                              b_regularizer=params.b_reg,
+                              activity_regularizer=params.a_reg,
+                              W_constraint=params.w_constr,
+                              b_constraint=params.b_constr,
+                              bias=params.bias)(x)
+
+            if params.border_mode=='same':
+                ph=params.kernel_shape[i][0]-1
+                pw=params.kernel_shape[i][1]-1
+            else:
+                ph=pw=0
+            h=(int(h-params.kernel_shape[i][0]+ph)/params.strides[0])+1
+            w=(int(w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
+            d=params.kernel_number[i]
+
+            if not params.m_pool_only_end:
+                x = UpSampling2D(params.m_pool[i])(x)
+                h=h*params.params.m_pool[i][0]
+                w=w*params.params.m_pool[i][1]
+
+        if params.m_pool_only_end:
+             x = UpSampling2D(params.m_pool[i])(x)
+             h=h*params.params.m_pool[i][0]
+             w=w*params.params.m_pool[i][1]
+
+        dh=h-params.input_shape[1]
+        dw=w-params.input_shape[2]
         
-        x = Convolution2D(self._nk[2], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
-        x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(self._nk[1], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
-        x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh')(x)
-        x = UpSampling2D((2, 2))(x)
+        if dh>0:
+            
+
+
+
+
+calcolo differenze con l'input e croppo e zeropaddo
+
+
+
+        
         x = ZeroPadding2D(padding=(0,0,0,1))(x);
         x = Cropping2D(cropping=((1, 2), (0, 0)))(x)
 
@@ -72,7 +189,27 @@ class autoencoder_fall_detection():
         self._autoencoder = Model(input_img, decoded)
                 
         return self._autoencoder
-    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     def model_compile(self, model=None, optimizer='adadelta', loss='mse'):
         '''
         compila il modello con i parametri passati: se non viene passato compila il modello istanziato dalla classe
