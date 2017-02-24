@@ -7,11 +7,9 @@ Created on Thu Jan 19 15:11:09 2017
 """
 import numpy as np
 
-np.random.seed(888)#for experiment repetibility
-#from py_files import autoencoder
-#from py_files import dataset_manupulation as dm
-import autoencoder
-import dataset_manupulation as dm
+#np.random.seed(888)#for experiment repetibility
+from py_files import autoencoder
+from py_files import dataset_manupulation as dm
 from os import path
 import argparse
 #import matplotlib.image as img
@@ -123,48 +121,37 @@ for s in testsets:
     y_tests.append(y)
 
 
-#cross validation
-                                                                          
-                        #pseudo codice
-                        #for param in paramlist:
-                        #    #carico modello 
-                        #    #setto hyperparametri della funzione fit e compile
-                        #    net.fit(trainset,validationset?)     #se il trainset è unico allora questa fit può stare fuori dal "for fold"!!!
-                        #    for fold in folds:
-                        #        net.predict(devset)
-                        #        net.compute_score+=score #sommole score di tutte le fold
-                        #        score=score/nfold
-                        #    score.max()
-                        #    save param di score.max()
-                        
-                        #una volta scoperto quali solo i parametri ottimi si fa il test vero e proprio:
-                        #for fold in folds
-                        #   net.load_model(parametri ottimi)
-                        #   net.predict(testset)
-                        #   net.compute_score+=score #sommole score di tutte le fold
 print("------------------------CROSS VALIDATION---------------")
 
 params=[1]; #quesa variabile rappresenta tutti i set parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
 #init scoreAucMatrix
 scoreAucMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
 scoreThMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
-f=0;
+f=p=0; #indici della scoreAucMatrix
+for param in params: 
     
-net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
-net.define_arch();                                         
-#parametri di defautl anche per compile e fit
-net.model_compile(optimizer=args.optimizer, loss=args.loss)
-net.model_fit(x_trains[0], _ , nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle) 
+    
+    f=0;    
+    #carico modello con parametri di default
+    
+    net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
+    net.define_arch();                                         
+    #parametri di defautl anche per compile e fit
+    net.model_compile(optimizer=args.optimizer, loss=args.loss)
+    net.model_fit(x_trains[0], _ , nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle) 
+    
+    
+    
+    
+    for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
-for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
+        decoded_images = net.reconstruct_spectrogram(x_dev);  
+        auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev);
+        scoreAucMatrix[f,p]=auc;
+        #scoreThMatrix[f,p]=th
+        f+=1;
+    p+=1;
 
-    decoded_images = net.reconstruct_spectrogram(x_dev);  
-    auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev);
-    scoreAucMatrix[f,p]=auc;
-    #scoreThMatrix[f,p]=th
-    f+=1;
-
-    net.
 #score=np.amax(scoreAucMatrix,axis=1);
 #
 idxBestParamPerFolds=scoreAucMatrix.argmax(axis=1);
