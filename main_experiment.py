@@ -149,6 +149,7 @@ params=[1]; #quesa variabile rappresenta tutti i set parametri che dovranno esse
 scoreAucMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
 scoreThMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
 f=0;
+p=1;
     
 net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
 net.define_arch();                                         
