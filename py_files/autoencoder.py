@@ -15,6 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, confusion_matrix, classification_report, f1_score
 import matplotlib
+import math
 
 from scipy.spatial.distance import euclidean
 #import matplotlib.image as img
@@ -35,23 +36,23 @@ class autoencoder_fall_detection():
 
     def define_cnn_arch(self, params):
         print("define_arch")
-         # ---------------------------------------------------     - Encoding
-        d=params.input_shape[0]
-        h=params.input_shape[1]
-        w=params.input_shape[2]
-
-        input_img=Input(shape=params.input_shape)
+        #---------------------------------------------------------- Encoding
+        d=params.cnn_input_shape[0]
+        h=params.cnn_input_shape[1]
+        w=params.cnn_input_shape[2]
+        print("(" +str(d)+", "+str(h)+", "+str(w)+")")
+        
+        input_img=Input(shape=params.cnn_input_shape)
         x=input_img
 
         for i in range(len(params.kernel_number)):
-
             x = Convolution2D(params.kernel_number[i],
                               params.kernel_shape[i][0],
                               params.kernel_shape[i][1],
-                              init=params.init,
-                              activation=params.conv_activation,
+                              init=params.cnn_init,
+                              activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
-                              subsample=params.strides,
+                              subsample=tuple(params.strides),
                               W_regularizer=params.w_reg,
                               b_regularizer=params.b_reg,
                               activity_regularizer=params.a_reg,
@@ -64,27 +65,30 @@ class autoencoder_fall_detection():
                 pw=params.kernel_shape[i][1]-1
             else:
                 ph=pw=0
-            h=(int(h-params.kernel_shape[i][0]+ph)/params.strides[0])+1
-            w=(int(w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
+            h=int((h-params.kernel_shape[i][0]+ph)/params.strides[0])+1
+            w=int((w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
             d=params.kernel_number[i]
+            print("conv "+str(i)+"->(" +str(d)+", "+str(h)+", "+str(w)+")")
 
             if not params.pool_only_to_end:
                 x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
                 # if border=='valid' h=int(h/params.params.m_pool[i][0])
-                h=int(h/params.params.m_pool[i][0])+1
-                w=int(w/params.params.m_pool[i][1])+1
+                h=math.ceil(h/params.m_pool[i][0])
+                w=math.ceil(w/params.m_pool[i][1])
+                print("pool "+str(i)+"->(" +str(d)+", "+str(h)+", "+str(w)+")")
 
         if params.pool_only_to_end:
              x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
              # if border=='valid' h=int(h/params.params.m_pool[i][0])
-             h=int(h/params.params.m_pool[i][0])+1
-             w=int(w/params.params.m_pool[i][1])+1
+             h=math.ceil(h/params.m_pool[i][0])
+             w=math.ceil(w/params.m_pool[i][1])
+             print("pool->  (" +str(d)+", "+str(h)+", "+str(w)+")")
 
         x = Flatten()(x)
 
         x=Dense(d*h*w,
-                init=params.init,
-                activation=params.dense_activation,
+                init=params.cnn_init,
+                activation=params.cnn_dense_activation,
                 W_regularizer=params.w_reg,
                 b_regularizer=params.b_reg,
                 activity_regularizer=params.a_reg,
@@ -94,8 +98,8 @@ class autoencoder_fall_detection():
 
         for i in range(len(params.dense_layers_inputs)):
             x=Dense(params.dense_layers_inputs[i],
-                    init=params.init,
-                    activation=params.dense_activation,
+                    init=params.cnn_init,
+                    activation=params.cnn_dense_activation,
                     W_regularizer=params.w_reg,
                     b_regularizer=params.b_reg,
                     activity_regularizer=params.a_reg,
@@ -107,8 +111,8 @@ class autoencoder_fall_detection():
 
         for i in range(len(params.dense_layers_inputs)-2,-1,-1): # backwards indices last excluded
             x=Dense(params.dense_layers_inputs[i],
-                    init=params.init,
-                    activation=params.dense_activation,
+                    init=params.cnn_init,
+                    activation=params.cnn_dense_activation,
                     W_regularizer=params.w_reg,
                     b_regularizer=params.b_reg,
                     activity_regularizer=params.a_reg,
@@ -117,8 +121,8 @@ class autoencoder_fall_detection():
                     bias=params.bias)(x)
 
         x=Dense(d*h*w,
-                init=params.init,
-                activation=params.dense_activation,
+                init=params.cnn_init,
+                activation=params.cnn_dense_activation,
                 W_regularizer=params.w_reg,
                 b_regularizer=params.b_reg,
                 activity_regularizer=params.a_reg,
@@ -127,16 +131,17 @@ class autoencoder_fall_detection():
                 bias=params.bias)(x)
 
         x = Reshape((d,h,w))(x)
+        print("----------------------------------->(" +str(d)+", "+str(h)+", "+str(w)+")")
 
         for i in range(len(params.kernel_number)-1,-1,-1):
 
             x = Convolution2D(params.kernel_number[i],
                               params.kernel_shape[i][0],
                               params.kernel_shape[i][1],
-                              init=params.init,
-                              activation=params.conv_activation,
+                              init=params.cnn_init,
+                              activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
-                              subsample=params.strides,
+                              subsample=tuple(params.strides),
                               W_regularizer=params.w_reg,
                               b_regularizer=params.b_reg,
                               activity_regularizer=params.a_reg,
@@ -149,21 +154,26 @@ class autoencoder_fall_detection():
                 pw=params.kernel_shape[i][1]-1
             else:
                 ph=pw=0
-            h=(int(h-params.kernel_shape[i][0]+ph)/params.strides[0])+1
-            w=(int(w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
+            h=int((h-params.kernel_shape[i][0]+ph)/params.strides[0])+1
+            w=int((w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
             d=params.kernel_number[i]
+            print("conv "+str(i)+"->(" +str(d)+", "+str(h)+", "+str(w)+")")
 
             if params.pool_only_to_end and i==len(params.kernel_number)-1:
                 x = UpSampling2D(params.m_pool[i])(x)
-                h=h*params.params.m_pool[i][0]
-                w=w*params.params.m_pool[i][1]
-            else if not params.pool_only_to_end:
+                h=h*params.m_pool[i][0]
+                w=w*params.m_pool[i][1]
+                print("up->   (" +str(d)+", "+str(h)+", "+str(w)+")")
+            elif not params.pool_only_to_end:
                 x = UpSampling2D(params.m_pool[i])(x)
-                h=h*params.params.m_pool[i][0]
-                w=w*params.params.m_pool[i][1]
+                h=h*params.m_pool[i][0]
+                w=w*params.m_pool[i][1]
+                print("up "+str(i)+"->  (" +str(d)+", "+str(h)+", "+str(w)+")")
 
-        dh=h-params.input_shape[1]
-        dw=w-params.input_shape[2]
+        dh=h-params.cnn_input_shape[1]
+        dw=w-params.cnn_input_shape[2]
+        print(h,params.cnn_input_shape[1],w,params.cnn_input_shape[2])
+        
         h_zp=h_cr=w_zp=w_cr=(0,0)
         if dh>0:
             h_cr=(int(dh/2),dh-int(dh/2))
@@ -174,16 +184,19 @@ class autoencoder_fall_detection():
         else:
             w_zp=(-int(dw/2),int(dw/2)-dw)
 
-        x = ZeroPadding2D(padding=(h_zp,w_zp))(x);
+        print(h_zp,w_zp,type(h_zp),type(w_zp),)
+        print(h_cr,w_cr,type(h_cr),type(w_cr),)
+
+        x = ZeroPadding2D(padding=(h_zp[0],h_zp[1],w_zp[0],w_zp[1]))(x);
         x = Cropping2D(cropping=(h_cr,w_cr))(x)
 
-        decoded=Convolution2D(params.input_shape[0],
+        decoded=Convolution2D(params.cnn_input_shape[0],
                               params.kernel_shape[0][0],
                               params.kernel_shape[0][1],
-                              init=params.init,
-                              activation=params.conv_activation,
+                              init=params.cnn_init,
+                              activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
-                              subsample=params.strides,
+                              subsample=tuple(params.strides),
                               W_regularizer=params.w_reg,
                               b_regularizer=params.b_reg,
                               activity_regularizer=params.a_reg,

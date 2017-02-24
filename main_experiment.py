@@ -5,10 +5,12 @@ Created on Thu Jan 19 15:11:09 2017
 
 @author: buckler
 """
+import numpy as np
+np.random.seed(888)
+
 from py_files import autoencoder
 from py_files import dataset_manupulation as dm
 from os import path
-import numpy as np
 import argparse
 #import matplotlib.image as img
 
@@ -24,9 +26,23 @@ parser.add_argument("-dln", "--dev-list-names", dest="devNamesLists", nargs='+',
 parser.add_argument("-it", "--input-type", dest="input_type", default='spectrograms')
 
 # CNN params 
-#parser.add_argument('-kn','--kernels-number', dest="number_of_kernel", nargs='+', default=[16, 8, 8], type=int)
-#parser.add_argument('-ks','--kernel-shape', dest="kernel_shape", nargs='+', action='append', type=int) # default after parser.parse_args()
-#parser.add_argument('-is','--cnn-input-shape', dest="cnn_input_shape", nargs='+', default=[1, 129, 197], type=int)
+parser.add_argument('-is','--cnn-input-shape', dest="cnn_input_shape", nargs='+', default=[1, 129, 197], type=int)
+parser.add_argument('-kn','--kernels-number', dest="kernel_number", nargs='+', default=[16, 8, 8], type=int)
+parser.add_argument('-ks','--kernel-shape', dest="kernel_shape", nargs='+', action='append', type=int) # default after parser.parse_args()
+parser.add_argument('-mp','--max-pool-shape', dest="m_pool", nargs='+', action='append', type=int) # default after parser.parse_args()
+parser.add_argument('-ds','--dense-shape', dest="dense_layers_inputs", nargs='+', default=[64], type=int)
+parser.add_argument('-i','--cnn-init', dest="cnn_init", default="glorot_uniform", choices = ["glorot_uniform"])
+parser.add_argument('-ac','--cnn-conv-activation', dest="cnn_conv_activation", default="tanh", choices = ["tanh"])
+parser.add_argument('-ad','--cnn-dense-activation', dest="cnn_dense_activation", default="tanh", choices = ["tanh"])
+parser.add_argument('-bm','--border-mode', dest="border_mode", default="same", choices = ["valid","same"])
+parser.add_argument('-s','--strides', dest="strides", nargs='+', default=[1,1], type=int)
+parser.add_argument('-wr','--w-reg', dest="w_reg", default=None) # in autoencoder va usato con eval('funzione(parametri)')
+parser.add_argument('-br','--b-reg', dest="b_reg", default=None)
+parser.add_argument('-ar','--act-reg', dest="a_reg", default=None)
+parser.add_argument('-wc','--w-constr', dest="w_constr", default=None)
+parser.add_argument('-bc','--b-constr', dest="b_constr", default=None)
+parser.add_argument("-nb", "--no-bias", dest = "bias", default = True, action = 'store_false')
+parser.add_argument("-p", "--end-pool", dest = "pool_only_to_end", default = False, action = 'store_true')
 
 # fit params
 parser.add_argument("-e", "--epoch", dest = "epoch", default=50, type=int)
@@ -36,20 +52,6 @@ parser.add_argument("-f", "--fit-net", dest = "fit_net", default = False, action
 parser.add_argument("-o", "--optimizer", dest = "optimizer", default="adadelta", choices = ["adadelta","adam", "sgd"])
 parser.add_argument("-l", "--loss", dest = "loss", default="mse", choices = ["mse"])
 
-
-#Esempi di utilizzo argparse. Documentazione completa https://docs.python.org/3/library/argparse.html
-###############################################################################
-# parser.add_argument("--batch-size", dest = "batch_size", default = 128, type=int)
-# parser.add_argument("--no-shuffle", dest = "shuffle", action = 'store_false', default = True)
-# parser.add_argument("--noise-std", dest = "noise_std", default = 0.0, type=float)
-# parser.add_argument("--csv-file", dest ="csv_filename", default = None)
-# parser.add_argument("--error-file", dest = "error_filename", default = None)
-# parser.add_argument("--mode", dest="mode", default = "classic", choices = ["classic", "inverse", "goodfellow"])
-# parser.add_argument("--discriminator-decides", dest = "discriminator_decides", default = False, action = 'store_true')
-#
-###############################################################################
-
-np.random.seed(888)
 
 args = parser.parse_args()
 
@@ -66,13 +68,11 @@ if (args.config_filename is not None):
     # Command line arguments have the priority: an argument is specified both
     # in the config file and in the command line, the latter is used
     args = parser.parse_args(namespace=args)
-    # default values
-    
-    
-    
-#    if not args.kernel_shape:
-#        args.kernel_shape = [[3, 3], [3, 3], [3, 3]]
-
+    # special.default values
+    if not args.kernel_shape:
+        args.kernel_shape = [[3, 3], [3, 3], [3, 3]]
+    if not args.m_pool:
+        args.m_pool = [[2, 2], [2, 2], [2, 2]]
 
 
 root_dir = path.realpath('.')
@@ -150,7 +150,7 @@ for param in params:
     #carico modello con parametri di default
     
     net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
-    net.define_arch();                                         
+    net.define_cnn_arch(args);                                         
     #parametri di defautl anche per compile e fit
     net.model_compile(optimizer=args.optimizer, loss=args.loss)
     net.model_fit(x_trains[0], _ , nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle) 
