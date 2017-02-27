@@ -7,20 +7,34 @@ Created on Thu Jan 19 15:11:09 2017
 """
 import numpy as np
 
-np.random.seed(888)#for experiment repetibility
+np.random.seed(888)#for experiment repetibility: this goes here, befor importing keras (inside autoencoder modele)
 #from py_files import autoencoder
 #from py_files import dataset_manupulation as dm
 import autoencoder
 import dataset_manupulation as dm
 from os import path
 import argparse
+import os
+import errno
 #import matplotlib.image as img
 
+
+
+
+
+
+###################THIS GOES IN THE CONFIGURATION EXPERIMENT SCRIPT. NON IN THIS!!!!###################################
+#inizializzo i file dove memorizzare gli score più altri. 
+#Inolte inizializzo i file dove memorizzare anche i modelli gli args e la threshold che hanno dato tali risultati
+
+
+###################END THIS GOES IN THE CONFIGURATION EXPERIMENT SCRIPT. NON IN THIS!!!!###################################
 
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
 
 # Global params
 parser.add_argument("-cf", "--config-file", dest="config_filename", default=None)
+parser.add_argument("-sp", "--score-path", dest="scorePath", default=os.path.join("score"))
 parser.add_argument("-tl", "--trainset-list", dest="trainNameLists", nargs='+', default=['trainset.lst'])
 parser.add_argument("-c", "--case", dest="case", default='case6')
 parser.add_argument("-tln", "--test-list-names", dest="testNamesLists", nargs='+', default=['testset_1.lst','testset_2.lst','testset_3.lst','testset_4.lst'])
@@ -36,7 +50,7 @@ parser.add_argument("-it", "--input-type", dest="input_type", default='spectrogr
 parser.add_argument("-e", "--epoch", dest = "epoch", default=50, type=int)
 parser.add_argument("-ns", "--no-shuffle", dest = "shuffle", default = True, action = 'store_false')
 parser.add_argument("-bs", "--batch-size", dest = "batch_size", default=128, type=int)
-parser.add_argument("-f", "--fit-net", dest = "fit_net", default = True, action = 'store_true')
+parser.add_argument("-f", "--fit-net", dest = "fit_net", default = False, action = 'store_true')
 parser.add_argument("-o", "--optimizer", dest = "optimizer", default="adadelta", choices = ["adadelta","adam", "sgd"])
 parser.add_argument("-l", "--loss", dest = "loss", default="mse", choices = ["mse"])
 
@@ -146,8 +160,8 @@ print("------------------------CROSS VALIDATION---------------")
 
 params=[1]; #quesa variabile rappresenta tutti i set parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
 #init scoreAucMatrix
-scoreAucMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
-scoreThMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
+scoreAucNew=np.zeros(len(x_devs))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
+scoreThMatrix=np.zeros(len(x_devs))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
 f=0;
     
 net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
@@ -160,17 +174,41 @@ for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
     decoded_images = net.reconstruct_spectrogram(x_dev);  
     auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev);
-    scoreAucMatrix[f,p]=auc;
-    #scoreThMatrix[f,p]=th
+    scoreAucNew[f]=auc;
+    scoreThMatrix[f]=optimal_th
     f+=1;
+                                          
+                                          
+                                          
+                                          
+#check score and save data
+scoreAucFileName='score_auc.txt';
+if not os.path.exists(args.scorePath):
+    try:
+        os.makedirs(args.scorePath)
+        print("make dir")
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
+if os.path.exists(os.path.join(args.scorePath,scoreAucFileName)):
+    scoreAuc=np.loadtxt(os.path.join(args.scorePath,scoreAucFileName))
+    print("loadtxt")
+    for auc, oldAuc, idx in zip(scoreAucNew, scoreAuc,enumerate(scoreAuc)):
+        if auc > oldAuc:
+            scoreAucNew[idx[0]]=auc;
+                    
+print("savetxt")
+np.savetxt(os.path.join(args.scorePath,scoreAucFileName),scoreAucNew)
 
+
+                                          
+                                          
+                                          
+                                          
+                                          
     
-#score=np.amax(scoreAucMatrix,axis=1);
-#
-idxBestParamPerFolds=scoreAucMatrix.argmax(axis=1);
-
-             
-#test-finale-------------------------------
+#TODO Spostare test nel file apposito che verra eseguito dopo la cross validation
+#test-finale-------------------------------VA SPOSTATO NEL FILE APPOSITO
 print("------------------------TEST---------------")
 idx=0;
 my_cm=np.zeros((2,2));
@@ -180,8 +218,7 @@ tot_y_pred=[];
 tot_y_true=[];
 for x_test, y_test in zip (x_tests, y_tests):
     
-    param=params[idxBestParamPerFolds[idx]];#carico i parametri ottimi per una data fold
-    #poi questi parametri verrano utilizzani nella creazione del modello/nel compile/e nel fit
+
     net.model_compile();
     net.model_fit(x_trains[0], _ );
                  
@@ -202,6 +239,8 @@ print('\n\n\n')
 print("------------------------FINAL REPORT---------------")
 
 net.print_score(my_cm,tot_y_pred,tot_y_true);
+
+
                
         
     
