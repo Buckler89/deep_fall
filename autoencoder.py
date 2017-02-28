@@ -106,6 +106,7 @@ class autoencoder_fall_detection():
                         shuffle=True)
             #save the model an weights on disk
             self.save_model(self._autoencoder);
+            
 #            self._autoencoder.save('my_model.h5')
 #            self._autoencoder.save_weights('my_model_weights.h5')
             #save the model and wetight on varibles
@@ -115,15 +116,15 @@ class autoencoder_fall_detection():
         self._fit_net=False;     
         return self._autoencoder
     
-    def save_model(model):
+    def save_model(self, model, path='.', name='my_model'):
             '''
             salva il modello e i pesi. 
             TODO gestire nomi dei file in maniera intelligente in base ai parametri e case, in 
             modo tale che siano riconoscibili alla fine
             '''
-            model.save('my_model.h5')
-            model.save_weights('my_model_weights.h5')       
-    
+            model.save(os.path.join(path,name+'h5'))
+            model.save_weights(os.path.join(path,name+'_weights.h5'))
+            
     def reconstruct_spectrogram(self,x_test):
         '''
         decodifica i vettori in ingresso.

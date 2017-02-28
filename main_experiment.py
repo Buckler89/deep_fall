@@ -16,6 +16,8 @@ from os import path
 import argparse
 import os
 import errno
+import json
+from keras.models import Model,load_model
 #import matplotlib.image as img
 
 
@@ -161,45 +163,72 @@ print("------------------------CROSS VALIDATION---------------")
 params=[1]; #quesa variabile rappresenta tutti i set parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
 #init scoreAucMatrix
 scoreAucNew=np.zeros(len(x_devs))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
-scoreThMatrix=np.zeros(len(x_devs))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
+scoreThsNew=np.zeros(len(x_devs))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
 f=0;
     
 net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
 net.define_arch();                                         
 #parametri di defautl anche per compile e fit
 net.model_compile(optimizer=args.optimizer, loss=args.loss)
-net.model_fit(x_trains[0], _ , nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle) 
+model=net.model_fit(x_trains[0], _ , nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle) 
 
 for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
 
     decoded_images = net.reconstruct_spectrogram(x_dev);  
     auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev);
     scoreAucNew[f]=auc;
-    scoreThMatrix[f]=optimal_th
+    scoreThsNew[f]=optimal_th
     f+=1;
                                           
                                           
                                           
                                           
 #check score and save data
+
+# in questi 2 file ogni riga corrisponde ad una fold
 scoreAucFileName='score_auc.txt';
-if not os.path.exists(args.scorePath):
-    try:
-        os.makedirs(args.scorePath)
+thFileName='thresholds.txt';
+scoreCasePath=os.path.join(args.scorePath,args.case);
+if not os.path.exists(args.scorePath):#se non esisrte significa che è il primo esperimento
+    try:    #quindi creo le cartelle necessarie e salvo i parametri e il modello
+            #del primo esperimento ( che sarà sicuramentoe il migliore fino ad ora: è il primo!!)
+            
+        os.makedirs(os.path.join(scoreCasePath))
+        os.makedirs(os.path.join(scoreCasePath,'args'))
+        os.makedirs(os.path.join(scoreCasePath,'models'))
+        for fold in np.arange(1,len(args.devNamesLists)+1):
+            jsonargs=json.dumps(args.__dict__)
+            with open(os.path.join(scoreCasePath,'args','argsFold'+str(fold)+'.txt'), 'w') as file:
+                file.write(jsonargs);
+            net.save_model(model,os.path.join(scoreCasePath,'models'),'modelFold'+str(fold));
+
         print("make dir")
     except OSError as exception:
         if exception.errno != errno.EEXIST:
             raise
-if os.path.exists(os.path.join(args.scorePath,scoreAucFileName)):
-    scoreAuc=np.loadtxt(os.path.join(args.scorePath,scoreAucFileName))
+
+if os.path.exists(os.path.join(scoreCasePath,scoreAucFileName)):
     print("loadtxt")
-    for auc, oldAuc, idx in zip(scoreAucNew, scoreAuc,enumerate(scoreAuc)):
-        if auc > oldAuc:
+    scoreAuc=np.loadtxt(os.path.join(scoreCasePath,scoreAucFileName))
+    scoreThs=np.loadtxt(os.path.join(scoreCasePath,thFileName))
+  
+    for auc, oldAuc, idx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
+        if auc > oldAuc:#se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
+                        #allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
+                        #che per la threshold ottime, i parametri usati e il modello adattato.
+            #per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
             scoreAucNew[idx[0]]=auc;
+            scoreThsNew[idx[0]]=scoreThs[idx[0]];
+            #per args e model uso file separati per ogni fold
+            #salvo parametri
+            jsonargs=json.dumps(args.__dict__)
+            with open(os.path.join(scoreCasePath,'args','argsFold'+str(idx[0]+1)+'.txt'), 'w') as file:
+                file.write(jsonargs);
+            #salvo modello e pesi
                     
 print("savetxt")
-np.savetxt(os.path.join(args.scorePath,scoreAucFileName),scoreAucNew)
-
+np.savetxt(os.path.join(scoreCasePath, scoreAucFileName),scoreAucNew)
+np.savetxt(os.path.join(scoreCasePath, thFileName),scoreThsNew)
 
                                           
                                           
@@ -218,7 +247,7 @@ tot_y_pred=[];
 tot_y_true=[];
 for x_test, y_test in zip (x_tests, y_tests):
     
-
+    #in realtà questo fit non serve più: va caricato il modello fittato nella validation!!!
     net.model_compile();
     net.model_fit(x_trains[0], _ );
                  
