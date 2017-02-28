@@ -73,18 +73,6 @@ parser.add_argument("-o", "--optimizer", dest = "optimizer", default="adadelta",
 parser.add_argument("-l", "--loss", dest = "loss", default="mse", choices = ["mse"])
 
 
-#Esempi di utilizzo argparse. Documentazione completa https://docs.python.org/3/library/argparse.html
-###############################################################################
-# parser.add_argument("--batch-size", dest = "batch_size", default = 128, type=int)
-# parser.add_argument("--no-shuffle", dest = "shuffle", action = 'store_false', default = True)
-# parser.add_argument("--noise-std", dest = "noise_std", default = 0.0, type=float)
-# parser.add_argument("--csv-file", dest ="csv_filename", default = None)
-# parser.add_argument("--error-file", dest = "error_filename", default = None)
-# parser.add_argument("--mode", dest="mode", default = "classic", choices = ["classic", "inverse", "goodfellow"])
-# parser.add_argument("--discriminator-decides", dest = "discriminator_decides", default = False, action = 'store_true')
-#
-###############################################################################
-
 args = parser.parse_args()
 
 if (args.config_filename is not None):
