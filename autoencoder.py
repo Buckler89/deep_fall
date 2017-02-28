@@ -8,33 +8,37 @@ Created on Wed Jan 18 18:43:32 2017
 
 import os
 os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
-          
+
 from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D, Cropping2D
 from keras.models import Model,load_model
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, confusion_matrix, classification_report, f1_score
 import matplotlib
+import math
 
 from scipy.spatial.distance import euclidean
 #import matplotlib.image as img
 
 
-class autoencoder_fall_detection(): 
-    
+class autoencoder_fall_detection():
+
     def __init__(self, kernel_shape, number_of_kernel, fit=True):
         print("__init__")
         self._fit_net = fit; #se è False carica il modello e i pesi dal disco.
 
         self._ks = kernel_shape
-        self._nk = number_of_kernel        
+        self._nk = number_of_kernel
         self._config=0;
         self._weight=0;
         self._autoencoder=0
 
-    
     def define_arch(self):
-        print("define_arch")
+        '''
+        E' TEMPORANEA:QUESTA FUNZIONE VA ELIMINATA ALLA FINE 
+        QUESTa è usata solo per bypassare la creazione dinamica che vuole tutti i parametri!
+        '''
+        print("define TEST arch ")
        #################################################################
        # ToDo: architettura dinamica in base alla matrice kernel_shape #
        #################################################################
@@ -72,7 +76,184 @@ class autoencoder_fall_detection():
         self._autoencoder = Model(input_img, decoded)
                 
         return self._autoencoder
-    
+
+    def define_cnn_arch(self, params):
+        print("define_arch")
+        #---------------------------------------------------------- Encoding
+        d=params.cnn_input_shape[0]
+        h=params.cnn_input_shape[1]
+        w=params.cnn_input_shape[2]
+        print("(" +str(d)+", "+str(h)+", "+str(w)+")")
+        
+        input_img=Input(shape=params.cnn_input_shape)
+        x=input_img
+
+        for i in range(len(params.kernel_number)):
+            x = Convolution2D(params.kernel_number[i],
+                              params.kernel_shape[i][0],
+                              params.kernel_shape[i][1],
+                              init=params.cnn_init,
+                              activation=params.cnn_conv_activation,
+                              border_mode=params.border_mode,
+                              subsample=tuple(params.strides),
+                              W_regularizer=params.w_reg,
+                              b_regularizer=params.b_reg,
+                              activity_regularizer=params.a_reg,
+                              W_constraint=params.w_constr,
+                              b_constraint=params.b_constr,
+                              bias=params.bias)(x)
+
+            if params.border_mode=='same':
+                ph=params.kernel_shape[i][0]-1
+                pw=params.kernel_shape[i][1]-1
+            else:
+                ph=pw=0
+            h=int((h-params.kernel_shape[i][0]+ph)/params.strides[0])+1
+            w=int((w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
+            d=params.kernel_number[i]
+            print("conv "+str(i)+"->(" +str(d)+", "+str(h)+", "+str(w)+")")
+
+            if not params.pool_only_to_end:
+                x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
+                # if border=='valid' h=int(h/params.params.m_pool[i][0])
+                h=math.ceil(h/params.m_pool[i][0])
+                w=math.ceil(w/params.m_pool[i][1])
+                print("pool "+str(i)+"->(" +str(d)+", "+str(h)+", "+str(w)+")")
+
+        if params.pool_only_to_end:
+             x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
+             # if border=='valid' h=int(h/params.params.m_pool[i][0])
+             h=math.ceil(h/params.m_pool[i][0])
+             w=math.ceil(w/params.m_pool[i][1])
+             print("pool->  (" +str(d)+", "+str(h)+", "+str(w)+")")
+
+        x = Flatten()(x)
+
+        x=Dense(d*h*w,
+                init=params.cnn_init,
+                activation=params.cnn_dense_activation,
+                W_regularizer=params.w_reg,
+                b_regularizer=params.b_reg,
+                activity_regularizer=params.a_reg,
+                W_constraint=params.w_constr,
+                b_constraint=params.b_constr,
+                bias=params.bias)(x)
+
+        for i in range(len(params.dense_layers_inputs)):
+            x=Dense(params.dense_layers_inputs[i],
+                    init=params.cnn_init,
+                    activation=params.cnn_dense_activation,
+                    W_regularizer=params.w_reg,
+                    b_regularizer=params.b_reg,
+                    activity_regularizer=params.a_reg,
+                    W_constraint=params.w_constr,
+                    b_constraint=params.b_constr,
+                    bias=params.bias)(x)
+
+        # ---------------------------------------------------------- Decoding
+
+        for i in range(len(params.dense_layers_inputs)-2,-1,-1): # backwards indices last excluded
+            x=Dense(params.dense_layers_inputs[i],
+                    init=params.cnn_init,
+                    activation=params.cnn_dense_activation,
+                    W_regularizer=params.w_reg,
+                    b_regularizer=params.b_reg,
+                    activity_regularizer=params.a_reg,
+                    W_constraint=params.w_constr,
+                    b_constraint=params.b_constr,
+                    bias=params.bias)(x)
+
+        x=Dense(d*h*w,
+                init=params.cnn_init,
+                activation=params.cnn_dense_activation,
+                W_regularizer=params.w_reg,
+                b_regularizer=params.b_reg,
+                activity_regularizer=params.a_reg,
+                W_constraint=params.w_constr,
+                b_constraint=params.b_constr,
+                bias=params.bias)(x)
+
+        x = Reshape((d,h,w))(x)
+        print("----------------------------------->(" +str(d)+", "+str(h)+", "+str(w)+")")
+
+        for i in range(len(params.kernel_number)-1,-1,-1):
+
+            x = Convolution2D(params.kernel_number[i],
+                              params.kernel_shape[i][0],
+                              params.kernel_shape[i][1],
+                              init=params.cnn_init,
+                              activation=params.cnn_conv_activation,
+                              border_mode=params.border_mode,
+                              subsample=tuple(params.strides),
+                              W_regularizer=params.w_reg,
+                              b_regularizer=params.b_reg,
+                              activity_regularizer=params.a_reg,
+                              W_constraint=params.w_constr,
+                              b_constraint=params.b_constr,
+                              bias=params.bias)(x)
+
+            if params.border_mode=='same':
+                ph=params.kernel_shape[i][0]-1
+                pw=params.kernel_shape[i][1]-1
+            else:
+                ph=pw=0
+            h=int((h-params.kernel_shape[i][0]+ph)/params.strides[0])+1
+            w=int((w-params.kernel_shape[i][1]+pw)/params.strides[1])+1
+            d=params.kernel_number[i]
+            print("conv "+str(i)+"->(" +str(d)+", "+str(h)+", "+str(w)+")")
+
+            if params.pool_only_to_end and i==len(params.kernel_number)-1:
+                x = UpSampling2D(params.m_pool[i])(x)
+                h=h*params.m_pool[i][0]
+                w=w*params.m_pool[i][1]
+                print("up->   (" +str(d)+", "+str(h)+", "+str(w)+")")
+            elif not params.pool_only_to_end:
+                x = UpSampling2D(params.m_pool[i])(x)
+                h=h*params.m_pool[i][0]
+                w=w*params.m_pool[i][1]
+                print("up "+str(i)+"->  (" +str(d)+", "+str(h)+", "+str(w)+")")
+
+        dh=h-params.cnn_input_shape[1]
+        dw=w-params.cnn_input_shape[2]
+        print(h,params.cnn_input_shape[1],w,params.cnn_input_shape[2])
+        
+        h_zp=h_cr=w_zp=w_cr=(0,0)
+        if dh>0:
+            h_cr=(int(dh/2),dh-int(dh/2))
+        else:
+            h_zp=(-int(dh/2),int(dh/2)-dh)
+        if dw>0:
+            w_cr=(int(dw/2),dw-int(dw/2))
+        else:
+            w_zp=(-int(dw/2),int(dw/2)-dw)
+
+        print(h_zp,w_zp,type(h_zp),type(w_zp),)
+        print(h_cr,w_cr,type(h_cr),type(w_cr),)
+
+        x = ZeroPadding2D(padding=(h_zp[0],h_zp[1],w_zp[0],w_zp[1]))(x);
+        x = Cropping2D(cropping=(h_cr,w_cr))(x)
+
+        decoded=Convolution2D(params.cnn_input_shape[0],
+                              params.kernel_shape[0][0],
+                              params.kernel_shape[0][1],
+                              init=params.cnn_init,
+                              activation=params.cnn_conv_activation,
+                              border_mode=params.border_mode,
+                              subsample=tuple(params.strides),
+                              W_regularizer=params.w_reg,
+                              b_regularizer=params.b_reg,
+                              activity_regularizer=params.a_reg,
+                              W_constraint=params.w_constr,
+                              b_constraint=params.b_constr,
+                              bias=params.bias)(x)
+
+        self._autoencoder = Model(input_img, decoded)
+        self._autoencoder.summary();
+
+        return self._autoencoder
+
+
+
     def model_compile(self, model=None, optimizer='adadelta', loss='mse'):
         '''
         compila il modello con i parametri passati: se non viene passato compila il modello istanziato dalla classe
@@ -106,6 +287,7 @@ class autoencoder_fall_detection():
                         shuffle=True)
             #save the model an weights on disk
             self.save_model(self._autoencoder);
+            
 #            self._autoencoder.save('my_model.h5')
 #            self._autoencoder.save_weights('my_model_weights.h5')
             #save the model and wetight on varibles
@@ -115,15 +297,15 @@ class autoencoder_fall_detection():
         self._fit_net=False;     
         return self._autoencoder
     
-    def save_model(model):
+    def save_model(self, model, path='.', name='my_model'):
             '''
             salva il modello e i pesi. 
             TODO gestire nomi dei file in maniera intelligente in base ai parametri e case, in 
             modo tale che siano riconoscibili alla fine
             '''
-            model.save('my_model.h5')
-            model.save_weights('my_model_weights.h5')       
-    
+            model.save(os.path.join(path,name+'h5'))
+            model.save_weights(os.path.join(path,name+'_weights.h5'))
+            
     def reconstruct_spectrogram(self,x_test):
         '''
         decodifica i vettori in ingresso.

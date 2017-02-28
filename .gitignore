@@ -41,9 +41,12 @@ Thumbs.db
 
 # Other file to ignore # --diego add
 ###################
-my_model_weights.h5
-my_model.h5
+*.h5
+
 
 *~
 
 dataset/
+model/
+models/
+score/
