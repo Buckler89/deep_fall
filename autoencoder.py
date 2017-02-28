@@ -33,7 +33,7 @@ class autoencoder_fall_detection():
         self._weight=0;
         self._autoencoder=0
 
-    def define_arch(self):
+    def define_static_arch(self):
         '''
         E' TEMPORANEA:QUESTA FUNZIONE VA ELIMINATA ALLA FINE 
         QUESTa è usata solo per bypassare la creazione dinamica che vuole tutti i parametri!

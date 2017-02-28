@@ -160,32 +160,15 @@ for s in testsets:
                         #   net.compute_score+=score #sommole score di tutte le fold
 print("------------------------CROSS VALIDATION---------------")
 
-params=[1]; #quesa variabile rappresenta tutti i set parametri che dovranno essere variati, ovviamente poi andrà modifivata. Per ora è fittizia
-#init scoreAucMatrix
-<<<<<<< HEAD
+#init score matrix
 scoreAucNew=np.zeros(len(x_devs))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
 scoreThsNew=np.zeros(len(x_devs))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
 f=0;
-=======
-scoreAucMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri                 
-scoreThMatrix=np.zeros((len(x_devs),len(params)))   #matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri                 
-f=p=0; #indici della scoreAucMatrix
-for param in params: 
-    f=0;    
-    #carico modello con parametri di default
-    
-    net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
-    #net.define_cnn_arch(args);
-    net.define_static_arch();                                         
-    #parametri di defautl anche per compile e fit
-    net.model_compile(optimizer=args.optimizer, loss=args.loss)
-    net.model_fit(x_trains[0], _ , nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle) 
-    
-    
->>>>>>> daniele_workflow
+
     
 net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
-net.define_arch();                                         
+net.define_static_arch(); 
+#net.define_cnn_arch(args);                                        
 #parametri di defautl anche per compile e fit
 net.model_compile(optimizer=args.optimizer, loss=args.loss)
 model=net.model_fit(x_trains[0], _ , nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle) 
