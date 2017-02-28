@@ -17,7 +17,8 @@ import argparse
 import os
 import errno
 import json
-from keras.models import Model,load_model
+import fcntl
+import time
 #import matplotlib.image as img
 
 
@@ -183,53 +184,76 @@ for x_dev, y_dev in zip (x_devs, y_devs): #sarebbero le fold
                                           
                                           
                                           
-#check score and save data
+    
+print("------------------------SCORE SELECTION---------------")
 
+#inizializzazione file di salvataggi
+
+#spostare la parte di inizializzazione file in un file lanciato a monte?!?!?!?!?!
 # in questi 2 file ogni riga corrisponde ad una fold
 scoreAucFileName='score_auc.txt';
 thFileName='thresholds.txt';
 scoreCasePath=os.path.join(args.scorePath,args.case);
-if not os.path.exists(args.scorePath):#se non esisrte significa che è il primo esperimento
-    try:    #quindi creo le cartelle necessarie e salvo i parametri e il modello
-            #del primo esperimento ( che sarà sicuramentoe il migliore fino ad ora: è il primo!!)
-            
+jsonargs=json.dumps(args.__dict__)
+
+if not os.path.exists(scoreCasePath):#se non esisrte significa che è il primo esperimento
+    try:    #quindi creo le cartelle necessarie e salvo un file delle auc e th inizializzato a 0
         os.makedirs(os.path.join(scoreCasePath))
         os.makedirs(os.path.join(scoreCasePath,'args'))
         os.makedirs(os.path.join(scoreCasePath,'models'))
-        for fold in np.arange(1,len(args.devNamesLists)+1):
-            jsonargs=json.dumps(args.__dict__)
-            with open(os.path.join(scoreCasePath,'args','argsFold'+str(fold)+'.txt'), 'w') as file:
-                file.write(jsonargs);
-            net.save_model(model,os.path.join(scoreCasePath,'models'),'modelFold'+str(fold));
+        np.savetxt(os.path.join(scoreCasePath, scoreAucFileName),[0,0,0,0])          
+        np.savetxt(os.path.join(scoreCasePath, thFileName),[0,0,0,0])          
+
+#        for fold in np.arange(1,len(args.devNamesLists)+1):
+#            with open(os.path.join(scoreCasePath,'args','argsFold'+str(fold)+'.txt'), 'w') as file:
+#                file.write(jsonargs);
+#            net.save_model(model,os.path.join(scoreCasePath,'models'),'modelFold'+str(fold));
 
         print("make dir")
     except OSError as exception:
         if exception.errno != errno.EEXIST:
             raise
 
-if os.path.exists(os.path.join(scoreCasePath,scoreAucFileName)):
-    print("loadtxt")
-    scoreAuc=np.loadtxt(os.path.join(scoreCasePath,scoreAucFileName))
-    scoreThs=np.loadtxt(os.path.join(scoreCasePath,thFileName))
-  
-    for auc, oldAuc, idx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
-        if auc > oldAuc:#se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
-                        #allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
-                        #che per la threshold ottime, i parametri usati e il modello adattato.
-            #per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
-            scoreAucNew[idx[0]]=auc;
-            scoreThsNew[idx[0]]=scoreThs[idx[0]];
-            #per args e model uso file separati per ogni fold
-            #salvo parametri
-            jsonargs=json.dumps(args.__dict__)
-            with open(os.path.join(scoreCasePath,'args','argsFold'+str(idx[0]+1)+'.txt'), 'w') as file:
-                file.write(jsonargs);
-            #salvo modello e pesi
-                    
-print("savetxt")
-np.savetxt(os.path.join(scoreCasePath, scoreAucFileName),scoreAucNew)
-np.savetxt(os.path.join(scoreCasePath, thFileName),scoreThsNew)
 
+#check score and save data
+if os.path.exists(os.path.join(scoreCasePath,scoreAucFileName)):#sarà presumibilmente sempre vero perche viene creata precedentemente
+    fileToLock = open(os.path.join(scoreCasePath,scoreAucFileName), 'w+')
+
+    #prova a bloccare il file: se non riesce ritenta. Non va avanti finche non riesce a bloccare il file
+    try:
+        while True:
+            try:
+                fcntl.flock(fileToLock, fcntl.LOCK_EX | fcntl.LOCK_NB) #NOTA BENE: file locks on Unix are advisory only.
+                break
+            except IOError as e:
+                # raise on unrelated IOErrors
+                if e.errno != errno.EAGAIN:
+                    raise
+                else:
+                    time.sleep(0.1)
+        print("loadtxt")
+        scoreAuc=np.loadtxt(os.path.join(scoreCasePath,scoreAucFileName))
+        scoreThs=np.loadtxt(os.path.join(scoreCasePath,thFileName))
+      
+        for auc, oldAuc, idx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
+            if auc > oldAuc:#se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
+                            #allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
+                            #che per la threshold ottime, i parametri usati e il modello adattato.
+                #per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
+                scoreAucNew[idx[0]]=auc;
+                scoreThs[idx[0]]=scoreThsNew[idx[0]];
+                #per args e model uso file separati per ogni fold
+                #salvo parametri
+                with open(os.path.join(scoreCasePath,'args','argsFold'+str(idx[0]+1)+'.txt'), 'w') as file:
+                    file.write(jsonargs);
+                #salvo modello e pesi
+                net.save_model(model,os.path.join(scoreCasePath,'models'),'modelFold'+str(idx[0]+1));
+                        
+        print("savetxt")
+        np.savetxt(os.path.join(scoreCasePath, scoreAucFileName),scoreAucNew)
+        np.savetxt(os.path.join(scoreCasePath, thFileName),scoreThs)
+    finally:
+        fcntl.flock(fileToLock, fcntl.LOCK_UN)
                                           
                                           
                                           
