@@ -7,7 +7,7 @@ Created on Thu Jan 19 15:11:09 2017
 """
 import numpy as np
 
-np.random.seed(888)#for experiment repetibility: this goes here, befor importing keras (inside autoencoder modele)
+np.random.seed(888)#for experiment repetibility: this goes here, before importing keras (inside autoencoder modele)
 #from py_files import autoencoder
 #from py_files import dataset_manupulation as dm
 import autoencoder
@@ -167,8 +167,8 @@ f=0;
 
     
 net=autoencoder.autoencoder_fall_detection( [3,3], [16, 8, 8], args.fit_net);
-net.define_static_arch(); 
-#net.define_cnn_arch(args);                                        
+#net.define_static_arch(); 
+net.define_cnn_arch(args);                                        
 #parametri di defautl anche per compile e fit
 net.model_compile(optimizer=args.optimizer, loss=args.loss)
 model=net.model_fit(x_trains[0], _ , nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle) 
@@ -293,7 +293,3 @@ print("------------------------FINAL REPORT---------------")
 
 net.print_score(my_cm,tot_y_pred,tot_y_true);
 
-
-               
-        
-    
