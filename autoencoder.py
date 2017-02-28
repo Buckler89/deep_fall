@@ -33,6 +33,49 @@ class autoencoder_fall_detection():
         self._weight=0;
         self._autoencoder=0
 
+    def define_arch(self):
+        '''
+        E' TEMPORANEA:QUESTA FUNZIONE VA ELIMINATA ALLA FINE 
+        QUESTa è usata solo per bypassare la creazione dinamica che vuole tutti i parametri!
+        '''
+        print("define TEST arch ")
+       #################################################################
+       # ToDo: architettura dinamica in base alla matrice kernel_shape #
+       #################################################################
+
+        input_img = Input(shape=(1, 129, 197))
+
+        x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(input_img)
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
+        x = Convolution2D(self._nk[1], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
+        x = Convolution2D(self._nk[2], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
+        x = MaxPooling2D((2, 2), border_mode='same')(x)
+        # at this point the representation is (8, 4, 4) i.e. 128-dimensional
+        
+        x = Flatten()(x)
+        x = Dense(3400,activation='tanh')(x)
+        encoded = Dense(64,activation='tanh')(x)
+        #-------------------------------------
+        x = Dense(3400,activation='tanh')(encoded)
+        x = Reshape((8, 17, 25))(x)
+        
+        x = Convolution2D(self._nk[2], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
+        x = UpSampling2D((2, 2))(x)
+        x = Convolution2D(self._nk[1], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
+        x = UpSampling2D((2, 2))(x)
+        x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh')(x)
+        x = UpSampling2D((2, 2))(x)
+        x = ZeroPadding2D(padding=(0,0,0,1))(x);
+        x = Cropping2D(cropping=((1, 2), (0, 0)))(x)
+
+        decoded = Convolution2D(1, self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x) 
+        
+#        layer1 = Model(input_img, decoded);
+#        layer1.summary();
+        self._autoencoder = Model(input_img, decoded)
+                
+        return self._autoencoder
 
     def define_cnn_arch(self, params):
         print("define_arch")
