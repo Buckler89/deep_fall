@@ -39,9 +39,6 @@ class autoencoder_fall_detection():
         QUESTa è usata solo per bypassare la creazione dinamica che vuole tutti i parametri!
         '''
         print("define TEST arch ")
-       #################################################################
-       # ToDo: architettura dinamica in base alla matrice kernel_shape #
-       #################################################################
 
         input_img = Input(shape=(1, 129, 197))
 
@@ -410,7 +407,7 @@ class autoencoder_fall_detection():
         if max(fpr)!=1 or max(tpr)!=1 or min(fpr)!=0 or min(tpr)!=0: #in teoria questi mi e max dovrebbero essere sempre 1 e 0 rispettivamente
             print("max min tpr fpr error");
         optimal_th, indx = self.compute_optimal_th(fpr,tpr,thresholds,method = 'std');
-        self.ROCCurve(true_numeric_labels, euclidean_distances, indx, pos_label=1, makeplot='yes', opt_th_plot='yes')
+        self.ROCCurve(true_numeric_labels, euclidean_distances, indx, pos_label=1, makeplot='no', opt_th_plot='yes')
         
                                             
              
@@ -542,7 +539,7 @@ class autoencoder_fall_detection():
         negative rate is assumed to be decreasing.
         """
         print("DETCurve")
-
+        plt.figure()
         #axis_min = min(fps[0],fns[-1])
         fig,ax = plt.subplots(figsize=(10, 10), dpi=600)
         plt.plot(fpr,fnr)
@@ -554,8 +551,8 @@ class autoencoder_fall_detection():
         ax.set_xticks(ticks_to_use)
         ax.set_yticks(ticks_to_use)
         plt.axis([0.001,50,0.001,50])
-        
-        
+        plt.show()
+
     def print_score(self, cm, y_pred, y_true):
         '''
         print the final results for the all fold test 
