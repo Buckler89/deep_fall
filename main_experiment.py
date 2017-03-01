@@ -94,10 +94,10 @@ if (args.config_filename is not None):
     # in the config file and in the command line, the latter is used
     args = parser.parse_args(namespace=args)
     # special.default values
-    if not args.kernel_shape:
-        args.kernel_shape = [[3, 3], [3, 3], [3, 3]]
-    if not args.m_pool:
-        args.m_pool = [[2, 2], [2, 2], [2, 2]]
+if args.kernel_shape is None:
+    args.kernel_shape = [[3, 3], [3, 3], [3, 3]]
+if args.m_pool is None:
+    args.m_pool = [[2, 2], [2, 2], [2, 2]]
 
 root_dir = path.realpath('.')
 
@@ -108,8 +108,8 @@ listPath = path.join(root_dir, 'lists', 'dev+test', args.case);
 a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', args.input_type))  # load dataset
 
 # il trainset è 1 e sempre lo stesso per tutti gli esperimenti
-trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[
-    0];  # creo i trainset per calcolare media e varianza per poter normalizzare
+trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0];  # creo i trainset per calcolare
+                                                                                # media e varianza per poter normalizzare
 trainset, mean, std = dm.normalize_data(trainset);  # compute mean and std of the trainset and normalize the trainset
 
 a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std);  # ormalize the dataset with the mean and std of the trainset
@@ -143,31 +143,11 @@ for s in testsets:
     y_tests.append(y)
 
 # cross validation
-
-# pseudo codice
-# for param in paramlist:
-#    #carico modello
-#    #setto hyperparametri della funzione fit e compile
-#    net.fit(trainset,validationset?)     #se il trainset è unico allora questa fit può stare fuori dal "for fold"!!!
-#    for fold in folds:
-#        net.predict(devset)
-#        net.compute_score+=score #sommole score di tutte le fold
-#        score=score/nfold
-#    score.max()
-#    save param di score.max()
-
-# una volta scoperto quali solo i parametri ottimi si fa il test vero e proprio:
-# for fold in folds
-#   net.load_model(parametri ottimi)
-#   net.predict(testset)
-#   net.compute_score+=score #sommole score di tutte le fold
 print("------------------------CROSS VALIDATION---------------")
 
 # init score matrix
-scoreAucNew = np.zeros(len(
-    x_devs))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
-scoreThsNew = np.zeros(len(
-    x_devs))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
+scoreAucNew = np.zeros(len(args.testNamesLists))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
+scoreThsNew = np.zeros(len(args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
 f = 0;
 
 net = autoencoder.autoencoder_fall_detection([3, 3], [16, 8, 8], args.fit_net);
@@ -201,8 +181,8 @@ if not os.path.exists(scoreCasePath):  # se non esisrte significa che è il prim
         os.makedirs(os.path.join(scoreCasePath))
         os.makedirs(os.path.join(scoreCasePath, 'args'))
         os.makedirs(os.path.join(scoreCasePath, 'models'))
-        np.savetxt(os.path.join(scoreCasePath, scoreAucFileName), [0, 0, 0, 0])
-        np.savetxt(os.path.join(scoreCasePath, thFileName), [0, 0, 0, 0])
+        np.savetxt(os.path.join(scoreCasePath, scoreAucFileName), np.zeros(len(args.testNamesLists)))
+        np.savetxt(os.path.join(scoreCasePath, thFileName), np.zeros(len(args.testNamesLists)))
 
         #        for fold in np.arange(1,len(args.devNamesLists)+1):
         #            with open(os.path.join(scoreCasePath,'args','argsFold'+str(fold)+'.txt'), 'w') as file:
