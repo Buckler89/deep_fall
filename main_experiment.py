@@ -176,7 +176,10 @@ thFileName = 'thresholds.txt';
 scoreCasePath = os.path.join(args.scorePath, args.case);
 jsonargs = json.dumps(args.__dict__)
 
-if not os.path.exists(scoreCasePath):  # se non esisrte significa che è il primo esperimento
+
+#TODO prova a cambiare apporccio: se non esiste la cartella o il file lo crei
+
+if not os.path.exists(scoreCasePath) or os.listdir(scoreCasePath) == []:  # se non esisrte o è vuota significa che è il primo esperimento
     try:  # quindi creo le cartelle necessarie e salvo un file delle auc e th inizializzato a 0
         os.makedirs(os.path.join(scoreCasePath))
         os.makedirs(os.path.join(scoreCasePath, 'args'))
@@ -184,25 +187,23 @@ if not os.path.exists(scoreCasePath):  # se non esisrte significa che è il prim
         np.savetxt(os.path.join(scoreCasePath, scoreAucFileName), np.zeros(len(args.testNamesLists)))
         np.savetxt(os.path.join(scoreCasePath, thFileName), np.zeros(len(args.testNamesLists)))
 
-        #        for fold in np.arange(1,len(args.devNamesLists)+1):
-        #            with open(os.path.join(scoreCasePath,'args','argsFold'+str(fold)+'.txt'), 'w') as file:
-        #                file.write(jsonargs);
-        #            net.save_model(model,os.path.join(scoreCasePath,'models'),'modelFold'+str(fold));
-
         print("make dir")
     except OSError as exception:
         if exception.errno != errno.EEXIST:
             raise
 
-# check score and save data
-if os.path.exists(os.path.join(scoreCasePath,
-                               scoreAucFileName)):  # sarà presumibilmente sempre vero perche viene creata precedentemente
-    fileToLock = open(os.path.join(scoreCasePath, scoreAucFileName), 'w+')
 
+# check score and save data
+if os.path.exists(os.path.join(scoreCasePath, scoreAucFileName)):  # sarà presumibilmente sempre vero perche viene creata precedentemente
+    try:
+        fileToLock = open(os.path.join(scoreCasePath, scoreAucFileName), 'a+')#se metto w+ mi cancella il vecchio!!!
+    except OSError as exception:
+        raise
     # prova a bloccare il file: se non riesce ritenta. Non va avanti finche non riesce a bloccare il file
     try:
         while True:
             try:
+                print("file Lock")
                 fcntl.flock(fileToLock,
                             fcntl.LOCK_EX | fcntl.LOCK_NB)  # NOTA BENE: file locks on Unix are advisory only.
                 break
@@ -211,6 +212,7 @@ if os.path.exists(os.path.join(scoreCasePath,
                 if e.errno != errno.EAGAIN:
                     raise
                 else:
+                    print("wait fo file to Lock")
                     time.sleep(0.1)
         print("loadtxt")
         scoreAuc = np.loadtxt(os.path.join(scoreCasePath, scoreAucFileName))
@@ -234,36 +236,37 @@ if os.path.exists(os.path.join(scoreCasePath,
         np.savetxt(os.path.join(scoreCasePath, scoreAucFileName), scoreAucNew)
         np.savetxt(os.path.join(scoreCasePath, thFileName), scoreThs)
     finally:
+        print("file UnLock")
         fcntl.flock(fileToLock, fcntl.LOCK_UN)
+print("------------------------FINE CROSS VALIDATION---------------")
 
-# TODO Spostare test nel file apposito che verra eseguito dopo la cross validation
-# test-finale-------------------------------VA SPOSTATO NEL FILE APPOSITO
-print("------------------------TEST---------------")
-idx = 0;
-my_cm = np.zeros((2, 2));
-old_my_cm = np.zeros((2, 2));  # matrice d'appoggio
-sk_cm = np.zeros((2, 2));
-tot_y_pred = [];
-tot_y_true = [];
-for x_test, y_test in zip(x_tests, y_tests):
-
-    # in realtà questo fit non serve più: va caricato il modello fittato nella validation!!!
-    net.model_compile();
-    net.model_fit(x_trains[0], _);
-
-    decoded_images = net.reconstruct_spectrogram(x_test);
-    auc, _, my_cm, y_true, y_pred = net.compute_score(x_test, decoded_images, y_test);
-    # raccolto tutti i risultati delle fold, per poter fare un report generale
-    for x in y_pred:
-        tot_y_pred.append(x);
-    for x in y_true:
-        tot_y_true.append(x);
-    my_cm = np.add(old_my_cm, my_cm);
-    old_my_cm = my_cm;
-    idx += 1;
-
-# report finale
-print('\n\n\n')
-print("------------------------FINAL REPORT---------------")
-
-net.print_score(my_cm, tot_y_pred, tot_y_true);
+# # test-finale-------------------------------
+# print("------------------------TEST---------------")
+# idx = 0;
+# my_cm = np.zeros((2, 2));
+# old_my_cm = np.zeros((2, 2));  # matrice d'appoggio
+# sk_cm = np.zeros((2, 2));
+# tot_y_pred = [];
+# tot_y_true = [];
+# for x_test, y_test in zip(x_tests, y_tests):
+#
+#     # in realtà questo fit non serve più: va caricato il modello fittato nella validation!!!
+#     net.model_compile();
+#     net.model_fit(x_trains[0], _);
+#
+#     decoded_images = net.reconstruct_spectrogram(x_test);
+#     auc, _, my_cm, y_true, y_pred = net.compute_score(x_test, decoded_images, y_test);
+#     # raccolto tutti i risultati delle fold, per poter fare un report generale
+#     for x in y_pred:
+#         tot_y_pred.append(x);
+#     for x in y_true:
+#         tot_y_true.append(x);
+#     my_cm = np.add(old_my_cm, my_cm);
+#     old_my_cm = my_cm;
+#     idx += 1;
+#
+# # report finale
+# print('\n\n\n')
+# print("------------------------FINAL REPORT---------------")
+#
+# net.print_score(my_cm, tot_y_pred, tot_y_true);

@@ -28,7 +28,8 @@ scoreAucFileName='score_auc.txt';
 thFileName='thresholds.txt';
 scorePath=path.join('score');
 scoreCasePath=path.join(scorePath,case);
-                       
+scoreCasePath=path.join(scorePath,case);
+
                        
                        
 #GESTIONE DATASET       
