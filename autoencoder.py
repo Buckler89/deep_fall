@@ -258,7 +258,7 @@ class autoencoder_fall_detection:
                                 bias=params.bias)(x)
 
         self._autoencoder = Model(input_img, decoded)
-        (self._autoencoder.summary()#ha un print interno: non sono riuscito a ridirigerlo sul logger
+        self._autoencoder.summary()#ha un print interno: non sono riuscito a ridirigerlo sul logger
 
         return self._autoencoder
 
