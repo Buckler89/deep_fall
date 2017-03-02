@@ -277,10 +277,11 @@ class autoencoder_fall_detection:
         self.logger.debug("model_fit")
 
         if not self._fit_net:
+            print()
             # if i want to load from disk the model
-            autoencoder = load_model('my_model.h5')
-            autoencoder.load_weights('my_model_weights.h5')
-            self._autoencoder = autoencoder
+            # autoencoder = load_model('my_model.h5')
+            # autoencoder.load_weights('my_model_weights.h5')
+            # self._autoencoder = autoencoder
         else:
             if x_test != None and y_test != None:
                 self._autoencoder.fit(x_train, x_train,
@@ -305,13 +306,17 @@ class autoencoder_fall_detection:
         self._fit_net = False
         return self._autoencoder
 
+    def load_model(self, model, weights):
+        # if i want to load from disk the model
+        autoencoder = load_model(model)
+        autoencoder.load_weights(weights)
+        self._autoencoder = autoencoder
+
     def save_model(self, model, path='.', name='my_model'):
         '''
-            salva il modello e i pesi.
-            TODO gestire nomi dei file in maniera intelligente in base ai parametri e case, in
-            modo tale che siano riconoscibili alla fine
-            '''
-        model.save(os.path.join(path, name + 'h5'))
+        salva il modello e i pesi.
+        '''
+        model.save(os.path.join(path, name + '.h5'))
         model.save_weights(os.path.join(path, name + '_weights.h5'))
 
     def reconstruct_spectrogram(self, x_test):

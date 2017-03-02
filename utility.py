@@ -40,9 +40,14 @@ class MyLogger:
     def warning(self, messageToLog):
         self.logger.warning(messageToLog)
 
+    def error(self, messageToLog):
+        self.logger.error(messageToLog)
+
+
+
 # utility function
 def makedir(path):  # se esiste già non fa nulla e salta l'exceprtion
-    try:  # quindi creo la cartella che conterrà tutti i risultati
+    try:
         os.makedirs(path)
         print("make " + path + " dir")
     except OSError as exception:

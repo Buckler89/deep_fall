@@ -82,9 +82,9 @@ def split_A3FALL_from_lists(data, listpath, namelist):
     '''
     logger.debug("split_A3FALL_from_lists")
 
-    sets=list();
+    sets = list();
     for name in namelist:
-        sets.append(select_list(os.path.join(listpath,name),data));
+        sets.append(select_list(os.path.join(listpath, name), data));
     return sets
     
 def select_list(filename,dataset):
@@ -96,7 +96,7 @@ def select_list(filename,dataset):
     subset=list()
     with open(filename) as f:
         content = f.readlines();
-        content = [x.strip().replace('.wav','.npy') for x in content] #remove the '\n' at the end of string
+        content = [x.strip().replace('.wav', '.npy') for x in content] #remove the '\n' at the end of string
         subset = [s for s in dataset if any(name in s[0] for name in content)] #select all the data presetn in the list
     return subset        
     

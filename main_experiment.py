@@ -166,8 +166,9 @@ elif os.listdir(scoreCasePath) == []:  # se è vuota significa che è il primo e
 # TODO in realtà questo controllo non scansiona se mancano i modelli o/e i parametri
 # se la cartella già esiste devo verificare la consistenza dei file all'interno
 elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(set(os.listdir(scoreCasePath))):
-    raise Exception(
-        'Score fold inconsistency detected. Check if all the file are present in ' + scoreCasePath + '. Process aborted')
+    message='Score fold inconsistency detected. Check if all the file are present in ' + scoreCasePath + '. Process aborted'
+    logger.error(message)
+    raise Exception(message)
 
 ######################################END CHECK SCORE FOLDER STRUCTURE############################################
 
@@ -277,10 +278,10 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
                 scoreThs[idx[0]] = scoreThsNew[idx[0]];
                 # per args e model uso file separati per ogni fold
                 # salvo parametri
-                with open(os.path.join(argsPath, 'argsFold' + str(idx[0] + 1) + '.txt'), 'w') as file:
+                with open(os.path.join(argsPath, 'argsfold' + str(idx[0] + 1) + '.txt'), 'w') as file:
                     file.write(jsonargs);
                 # salvo modello e pesi
-                net.save_model(model, modelPath, 'modelFold' + str(idx[0] + 1));
+                net.save_model(model, modelPath, 'modelfold' + str(idx[0] + 1));
 
         logger.debug("savetxt")
         np.savetxt(scoreAucsFilePath, scoreAucNew)
