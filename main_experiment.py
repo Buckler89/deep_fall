@@ -235,11 +235,11 @@ model = net.model_fit(x_trains[0], _, nb_epoch=args.epoch, batch_size=args.batch
 
 for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
 
-    decoded_images = net.reconstruct_spectrogram(x_dev);
-    auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev);
-    scoreAucNew[f] = auc;
+    decoded_images = net.reconstruct_spectrogram(x_dev)
+    auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev)
+    scoreAucNew[f] = auc
     scoreThsNew[f] = optimal_th
-    f += 1;
+    f += 1
 
 logger.info("------------------------SCORE SELECTION---------------")
 
