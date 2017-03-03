@@ -104,30 +104,7 @@ if args.m_pool is None:
 
 def main():
     ###################################################INIT LOG########################################
-    # import logging
-    #
-    # logFolder = 'logs'
-    # nameFileLog = os.path.join(logFolder, 'process_' + str(args.id) + '.log')
-    # logger = logging.getLogger(str(args.id))
-    # logger.setLevel(logging.DEBUG)
-    # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    #
-    # if args.log:
-    #     u.makedir(logFolder)  # crea la fold solo se non esiste
-    #     if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
-    #         os.rename(nameFileLog, nameFileLog + '_' + str(len(os.listdir(logFolder)) + 1))  # so the name is different
-    #     # create file handler which logs even debug messages
-    #     fh = logging.FileHandler(nameFileLog)
-    #     fh.setLevel(logging.DEBUG)
-    #     fh.setFormatter(formatter)
-    #     logger.addHandler(fh)
-    #
-    # else:
-    #     # create console handler with a higher log level
-    #     ch = logging.StreamHandler()
-    #     ch.setLevel(logging.DEBUG)
-    #     ch.setFormatter(formatter)
-    #     logger.addHandler(ch)
+
     logger = u.initLogger(args.id, args.log)
     dm.__init__(args.id)#init logger in data_manipulation module: use the same logger of the main
     logger.debug('This il the log of the process with ID = ' + str(args.id))
