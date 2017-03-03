@@ -19,7 +19,6 @@ from sklearn.metrics import roc_curve, auc, confusion_matrix, classification_rep
 import matplotlib
 import math
 from scipy.spatial.distance import euclidean
-import utility as u
 
 
 # import matplotlib.image as img

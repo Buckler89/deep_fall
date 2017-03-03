@@ -22,8 +22,6 @@ import fcntl
 import time
 
 import utility as u
-# import matplotlib.image as img
-
 
 
 
@@ -115,7 +113,9 @@ if args.log:
     nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
     u.makedir(logFolder)  # crea la fold solo se non esiste
     if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
-        os.rename(nameFileLog, nameFileLog + '_' + str(len(os.listdir(logFolder)) + 1))  # so the name is different
+        fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
+        os.rename(nameFileLog, nameFileLog + '_' + str(len(fileInFolder) + 1))  # so the name is different
+
     stdout_logger = logging.getLogger(strID)
     sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
     sys.stdout = sl  #ovverride funcion

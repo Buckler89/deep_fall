@@ -7,11 +7,7 @@ Created on Fri Feb  3 17:36:52 2017
 """
 import os
 import numpy as np
-from keras import backend as K
-import utility as u
-import logging
-#init global variable
-logger=None
+
 
 # def __init__(id):
 #     global logger
@@ -73,8 +69,8 @@ def split_A3FALL_simple(data,train_tag=None):
 #        if test_tag=None:
 #            test_tag=[]
     
-    data_train=[d for d in data if any(word in d[0] for word in train_tag)] #controlla se uno dei tag è presente nnel nome del file e lo assegna al trainset
-    data_test=[d for d in data if d not in data_train]#tutto cioò che non è train diventa test
+    data_train = [d for d in data if any(word in d[0] for word in train_tag)] #controlla se uno dei tag è presente nnel nome del file e lo assegna al trainset
+    data_test = [d for d in data if d not in data_train]#tutto cioò che non è train diventa test
     
     return data_train, data_test
 

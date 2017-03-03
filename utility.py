@@ -2,14 +2,13 @@
 import os
 import errno
 
-##################################################LOGGER PROVA############################
 import logging
-import sys
 
 
 class StreamToLogger(object):
     """
-    Fake file-like stream object that redirects writes to a logger instance.
+    Redirec all the stdout/err to the logger, therefore both print and traceback
+    are redirected to logger
     """
 
     def __init__(self, logger, LogFile='test', log_level=logging.INFO):
@@ -28,12 +27,6 @@ class StreamToLogger(object):
         for line in buf.rstrip().splitlines():
             self.logger.log(self.log_level, line.rstrip())
 
-
-
-
-
-# raise Exception('Test to standard error')
-##################################################END LOGGER PROVA############################
 
 # utility function
 def makedir(path):  # se esiste già non fa nulla e salta l'exceprtion
