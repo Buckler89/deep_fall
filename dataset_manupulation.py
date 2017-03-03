@@ -13,18 +13,18 @@ import logging
 #init global variable
 logger=None
 
-def __init__(id):
-    global logger
-    logger = logging.getLogger(str(id))
-    # def crateLogger(id, logToFile):
-    #     global logger
-    #     logger = u.MyLogger(id, logToFile)
+# def __init__(id):
+#     global logger
+#     logger = logging.getLogger(str(id))
+#     # def crateLogger(id, logToFile):
+#     #     global logger
+#     #     logger = u.MyLogger(id, logToFile)
 
 def load_A3FALL(spectrogramsPath):
     '''
     Carica tutto il dataset (spettri) in una lista di elementi [filename , matrix ]
     '''
-    logger.debug("Loading A3FALL dataset")
+    print("Loading A3FALL dataset")
     a3fall=list();
     for root, dirnames, filenames in os.walk(spectrogramsPath):
         i=0;
@@ -36,7 +36,7 @@ def load_A3FALL(spectrogramsPath):
     return a3fall
 
 def awgn_padding_set( set_to_pad, loc=0.0, scale=1.0):
-    logger.debug("awgn_padding_set")
+    print("awgn_padding_set")
 
     # find matrix with biggest second axis
     dim_pad=np.amax([len(k[1][2]) for k in set_to_pad]);
@@ -51,7 +51,7 @@ def awgn_padding_set( set_to_pad, loc=0.0, scale=1.0):
 def reshape_set(set_to_reshape, channels=1):
     '''
     '''
-    logger.debug("reshape_set")
+    print("reshape_set")
     n_sample=len(set_to_reshape);
     row, col = set_to_reshape[0][1].shape;
     label = []
@@ -66,7 +66,7 @@ def split_A3FALL_simple(data,train_tag=None):
     Splitta il dataset in train e test set: train tutti i background, mentre test tutto il resto
     (da amplicare in modo che consenta lo split per la validation)
     '''
-    logger.debug("split_A3FALL_simple")
+    print("split_A3FALL_simple")
 
     if train_tag==None:
         train_tag=['classic_','rock_','ha_']
@@ -84,7 +84,7 @@ def split_A3FALL_from_lists(data, listpath, namelist):
     Inltre in namelist vanno specificati i nomi dei file di testo da usare.
     Ritorna una lista contentete le liste dei dataset di shape: (len(namelist),data.shape)
     '''
-    logger.debug("split_A3FALL_from_lists")
+    print("split_A3FALL_from_lists")
 
     sets = list();
     for name in namelist:
@@ -95,7 +95,7 @@ def select_list(filename,dataset):
     '''
     Dato in ingesso un file di testo, resituisce una array contenete i dati corrispondenti elencati nel file
     '''
-    logger.debug("select_list")
+    print("select_list")
 
     subset=list()
     with open(filename) as f:
@@ -110,7 +110,7 @@ def normalize_data(data,mean=None,std=None):
     se data=None viene normalizzato tutto il dataset A3FALL
     se mean e variance = None essi vengono calcolati in place sui data
     '''
-    logger.debug("normalize_data")
+    print("normalize_data")
 
     if bool(mean) ^ bool(std):#xor operator
         raise("Error!!! Provide both mean and variance")
@@ -127,7 +127,7 @@ def concatenate_matrix(data):
     '''
     concatena gli spettri in un unica matrice: vule una lista e restituisce un array
     '''
-    logger.debug("concatenate_matrix")
+    print("concatenate_matrix")
 
     data_=data.copy()
     data_.pop(0)

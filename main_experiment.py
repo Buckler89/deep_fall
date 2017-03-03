@@ -79,7 +79,7 @@ parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse"])
 
 args = parser.parse_args()
 
-if args.config_filename is not None:
+if (args.config_filename is not None):
     with open(args.config_filename, 'r') as f:
         lines = f.readlines()
     arguments = []
@@ -101,206 +101,223 @@ if args.m_pool is None:
 ###################################################END PARSER ARGUMENT SECTION########################################
 
 
-def main():
-    ###################################################INIT LOG########################################
 
-    logger = u.initLogger(args.id, args.log)
-    dm.__init__(args.id)#init logger in data_manipulation module: use the same logger of the main
-    logger.debug('This il the log of the process with ID = ' + str(args.id))
+###################################################INIT LOG########################################
+#redirect all the stream to both standar.out, standard.err and self defined logger to the same logger
+strID=str(args.id)
 
-    ###################################################END INIT LOG########################################
-
-
-    ######################################CHECK SCORE FOLDER STRUCTURE############################################
-    # check the score folder structure #TODO PORTARE IN N FILE ESTERNO CHE PREPARE TUTTO? ALTRIMENTI SE LO FACCIAMO QUI, SI
-    # POTREBBERO CREARE PROBLEMI DI ACCESSO TRA I VARI PROCESSI
-
-    # in questi 2 file ogni riga corrisponde ad una fold
-    scoreAucsFileName = 'score_auc.txt'
-    thFileName = 'thresholds.txt'
-
-    scoreCasePath = os.path.join(args.scorePath, args.case)
-    scoreAucsFilePath = os.path.join(scoreCasePath, scoreAucsFileName)
-    scoreThsFilePath = os.path.join(scoreCasePath, thFileName)
-    argsFolder = 'args'
-    modelFolder = 'models'
-    argsPath = os.path.join(scoreCasePath, argsFolder)
-    modelPath = os.path.join(scoreCasePath, modelFolder)
-    jsonargs = json.dumps(args.__dict__)
-
-    if not os.path.exists(scoreCasePath):
-        u.makedir(scoreCasePath)
-        u.makedir(argsPath)
-        u.makedir(modelPath)
-        np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
-        np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
-    elif not os.listdir(scoreCasePath):  # se è vuota significa che è il primo esperimento
-        # quindi creo le cartelle necessarie e salvo un file delle auc e th inizializzato a 0
-        logger.debug("make arg and model dir and init scoreFile")
-        u.makedir(argsPath)
-        u.makedir(modelPath)
-        np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
-        np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
-
-    # TODO in realtà questo controllo non scansiona se mancano i modelli o/e i parametri
-    # se la cartella già esiste devo verificare la consistenza dei file all'interno
-    elif not {scoreAucsFileName, thFileName, argsFolder, modelFolder}.issubset(set(os.listdir(scoreCasePath))):
-        message='Score fold inconsistency detected. Check if all the file are present in ' + scoreCasePath + '. Process aborted'
-        logger.error(message)
-        raise Exception(message)
-
-    ######################################END CHECK SCORE FOLDER STRUCTURE############################################
+if args.log:
+    import logging
+    import sys
 
 
-    root_dir = path.realpath('.')
+    logFolder = 'logs'
+    nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
+    u.makedir(logFolder)  # crea la fold solo se non esiste
+    if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
+        os.rename(nameFileLog, nameFileLog + '_' + str(len(os.listdir(logFolder)) + 1))  # so the name is different
+    stdout_logger = logging.getLogger(strID)
+    sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
+    sys.stdout = sl  #ovverride funcion
 
-    listTrainpath = path.join(root_dir, 'lists', 'train')
-    listPath = path.join(root_dir, 'lists', 'dev+test', args.case)
+    stderr_logger = logging.getLogger(strID)
+    sl = u.StreamToLogger(stderr_logger, nameFileLog, logging.ERROR)
+    sys.stderr = sl #ovverride funcion
+print("LOG OF PROCESS ID = "+strID)
 
-    # GESTIONE DATASET
-    a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', args.input_type))  # load dataset
 
-    # il trainset è 1 e sempre lo stesso per tutti gli esperimenti
-    trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0]  # creo i trainset per calcolare
-    # media e varianza per poter normalizzare
-    trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the trainset and normalize the trainset
 
-    a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std)  # ormalize the dataset with the mean and std of the trainset
-    a3fall_n_z = dm.awgn_padding_set(a3fall_n)
+###################################################END INIT LOG########################################
 
-    # creo i set partendo dal dataset normalizzato e paddato
-    trainsets = dm.split_A3FALL_from_lists(a3fall_n_z, listTrainpath, args.trainNameLists)
-    devsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.devNamesLists)
-    testsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.testNamesLists)
 
-    # reshape dataset per darli in ingresso alla rete
+######################################CHECK SCORE FOLDER STRUCTURE############################################
+# check the score folder structure #TODO PORTARE IN N FILE ESTERNO CHE PREPARE TUTTO? ALTRIMENTI SE LO FACCIAMO QUI, SI
+# POTREBBERO CREARE PROBLEMI DI ACCESSO TRA I VARI PROCESSI
 
-    x_trains = list()
-    y_trains = list()
-    x_devs = list()
-    y_devs = list()
-    x_tests = list()
-    y_tests = list()
+# in questi 2 file ogni riga corrisponde ad una fold
+scoreAucsFileName = 'score_auc.txt'
+thFileName = 'thresholds.txt'
 
-    for s in trainsets:
-        x, y = dm.reshape_set(s)
-        x_trains.append(x)
-        y_trains.append(y)
-    for s in devsets:
-        x, y = dm.reshape_set(s)
-        x_devs.append(x)
-        y_devs.append(y)
-    for s in testsets:
-        x, y = dm.reshape_set(s)
-        x_tests.append(x)
-        y_tests.append(y)
+scoreCasePath = os.path.join(args.scorePath, args.case)
+scoreAucsFilePath = os.path.join(scoreCasePath, scoreAucsFileName)
+scoreThsFilePath = os.path.join(scoreCasePath, thFileName)
+argsFolder = 'args'
+modelFolder = 'models'
+argsPath = os.path.join(scoreCasePath, argsFolder)
+modelPath = os.path.join(scoreCasePath, modelFolder)
+jsonargs = json.dumps(args.__dict__)
 
-    # CROSS VALIDATION
-    logger.info("------------------------CROSS VALIDATION---------------")
+if not os.path.exists(scoreCasePath):
+    u.makedir(scoreCasePath)
+    u.makedir(argsPath)
+    u.makedir(modelPath)
+    np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
+    np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
+elif os.listdir(scoreCasePath) == []:  # se è vuota significa che è il primo esperimento
+    # quindi creo le cartelle necessarie e salvo un file delle auc e th inizializzato a 0
+    print("make arg and model dir and init scoreFile")
+    u.makedir(argsPath)
+    u.makedir(modelPath)
+    np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
+    np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
 
-    # init score matrix
-    scoreAucNew = np.zeros(len(
-        args.testNamesLists))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
-    scoreThsNew = np.zeros(len(
-        args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
-    k = 0
+# TODO in realtà questo controllo non scansiona se mancano i modelli o/e i parametri
+# se la cartella già esiste devo verificare la consistenza dei file all'interno
+elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(set(os.listdir(scoreCasePath))):
+    message='Score fold inconsistency detected. Check if all the file are present in ' + scoreCasePath + '. Process aborted'
+    print(message)
+    raise Exception(message)
 
-    net = autoencoder.autoencoder_fall_detection(args.id, args.fit_net)
-    # net.define_static_arch();
-    net.define_cnn_arch(args)
-    # parametri di defautl anche per compile e fit
-    net.model_compile(optimizer=args.optimizer, loss=args.loss)
-    model = net.model_fit(x_trains[0], _, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle)
+######################################END CHECK SCORE FOLDER STRUCTURE############################################
 
-    for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
 
-        decoded_images = net.reconstruct_spectrogram(x_dev)
-        auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev)
-        scoreAucNew[k] = auc
-        scoreThsNew[k] = optimal_th
-        k += 1
+root_dir = path.realpath('.')
 
-    logger.info("------------------------SCORE SELECTION---------------")
+listTrainpath = path.join(root_dir, 'lists', 'train')
+listPath = path.join(root_dir, 'lists', 'dev+test', args.case)
 
-    # check score and save data
-    if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perche viene creata precedentemente
-        try:
-            logger.debug("open File to lock")
-            fileToLock = open(scoreAucsFilePath, 'a+')  # se metto w+ mi cancella il vecchio!!!
-        except OSError:
-            raise
-        # prova a bloccare il file: se non riesce ritenta dopo un po. Non va avanti finche non riesce a bloccare il file
-        try:
-            while True:
-                try:
-                    logger.debug("file Lock")
-                    fcntl.flock(fileToLock,
-                                fcntl.LOCK_EX | fcntl.LOCK_NB)  # NOTA BENE: file locks on Unix are advisory only:ecco perche
-                                                                #serve tutto questo giro
-                    break
-                except IOError as e:
-                    # raise on unrelated IOErrors
-                    if e.errno != errno.EAGAIN:
-                        raise
-                    else:
-                        logger.debug("wait fo file to Lock")
-                        time.sleep(0.1)
-            logger.debug("loadtxt")
-            scoreAuc = np.loadtxt(scoreAucsFilePath)
-            scoreThs = np.loadtxt(scoreThsFilePath)
+# GESTIONE DATASET
+a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', args.input_type))  # load dataset
 
-            for auc, oldAuc, idx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
-                if auc > oldAuc:  # se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
-                    # allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
-                    # che per la threshold ottime, i parametri usati e il modello adattato.
-                    # per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
-                    scoreAucNew[idx[0]] = auc
-                    scoreThs[idx[0]] = scoreThsNew[idx[0]]
-                    # per args e model uso file separati per ogni fold
-                    # salvo parametri
-                    with open(os.path.join(argsPath, 'argsfold' + str(idx[0] + 1) + '.txt'), 'w') as file:
-                        file.write(jsonargs)
-                    # salvo modello e pesi
-                    net.save_model(model, modelPath, 'modelfold' + str(idx[0] + 1))
+# il trainset è 1 e sempre lo stesso per tutti gli esperimenti
+trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0]  # creo i trainset per calcolare
+# media e varianza per poter normalizzare
+trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the trainset and normalize the trainset
 
-            logger.debug("savetxt")
-            np.savetxt(scoreAucsFilePath, scoreAucNew)
-            np.savetxt(scoreThsFilePath, scoreThs)
-        finally:
-            logger.debug("file UnLock")
-            fcntl.flock(fileToLock, fcntl.LOCK_UN)
-    logger.info("------------------------FINE CROSS VALIDATION---------------")
+a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std)  # ormalize the dataset with the mean and std of the trainset
+a3fall_n_z = dm.awgn_padding_set(a3fall_n)
 
-    # # test-finale-------------------------------
-    # logger.info("------------------------TEST---------------")
-    # idx = 0;
-    # my_cm = np.zeros((2, 2));
-    # old_my_cm = np.zeros((2, 2));  # matrice d'appoggio
-    # sk_cm = np.zeros((2, 2));
-    # tot_y_pred = [];
-    # tot_y_true = [];
-    # for x_test, y_test in zip(x_tests, y_tests):
-    #
-    #     # in realtà questo fit non serve più: va caricato il modello fittato nella validation!!!
-    #     net.model_compile();
-    #     net.model_fit(x_trains[0], _);
-    #
-    #     decoded_images = net.reconstruct_spectrogram(x_test);
-    #     auc, _, my_cm, y_true, y_pred = net.compute_score(x_test, decoded_images, y_test);
-    #     # raccolto tutti i risultati delle fold, per poter fare un report generale
-    #     for x in y_pred:
-    #         tot_y_pred.append(x);
-    #     for x in y_true:
-    #         tot_y_true.append(x);
-    #     my_cm = np.add(old_my_cm, my_cm);
-    #     old_my_cm = my_cm;
-    #     idx += 1;
-    #
-    # # report finale
-    # logger.info('\n\n\n')
-    # logger.info("------------------------FINAL REPORT---------------")
-    #
-    # net.print_score(my_cm, tot_y_pred, tot_y_true);
+# creo i set partendo dal dataset normalizzato e paddato
+trainsets = dm.split_A3FALL_from_lists(a3fall_n_z, listTrainpath, args.trainNameLists)
+devsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.devNamesLists)
+testsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.testNamesLists)
 
-if __name__ == '__main__':
-    main()
+# reshape dataset per darli in ingresso alla rete
+
+x_trains = list()
+y_trains = list()
+x_devs = list()
+y_devs = list()
+x_tests = list()
+y_tests = list()
+
+for s in trainsets:
+    x, y = dm.reshape_set(s)
+    x_trains.append(x)
+    y_trains.append(y)
+for s in devsets:
+    x, y = dm.reshape_set(s)
+    x_devs.append(x)
+    y_devs.append(y)
+for s in testsets:
+    x, y = dm.reshape_set(s)
+    x_tests.append(x)
+    y_tests.append(y)
+
+# CROSS VALIDATION
+print("------------------------CROSS VALIDATION---------------")
+
+# init score matrix
+scoreAucNew = np.zeros(len(
+    args.testNamesLists))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
+scoreThsNew = np.zeros(len(
+    args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
+f = 0
+
+net = autoencoder.autoencoder_fall_detection(args.fit_net)
+# net.define_static_arch()
+net.define_cnn_arch(args)
+# parametri di defautl anche per compile e fit
+net.model_compile(optimizer=args.optimizer, loss=args.loss)
+model = net.model_fit(x_trains[0], _, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle)
+
+for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
+
+    decoded_images = net.reconstruct_spectrogram(x_dev)
+    auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev)
+    scoreAucNew[f] = auc
+    scoreThsNew[f] = optimal_th
+    f += 1
+
+print("------------------------SCORE SELECTION---------------")
+
+# check score and save data
+if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perche viene creata precedentemente
+    try:
+        print("open File to lock")
+        fileToLock = open(scoreAucsFilePath, 'a+')  # se metto w+ mi cancella il vecchio!!!
+    except OSError as exception:
+        raise
+    # prova a bloccare il file: se non riesce ritenta dopo un po. Non va avanti finche non riesce a bloccare il file
+    try:
+        while True:
+            try:
+                print("file Lock")
+                fcntl.flock(fileToLock,
+                            fcntl.LOCK_EX | fcntl.LOCK_NB)  # NOTA BENE: file locks on Unix are advisory only:ecco perche
+                                                            #serve tutto questo giro
+                break
+            except IOError as e:
+                # raise on unrelated IOErrors
+                if e.errno != errno.EAGAIN:
+                    raise
+                else:
+                    print("wait fo file to Lock")
+                    time.sleep(0.1)
+        print("loadtxt")
+        scoreAuc = np.loadtxt(scoreAucsFilePath)
+        scoreThs = np.loadtxt(scoreThsFilePath)
+
+        for auc, oldAuc, idx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
+            if auc > oldAuc:  # se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
+                # allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
+                # che per la threshold ottime, i parametri usati e il modello adattato.
+                # per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
+                scoreAucNew[idx[0]] = auc
+                scoreThs[idx[0]] = scoreThsNew[idx[0]]
+                # per args e model uso file separati per ogni fold
+                # salvo parametri
+                with open(os.path.join(argsPath, 'argsfold' + str(idx[0] + 1) + '.txt'), 'w') as file:
+                    file.write(jsonargs)
+                # salvo modello e pesi
+                net.save_model(model, modelPath, 'modelfold' + str(idx[0] + 1))
+
+        print("savetxt")
+        np.savetxt(scoreAucsFilePath, scoreAucNew)
+        np.savetxt(scoreThsFilePath, scoreThs)
+    finally:
+        print("file UnLock")
+        fcntl.flock(fileToLock, fcntl.LOCK_UN)
+print("------------------------FINE CROSS VALIDATION---------------")
+
+# # test-finale-------------------------------
+# print("------------------------TEST---------------")
+# idx = 0
+# my_cm = np.zeros((2, 2))
+# old_my_cm = np.zeros((2, 2))  # matrice d'appoggio
+# sk_cm = np.zeros((2, 2))
+# tot_y_pred = []
+# tot_y_true = []
+# for x_test, y_test in zip(x_tests, y_tests):
+#
+#     # in realtà questo fit non serve più: va caricato il modello fittato nella validation!!!
+#     net.model_compile()
+#     net.model_fit(x_trains[0], _)
+#
+#     decoded_images = net.reconstruct_spectrogram(x_test)
+#     auc, _, my_cm, y_true, y_pred = net.compute_score(x_test, decoded_images, y_test)
+#     # raccolto tutti i risultati delle fold, per poter fare un report generale
+#     for x in y_pred:
+#         tot_y_pred.append(x)
+#     for x in y_true:
+#         tot_y_true.append(x)
+#     my_cm = np.add(old_my_cm, my_cm)
+#     old_my_cm = my_cm
+#     idx += 1
+#
+# # report finale
+# print('\n\n\n')
+# print("------------------------FINAL REPORT---------------")
+#
+# net.print_score(my_cm, tot_y_pred, tot_y_true)
+

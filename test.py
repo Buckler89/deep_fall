@@ -75,7 +75,7 @@ for s in testsets:
     x_tests.append(x)
     y_tests.append(y)
 
-logger.debug("------------------------TEST---------------")
+print("------------------------TEST---------------")
 fold = 1
 my_cm = np.zeros((2, 2))
 old_my_cm = np.zeros((2, 2))  # matrice d'appoggio
@@ -103,7 +103,7 @@ for x_test, y_test in zip(x_tests, y_tests):
     fold += 1
 
 # report finale
-logger.debug('\n\n\n')
-logger.debug("------------------------FINAL REPORT---------------")
+print('\n\n\n')
+print("------------------------FINAL REPORT---------------")
 
 net.print_score(my_cm, tot_y_pred, tot_y_true)
