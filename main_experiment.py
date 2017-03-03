@@ -229,7 +229,7 @@ net = autoencoder.autoencoder_fall_detection(args.fit_net)
 net.define_cnn_arch(args)
 # parametri di defautl anche per compile e fit
 net.model_compile(optimizer=args.optimizer, loss=args.loss)
-model = net.model_fit(x_trains[0], _, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle)
+model = net.model_fit(x_trains[0], _,  nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle)
 
 for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
 

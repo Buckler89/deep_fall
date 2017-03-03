@@ -277,11 +277,12 @@ class autoencoder_fall_detection:
         print("model_fit")
 
         if not self._fit_net:
-            print()
             # if i want to load from disk the model
             # autoencoder = load_model('my_model.h5')
             # autoencoder.load_weights('my_model_weights.h5')
             # self._autoencoder = autoencoder
+            self.load_model('my_model.h5', 'my_model_weights.h5')
+
         else:
             if x_test != None and y_test != None:
                 self._autoencoder.fit(x_train, x_train,
@@ -311,6 +312,7 @@ class autoencoder_fall_detection:
         autoencoder = load_model(model)
         autoencoder.load_weights(weights)
         self._autoencoder = autoencoder
+        return autoencoder
 
     def save_model(self, model, path='.', name='my_model'):
         '''
