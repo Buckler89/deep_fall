@@ -299,7 +299,7 @@ class autoencoder_fall_detection:
                                       batch_size=batch_size,
                                       shuffle=True)
             # save the model an weights on disk
-            self.save_model(self._autoencoder)
+            #self.save_model(self._autoencoder)
 
         # self._autoencoder.save('my_model.h5')
         #            self._autoencoder.save_weights('my_model_weights.h5')
@@ -307,7 +307,7 @@ class autoencoder_fall_detection:
         #        self._config = self._autoencoder.get_config()
         #        self._weight = self._autoencoder.get_weights()
 
-        self._fit_net = False
+        #self._fit_net = False
         return self._autoencoder
 
     # class EarlyStoppingAuc(Callback):

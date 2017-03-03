@@ -131,4 +131,3 @@ def concatenate_matrix(data):
     for d in data_:
         np.append(matrix,d[1], axis=1)
     return matrix
-    
