@@ -15,25 +15,24 @@ from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooli
 from keras.models import Model, load_model
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc, confusion_matrix, classification_report, f1_score
+from sklearn.metrics import roc_curve, auc, classification_report, f1_score
 import matplotlib
 import math
 from scipy.spatial.distance import euclidean
-import utility as u
 
 
 # import matplotlib.image as img
 
 
 class autoencoder_fall_detection:
-    def __init__(self,id, fit=True):
-        '''
-
-        :param id: The id of the experiment. Is also the name of the logger that must be used!
+    def __init__(self, exp_id, fit=True):
+        """
+        :param exp_id: The exp_id of the experiment. Is also the name of the logger that must be used!
         :param fit: useful in debug mode, if there is a model already fitted
-        '''
+        """
+
         import logging
-        self.logger = logging.getLogger(str(id))
+        self.logger = logging.getLogger(str(exp_id))
         self.logger.debug("__init__")
         self._fit_net = fit  # se è False carica il modello e i pesi dal disco.
 
@@ -44,10 +43,10 @@ class autoencoder_fall_detection:
         self._autoencoder = 0
 
     def define_static_arch(self):
-        '''
+        """
         E' TEMPORANEA:QUESTA FUNZIONE VA ELIMINATA ALLA FINE
         QUESTa è usata solo per bypassare la creazione dinamica che vuole tutti i parametri!
-        '''
+        """
         self.logger.debug('define TEST arch ')
 
         input_img = Input(shape=(1, 129, 197))
@@ -120,18 +119,18 @@ class autoencoder_fall_detection:
             d = params.kernel_number[i]
             self.logger.debug("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-            if not params.pool_only_to_end:
+            if params.pool_type[0]=="all":
                 x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
                 # if border=='valid' h=int(h/params.params.m_pool[i][0])
                 h = math.ceil(h / params.m_pool[i][0])
                 w = math.ceil(w / params.m_pool[i][1])
                 self.logger.debug("pool " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-        if params.pool_only_to_end:
+        if params.pool_type[0]=="only_end":
             x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
             # if border=='valid' h=int(h/params.params.m_pool[i][0])
-            h = math.ceil(h / params.m_pool[i][0])
-            w = math.ceil(w / params.m_pool[i][1])
+            h = math.ceil(h / params.m_pool[0][0])
+            w = math.ceil(w / params.m_pool[0][1])
             self.logger.debug("pool->  (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         x = Flatten()(x)
@@ -209,12 +208,12 @@ class autoencoder_fall_detection:
             d = params.kernel_number[i]
             self.logger.debug("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-            if params.pool_only_to_end and i == len(params.kernel_number) - 1:
+            if params.pool_type[0] == "only_end" and i == len(params.kernel_number) - 1:
                 x = UpSampling2D(params.m_pool[i])(x)
                 h = h * params.m_pool[i][0]
                 w = w * params.m_pool[i][1]
                 self.logger.debug("up->   (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
-            elif not params.pool_only_to_end:
+            elif params.pool_type[0]=="all":
                 x = UpSampling2D(params.m_pool[i])(x)
                 h = h * params.m_pool[i][0]
                 w = w * params.m_pool[i][1]
@@ -264,13 +263,13 @@ class autoencoder_fall_detection:
         return self._autoencoder
 
     def model_compile(self, model=None, optimizer='adadelta', loss='mse'):
-        '''
+        """
         compila il modello con i parametri passati: se non viene passato compila il modello istanziato dalla classe
-        '''
+        """
         self.logger.debug("model_compile")
 
-        if model == None:
-            self._autoencoder.compile(optimizer='adadelta', loss='mse')
+        if model is None:
+            self._autoencoder.compile(optimizer=optimizer, loss=loss)
         else:
             model.compile(optimizer='adadelta', loss='mse')
 
@@ -284,17 +283,17 @@ class autoencoder_fall_detection:
             # autoencoder.load_weights('my_model_weights.h5')
             # self._autoencoder = autoencoder
         else:
-            if x_test != None and y_test != None:
-                self._autoencoder.fit(x_train, x_train,
+            if x_test is not None and y_test is not None:
+                self._autoencoder.fit(x_train, y_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
-                                      shuffle=True,
+                                      shuffle=shuffle,
                                       validation_data=(x_test, x_test))
             else:
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
-                                      shuffle=True)
+                                      shuffle=shuffle)
             # save the model an weights on disk
             self.save_model(self._autoencoder)
 
@@ -313,17 +312,18 @@ class autoencoder_fall_detection:
         autoencoder.load_weights(weights)
         self._autoencoder = autoencoder
 
-    def save_model(self, model, path='.', name='my_model'):
-        '''
+    @staticmethod
+    def save_model(model, path='.', name='my_model'):
+        """
         salva il modello e i pesi.
-        '''
+        """
         model.save(os.path.join(path, name + '.h5'))
         model.save_weights(os.path.join(path, name + '_weights.h5'))
 
     def reconstruct_spectrogram(self, x_test):
-        '''
+        """
         decodifica i vettori in ingresso.
-        '''
+        """
         self.logger.debug("reconstruct_spectrogram")
 
         decoded_imgs = self._autoencoder.predict(x_test)
@@ -352,9 +352,9 @@ class autoencoder_fall_detection:
         return decoded_imgs
 
     def reconstruct_handwritedigit_mnist(self, x_test):  # @Diego -> da cancellare?
-        '''
+        """
         vuole in ingresso un vettore con shape (1,1,28,28), la configurazione del modello e i pesi
-        '''
+        """
         self.logger.debug("reconstruct_handwritedigit_mnist")
 
         decoded_imgs = self._autoencoder.predict(x_test)
@@ -376,10 +376,10 @@ class autoencoder_fall_detection:
         plt.show()
 
     def compute_distances(self, x_test, decoded_images):
-        '''
+        """
         calcola le distanze euclide tra 2 vettori di immagini con shape (n_img,1,row,col)
         ritorna un vettore con le distanze con shape (n_img,1)
-        '''
+        """
         self.logger.debug("compute_distance")
 
         # e_d2d = np.zeros(x_test.shape)
@@ -393,11 +393,11 @@ class autoencoder_fall_detection:
         return e_d
 
     def labelize_data(self, y):
-        '''
+        """
         labellzza numericamente i nomi dei file
         assegna 1 se è una caduta del manichino, 0 altrimenti
+        """
 
-        '''
         self.logger.debug("labelize_data")
 
         i = 0
@@ -509,14 +509,15 @@ class autoencoder_fall_detection:
 
         return roc_auc, optimal_th, my_cm, true_numeric_labels, y_pred
 
-    def compute_optimal_th(self, fpr, tpr, thresholds, method='std'):
-        '''
+    @staticmethod
+    def compute_optimal_th(fpr, tpr, thresholds, method='std'):
+        """
         http://medind.nic.in/ibv/t11/i4/ibvt11i4p277.pdf
         ci sono molti metodi per trovare l ottima th:
             1-'std' minumum of distances from point (0,1)
                 min(d^2), d^2=[(0-fpr)^2+(1-tpr)^2]
             2-'xxx' definire delle funzioni costo TODO
-        '''
+        """
         if method == 'std':
             indx = ((0 - fpr) ** 2 + (1 - tpr) ** 2).argmin()
             optimal_th = thresholds[indx]
@@ -539,7 +540,7 @@ class autoencoder_fall_detection:
             plt.ylabel('True Positive Rate')
             plt.title('Receiver operating characteristic')
             plt.legend(loc="lower right")
-            if opt_th_plot == 'yes' and indx != None:
+            if opt_th_plot == 'yes' and indx is not None:
                 plt.plot(fpr[indx], tpr[indx], 'ro')
             plt.show()
 
@@ -567,9 +568,9 @@ class autoencoder_fall_detection:
         plt.show()
 
     def print_score(self, cm, y_pred, y_true):
-        '''
+        """
         print the final results for the all fold test
-        '''
+        """
         cm = cm.astype(int)
         self.logger.info("FINAL REPORT")
         self.logger.info("\t Fall \t NoFall")

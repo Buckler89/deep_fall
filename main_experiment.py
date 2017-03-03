@@ -25,8 +25,6 @@ import utility as u
 # import matplotlib.image as img
 
 
-
-
 ###################################################PARSER ARGUMENT SECTION########################################
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
 
@@ -34,10 +32,8 @@ parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
 parser.add_argument("-id", '--exp-index', dest='id', default=0, type=int)
 parser.add_argument("-log", '--logging', dest='log', default=False, action='store_true')
 
-# parser.add_argument("-id", "--exp-index", dest='id', action='store', type=int, default=1, required=True)
-
 parser.add_argument("-cf", "--config-file", dest="config_filename", default=None)
-parser.add_argument("-sp", "--score-path", dest="scorePath", default=os.path.join("score"))
+parser.add_argument("-sp", "--score-path", dest="scorePath", default="score")
 parser.add_argument("-tl", "--trainset-list", dest="trainNameLists", nargs='+', default=['trainset.lst'])
 parser.add_argument("-c", "--case", dest="case", default='case6')
 parser.add_argument("-tln", "--test-list-names", dest="testNamesLists", nargs='+',
@@ -67,7 +63,8 @@ parser.add_argument('-wc', '--w-constr', dest="w_constr", default=None)
 parser.add_argument('-bc', '--b-constr', dest="b_constr", default=None)
 parser.add_argument("-nb", "--no-bias", dest="bias", default=True,
                     action='store_false')
-parser.add_argument("-p", "--end-pool", dest="pool_only_to_end", default=False, action='store_true')
+#parser.add_argument("-p", "--end-pool", dest="pool_only_to_end", default=False, action='store_true')
+parser.add_argument("-p", "--pool-type", dest="pool_type", nargs='+', default=['all'], choices=["all", "only_end"])
 
 # fit params
 parser.add_argument("-e", "--epoch", dest="epoch", default=50, type=int)
@@ -87,7 +84,7 @@ if args.config_filename is not None:
         if '#' not in line:
             arguments.extend(line.split())
     # First parse the arguments specified in the config file
-    args = parser.parse_args(args=arguments)
+    args, unknown = parser.parse_known_args(args=arguments)
     # Then append the command line arguments
     # Command line arguments have the priority: an argument is specified both
     # in the config file and in the command line, the latter is used
@@ -105,9 +102,10 @@ def main():
     ###################################################INIT LOG########################################
 
     logger = u.initLogger(args.id, args.log)
-    dm.__init__(args.id)#init logger in data_manipulation module: use the same logger of the main
+    dm.__init__(args.id) # init logger in data_manipulation module: use the same logger of the main
     logger.debug('This il the log of the process with ID = ' + str(args.id))
-
+    if unknown is not None:
+        logger.debug('Warning! unknown arguments: ' + ', '.join(unknown))
     ###################################################END INIT LOG########################################
 
 
@@ -199,10 +197,10 @@ def main():
     logger.info("------------------------CROSS VALIDATION---------------")
 
     # init score matrix
-    scoreAucNew = np.zeros(len(
-        args.testNamesLists))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
-    scoreThsNew = np.zeros(len(
-        args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
+    # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
+    scoreAucNew = np.zeros(len(args.testNamesLists))
+    # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
+    scoreThsNew = np.zeros(len(args.testNamesLists))
     k = 0
 
     net = autoencoder.autoencoder_fall_detection(args.id, args.fit_net)
