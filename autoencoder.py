@@ -573,7 +573,7 @@ class autoencoder_fall_detection:
         cm = cm.astype(int)
         self.logger.info("FINAL REPORT")
         self.logger.info("\t Fall \t NoFall")
-        self.logger.info("Fall \t" + str(cm[0, 0]) + "\t" + str(cm[0, 1]))
+        self.logger.info("Fall \t\t" + str(cm[0, 0]) + "\t" + str(cm[0, 1]))
         self.logger.info("NoFall \t" + str(cm[1, 0]) + "\t" + str(cm[1, 1]))
 
         self.logger.info("F1measure: " + str(f1_score(y_true, y_pred, pos_label=1)))
