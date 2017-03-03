@@ -9,12 +9,16 @@ import os
 import numpy as np
 from keras import backend as K
 import utility as u
+import logging
+#init global variable
+logger=None
 
-
-
-def crateLogger(id, logToFile):
+def __init__(id):
     global logger
-    logger = u.MyLogger(id, logToFile)
+    logger = logging.getLogger(str(id))
+    # def crateLogger(id, logToFile):
+    #     global logger
+    #     logger = u.MyLogger(id, logToFile)
 
 def load_A3FALL(spectrogramsPath):
     '''

@@ -26,13 +26,14 @@ import utility as u
 
 
 class autoencoder_fall_detection:
-    def __init__(self, logger, fit=True):
+    def __init__(self,id, fit=True):
         '''
 
-        :param logger: is the logger that must be used!
+        :param id: The id of the experiment. Is also the name of the logger that must be used!
         :param fit: useful in debug mode, if there is a model already fitted
         '''
-        self.logger = logger
+        import logging
+        self.logger = logging.getLogger(str(id))
         self.logger.debug("__init__")
         self._fit_net = fit  # se è False carica il modello e i pesi dal disco.
 
