@@ -104,17 +104,26 @@ if args.m_pool is None:
 
 ###################################################INIT LOG########################################
 #redirect all the stream to both standar.out, standard.err and self defined logger to the same logger
+strID=str(args.id)
+
 if args.log:
     import logging
     import sys
-    stdout_logger = logging.getLogger(str(args.id))
-    sl = u.StreamToLogger(stdout_logger, 'test', logging.INFO)
+
+
+    logFolder = 'logs'
+    nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
+    u.makedir(logFolder)  # crea la fold solo se non esiste
+    if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
+        os.rename(nameFileLog, nameFileLog + '_' + str(len(os.listdir(logFolder)) + 1))  # so the name is different
+    stdout_logger = logging.getLogger(strID)
+    sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
     sys.stdout = sl  #ovverride funcion
 
-    stderr_logger = logging.getLogger(str(args.id))
-    sl = u.StreamToLogger(stderr_logger, 'test', logging.ERROR)
+    stderr_logger = logging.getLogger(strID)
+    sl = u.StreamToLogger(stderr_logger, nameFileLog, logging.ERROR)
     sys.stderr = sl #ovverride funcion
-print("Test to standard out")
+print("LOG OF PROCESS ID = "+strID)
 
 
 
@@ -139,7 +148,7 @@ modelPath = os.path.join(scoreCasePath, modelFolder)
 jsonargs = json.dumps(args.__dict__)
 
 if not os.path.exists(scoreCasePath):
-    u.makedir(scoreCasePath);
+    u.makedir(scoreCasePath)
     u.makedir(argsPath)
     u.makedir(modelPath)
     np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
@@ -164,24 +173,24 @@ elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(
 
 root_dir = path.realpath('.')
 
-listTrainpath = path.join(root_dir, 'lists', 'train');
-listPath = path.join(root_dir, 'lists', 'dev+test', args.case);
+listTrainpath = path.join(root_dir, 'lists', 'train')
+listPath = path.join(root_dir, 'lists', 'dev+test', args.case)
 
 # GESTIONE DATASET
 a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', args.input_type))  # load dataset
 
 # il trainset è 1 e sempre lo stesso per tutti gli esperimenti
-trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0];  # creo i trainset per calcolare
+trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0]  # creo i trainset per calcolare
 # media e varianza per poter normalizzare
-trainset, mean, std = dm.normalize_data(trainset);  # compute mean and std of the trainset and normalize the trainset
+trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the trainset and normalize the trainset
 
-a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std);  # ormalize the dataset with the mean and std of the trainset
-a3fall_n_z = dm.awgn_padding_set(a3fall_n);
+a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std)  # ormalize the dataset with the mean and std of the trainset
+a3fall_n_z = dm.awgn_padding_set(a3fall_n)
 
 # creo i set partendo dal dataset normalizzato e paddato
 trainsets = dm.split_A3FALL_from_lists(a3fall_n_z, listTrainpath, args.trainNameLists)
-devsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.devNamesLists);
-testsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.testNamesLists);
+devsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.devNamesLists)
+testsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.testNamesLists)
 
 # reshape dataset per darli in ingresso alla rete
 
@@ -213,11 +222,11 @@ scoreAucNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
 scoreThsNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
-f = 0;
+f = 0
 
-net = autoencoder.autoencoder_fall_detection(args.fit_net);
-# net.define_static_arch();
-net.define_cnn_arch(args);
+net = autoencoder.autoencoder_fall_detection(args.fit_net)
+# net.define_static_arch()
+net.define_cnn_arch(args)
 # parametri di defautl anche per compile e fit
 net.model_compile(optimizer=args.optimizer, loss=args.loss)
 model = net.model_fit(x_trains[0], _, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle)
@@ -264,14 +273,14 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
                 # allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
                 # che per la threshold ottime, i parametri usati e il modello adattato.
                 # per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
-                scoreAucNew[idx[0]] = auc;
-                scoreThs[idx[0]] = scoreThsNew[idx[0]];
+                scoreAucNew[idx[0]] = auc
+                scoreThs[idx[0]] = scoreThsNew[idx[0]]
                 # per args e model uso file separati per ogni fold
                 # salvo parametri
                 with open(os.path.join(argsPath, 'argsfold' + str(idx[0] + 1) + '.txt'), 'w') as file:
-                    file.write(jsonargs);
+                    file.write(jsonargs)
                 # salvo modello e pesi
-                net.save_model(model, modelPath, 'modelfold' + str(idx[0] + 1));
+                net.save_model(model, modelPath, 'modelfold' + str(idx[0] + 1))
 
         print("savetxt")
         np.savetxt(scoreAucsFilePath, scoreAucNew)
@@ -283,32 +292,32 @@ print("------------------------FINE CROSS VALIDATION---------------")
 
 # # test-finale-------------------------------
 # print("------------------------TEST---------------")
-# idx = 0;
-# my_cm = np.zeros((2, 2));
-# old_my_cm = np.zeros((2, 2));  # matrice d'appoggio
-# sk_cm = np.zeros((2, 2));
-# tot_y_pred = [];
-# tot_y_true = [];
+# idx = 0
+# my_cm = np.zeros((2, 2))
+# old_my_cm = np.zeros((2, 2))  # matrice d'appoggio
+# sk_cm = np.zeros((2, 2))
+# tot_y_pred = []
+# tot_y_true = []
 # for x_test, y_test in zip(x_tests, y_tests):
 #
 #     # in realtà questo fit non serve più: va caricato il modello fittato nella validation!!!
-#     net.model_compile();
-#     net.model_fit(x_trains[0], _);
+#     net.model_compile()
+#     net.model_fit(x_trains[0], _)
 #
-#     decoded_images = net.reconstruct_spectrogram(x_test);
-#     auc, _, my_cm, y_true, y_pred = net.compute_score(x_test, decoded_images, y_test);
+#     decoded_images = net.reconstruct_spectrogram(x_test)
+#     auc, _, my_cm, y_true, y_pred = net.compute_score(x_test, decoded_images, y_test)
 #     # raccolto tutti i risultati delle fold, per poter fare un report generale
 #     for x in y_pred:
-#         tot_y_pred.append(x);
+#         tot_y_pred.append(x)
 #     for x in y_true:
-#         tot_y_true.append(x);
-#     my_cm = np.add(old_my_cm, my_cm);
-#     old_my_cm = my_cm;
-#     idx += 1;
+#         tot_y_true.append(x)
+#     my_cm = np.add(old_my_cm, my_cm)
+#     old_my_cm = my_cm
+#     idx += 1
 #
 # # report finale
 # print('\n\n\n')
 # print("------------------------FINAL REPORT---------------")
 #
-# net.print_score(my_cm, tot_y_pred, tot_y_true);
+# net.print_score(my_cm, tot_y_pred, tot_y_true)
 
