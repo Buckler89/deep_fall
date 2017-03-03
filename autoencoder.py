@@ -26,15 +26,15 @@ import utility as u
 
 
 class autoencoder_fall_detection:
-    def __init__(self,id, fit=True):
+    def __init__(self, fit=True):
         '''
 
         :param id: The id of the experiment. Is also the name of the logger that must be used!
         :param fit: useful in debug mode, if there is a model already fitted
         '''
-        import logging
-        self.logger = logging.getLogger(str(id))
-        self.logger.debug("__init__")
+
+
+        print("__init__")
         self._fit_net = fit  # se è False carica il modello e i pesi dal disco.
 
         self._ks = [3, 3]  # serve solo su def_static_arch
@@ -48,7 +48,7 @@ class autoencoder_fall_detection:
         E' TEMPORANEA:QUESTA FUNZIONE VA ELIMINATA ALLA FINE
         QUESTa è usata solo per bypassare la creazione dinamica che vuole tutti i parametri!
         '''
-        self.logger.debug('define TEST arch ')
+        print('define TEST arch ')
 
         input_img = Input(shape=(1, 129, 197))
 
@@ -85,12 +85,12 @@ class autoencoder_fall_detection:
         return self._autoencoder
 
     def define_cnn_arch(self, params):
-        self.logger.debug("define_arch")
+        print("define_arch")
         # ---------------------------------------------------------- Encoding
         d = params.cnn_input_shape[0]
         h = params.cnn_input_shape[1]
         w = params.cnn_input_shape[2]
-        self.logger.debug("(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+        print("(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         input_img = Input(shape=params.cnn_input_shape)
         x = input_img
@@ -118,21 +118,21 @@ class autoencoder_fall_detection:
             h = int((h - params.kernel_shape[i][0] + ph) / params.strides[0]) + 1
             w = int((w - params.kernel_shape[i][1] + pw) / params.strides[1]) + 1
             d = params.kernel_number[i]
-            self.logger.debug("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+            print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
             if not params.pool_only_to_end:
                 x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
                 # if border=='valid' h=int(h/params.params.m_pool[i][0])
                 h = math.ceil(h / params.m_pool[i][0])
                 w = math.ceil(w / params.m_pool[i][1])
-                self.logger.debug("pool " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+                print("pool " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         if params.pool_only_to_end:
             x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
             # if border=='valid' h=int(h/params.params.m_pool[i][0])
             h = math.ceil(h / params.m_pool[i][0])
             w = math.ceil(w / params.m_pool[i][1])
-            self.logger.debug("pool->  (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+            print("pool->  (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         x = Flatten()(x)
 
@@ -181,7 +181,7 @@ class autoencoder_fall_detection:
                   bias=params.bias)(x)
 
         x = Reshape((d, h, w))(x)
-        self.logger.debug("----------------------------------->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+        print("----------------------------------->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         for i in range(len(params.kernel_number) - 1, -1, -1):
 
@@ -207,23 +207,23 @@ class autoencoder_fall_detection:
             h = int((h - params.kernel_shape[i][0] + ph) / params.strides[0]) + 1
             w = int((w - params.kernel_shape[i][1] + pw) / params.strides[1]) + 1
             d = params.kernel_number[i]
-            self.logger.debug("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+            print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
             if params.pool_only_to_end and i == len(params.kernel_number) - 1:
                 x = UpSampling2D(params.m_pool[i])(x)
                 h = h * params.m_pool[i][0]
                 w = w * params.m_pool[i][1]
-                self.logger.debug("up->   (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+                print("up->   (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
             elif not params.pool_only_to_end:
                 x = UpSampling2D(params.m_pool[i])(x)
                 h = h * params.m_pool[i][0]
                 w = w * params.m_pool[i][1]
-                self.logger.debug("up " + str(i) + "->  (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+                print("up " + str(i) + "->  (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         dh = h - params.cnn_input_shape[1]
         dw = w - params.cnn_input_shape[2]
         #print(h, params.cnn_input_shape[1], w, params.cnn_input_shape[2])
-        self.logger.debug(str(h)+" "+str(params.cnn_input_shape[1])+" "+str(w)+" "+str(params.cnn_input_shape[2]))
+        print(str(h)+" "+str(params.cnn_input_shape[1])+" "+str(w)+" "+str(params.cnn_input_shape[2]))
 
         h_zp = h_cr = w_zp = w_cr = (0, 0)
         if dh > 0:
@@ -236,9 +236,9 @@ class autoencoder_fall_detection:
             w_zp = (-int(dw / 2), int(dw / 2) - dw)
 
         #print(h_zp, w_zp, type(h_zp), type(w_zp), )
-        self.logger.debug(str(h_zp)+" "+str(w_zp)+" "+str(type(h_zp))+" "+str(type(w_zp)))
+        print(str(h_zp)+" "+str(w_zp)+" "+str(type(h_zp))+" "+str(type(w_zp)))
         #print(h_cr, w_cr, type(h_cr), type(w_cr), )
-        self.logger.debug(str(h_cr)+" "+str(w_cr)+" "+str(type(h_cr))+" "+str(type(w_cr)))
+        print(str(h_cr)+" "+str(w_cr)+" "+str(type(h_cr))+" "+str(type(w_cr)))
 
 
         x = ZeroPadding2D(padding=(h_zp[0], h_zp[1], w_zp[0], w_zp[1]))(x)
@@ -267,7 +267,7 @@ class autoencoder_fall_detection:
         '''
         compila il modello con i parametri passati: se non viene passato compila il modello istanziato dalla classe
         '''
-        self.logger.debug("model_compile")
+        print("model_compile")
 
         if model == None:
             self._autoencoder.compile(optimizer='adadelta', loss='mse')
@@ -275,7 +275,7 @@ class autoencoder_fall_detection:
             model.compile(optimizer='adadelta', loss='mse')
 
     def model_fit(self, x_train, y_train, x_test=None, y_test=None, nb_epoch=50, batch_size=128, shuffle=True):
-        self.logger.debug("model_fit")
+        print("model_fit")
 
         if not self._fit_net:
             print()
@@ -324,7 +324,7 @@ class autoencoder_fall_detection:
         '''
         decodifica i vettori in ingresso.
         '''
-        self.logger.debug("reconstruct_spectrogram")
+        print("reconstruct_spectrogram")
 
         decoded_imgs = self._autoencoder.predict(x_test)
 
@@ -355,7 +355,7 @@ class autoencoder_fall_detection:
         '''
         vuole in ingresso un vettore con shape (1,1,28,28), la configurazione del modello e i pesi
         '''
-        self.logger.debug("reconstruct_handwritedigit_mnist")
+        print("reconstruct_handwritedigit_mnist")
 
         decoded_imgs = self._autoencoder.predict(x_test)
 
@@ -380,7 +380,7 @@ class autoencoder_fall_detection:
         calcola le distanze euclide tra 2 vettori di immagini con shape (n_img,1,row,col)
         ritorna un vettore con le distanze con shape (n_img,1)
         '''
-        self.logger.debug("compute_distance")
+        print("compute_distance")
 
         # e_d2d = np.zeros(x_test.shape)
         e_d = np.zeros(x_test.shape[0])
@@ -398,7 +398,7 @@ class autoencoder_fall_detection:
         assegna 1 se è una caduta del manichino, 0 altrimenti
 
         '''
-        self.logger.debug("labelize_data")
+        print("labelize_data")
 
         i = 0
         true_numeric_labels = list()
@@ -412,7 +412,7 @@ class autoencoder_fall_detection:
         return true_numeric_labels
 
     def compute_score(self, original_image, decoded_images, labels):
-        self.logger.debug("compute_score")
+        print("compute_score")
 
         true_numeric_labels = self.labelize_data(labels)
         euclidean_distances = self.compute_distances(original_image, decoded_images)
@@ -421,7 +421,7 @@ class autoencoder_fall_detection:
                                                       makeplot='no', opt_th_plot='no')
         if max(fpr) != 1 or max(tpr) != 1 or min(fpr) != 0 or min(
                 tpr) != 0:  # in teoria questi mi e max dovrebbero essere sempre 1 e 0 rispettivamente
-            self.logger.warning("max min tpr fpr error")
+            print("max min tpr fpr error")
         optimal_th, indx = self.compute_optimal_th(fpr, tpr, thresholds, method='std')
         self.ROCCurve(true_numeric_labels, euclidean_distances, indx, pos_label=1, makeplot='no', opt_th_plot='yes')
 
@@ -498,14 +498,14 @@ class autoencoder_fall_detection:
         #        tnr=tn/(tn+fp)
         #        fpr=fp/(fp+tn)
         #        fnr=fn/(fn+tp)
-        self.logger.info("confusion matrix:")
+        print("confusion matrix:")
         # sk_cm=confusion_matrix(true_numeric_labels,y_pred)
         my_cm = np.array([[tp, fn], [fp, tn]])
-        self.logger.info("\t Fall \t NoFall")
-        self.logger.info("Fall \t" + str(tp) + "\t" + str(fn))
-        self.logger.info("NoFall \t" + str(fp) + "\t" + str(tn))
-        self.logger.info("F1measure: " + str(f1_score(true_numeric_labels, y_pred, pos_label=1)))
-        self.logger.info(classification_report(true_numeric_labels, y_pred, target_names=['NoFall', 'Fall']))
+        print("\t Fall \t NoFall")
+        print("Fall \t" + str(tp) + "\t" + str(fn))
+        print("NoFall \t" + str(fp) + "\t" + str(tn))
+        print("F1measure: " + str(f1_score(true_numeric_labels, y_pred, pos_label=1)))
+        print(classification_report(true_numeric_labels, y_pred, target_names=['NoFall', 'Fall']))
 
         return roc_auc, optimal_th, my_cm, true_numeric_labels, y_pred
 
@@ -523,7 +523,7 @@ class autoencoder_fall_detection:
             return optimal_th, indx
 
     def ROCCurve(self, y_true, y_score, indx=None, pos_label=1, makeplot='yes', opt_th_plot='no'):
-        self.logger.debug("roc curve:")
+        print("roc curve:")
         fpr, tpr, thresholds = roc_curve(y_true, y_score, pos_label=pos_label)
         roc_auc = auc(fpr, tpr)
 
@@ -551,7 +551,7 @@ class autoencoder_fall_detection:
         The false positive rate is assumed to be increasing while the false
         negative rate is assumed to be decreasing.
         """
-        self.logger.debug("DETCurve")
+        print("DETCurve")
         plt.figure()
         # axis_min = min(fps[0],fns[-1])
         fig, ax = plt.subplots(figsize=(10, 10), dpi=600)
@@ -571,10 +571,10 @@ class autoencoder_fall_detection:
         print the final results for the all fold test
         '''
         cm = cm.astype(int)
-        self.logger.info("FINAL REPORT")
-        self.logger.info("\t Fall \t NoFall")
-        self.logger.info("Fall \t\t" + str(cm[0, 0]) + "\t" + str(cm[0, 1]))
-        self.logger.info("NoFall \t" + str(cm[1, 0]) + "\t" + str(cm[1, 1]))
+        print("FINAL REPORT")
+        print("\t\t Fall \t NoFall")
+        print("Fall \t\t" + str(cm[0, 0]) + "\t" + str(cm[0, 1]))
+        print("NoFall \t" + str(cm[1, 0]) + "\t" + str(cm[1, 1]))
 
-        self.logger.info("F1measure: " + str(f1_score(y_true, y_pred, pos_label=1)))
-        self.logger.info(classification_report(y_true, y_pred, target_names=['NoFall', 'Fall']))
+        print("F1measure: " + str(f1_score(y_true, y_pred, pos_label=1)))
+        print(classification_report(y_true, y_pred, target_names=['NoFall', 'Fall']))
