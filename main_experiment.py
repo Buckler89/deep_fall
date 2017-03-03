@@ -239,7 +239,7 @@ for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     scoreThsNew[f] = optimal_th
     f += 1
 
-print("------------------------SCORE SELECTION---------------")
+print("------------------------SCORE SELECTION----------------")
 
 # check score and save data
 if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perche viene creata precedentemente
