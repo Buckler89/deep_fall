@@ -108,7 +108,6 @@ if args.log:
     import logging
     import sys
 
-
     logFolder = 'logs'
     nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
     u.makedir(logFolder)  # crea la fold solo se non esiste
@@ -228,10 +227,12 @@ net = autoencoder.autoencoder_fall_detection(args.fit_net)
 # net.define_static_arch()
 net.define_cnn_arch(args)
 # parametri di defautl anche per compile e fit
-net.model_compile(optimizer=args.optimizer, loss=args.loss)
-model = net.model_fit(x_trains[0], _,  nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle)
+
 
 for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
+
+    net.model_compile(optimizer=args.optimizer, loss=args.loss)
+    model = net.model_fit(x_trains[0], _, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle)
 
     decoded_images = net.reconstruct_spectrogram(x_dev)
     auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev)

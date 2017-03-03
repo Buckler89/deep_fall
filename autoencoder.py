@@ -13,9 +13,10 @@ os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
 from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D, \
     Cropping2D
 from keras.models import Model, load_model
+from keras.callbacks import Callback
 import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc, confusion_matrix, classification_report, f1_score
+from sklearn.metrics import roc_curve, auc, roc_auc_score, classification_report, f1_score
 import matplotlib
 import math
 from scipy.spatial.distance import euclidean
@@ -273,7 +274,7 @@ class autoencoder_fall_detection:
         else:
             model.compile(optimizer='adadelta', loss='mse')
 
-    def model_fit(self, x_train, y_train, x_test=None, y_test=None, nb_epoch=50, batch_size=128, shuffle=True):
+    def model_fit(self, x_train, y_train, x_val=None, y_val=None, nb_epoch=50, batch_size=128, shuffle=True):
         print("model_fit")
 
         if not self._fit_net:
@@ -284,12 +285,14 @@ class autoencoder_fall_detection:
             self.load_model('my_model.h5', 'my_model_weights.h5')
 
         else:
-            if x_test != None and y_test != None:
+            if x_val != None and y_val != None:
+                # earlyStoppingAuc = self.EarlyStoppingAuc()
+
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
                                       shuffle=True,
-                                      validation_data=(x_test, x_test))
+                                      validation_data=(x_val, x_val))
             else:
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
@@ -306,6 +309,20 @@ class autoencoder_fall_detection:
 
         self._fit_net = False
         return self._autoencoder
+
+    # class EarlyStoppingAuc(Callback):
+    #     def on_train_begin(self, logs={}):
+    #         self.aucs = []
+    #         self.losses = []
+    #
+    #     def on_epoch_end(self, epoch, logs={}):
+    #         self.losses.append(logs.get('loss'))
+    #         y_pred = self.model.predict(self.model.validation_data[0])
+    #         self.aucs.append(roc_auc_score(self.model.validation_data[1], y_pred))
+    #
+    #         return
+
+
 
     def load_model(self, model, weights):
         # if i want to load from disk the model
