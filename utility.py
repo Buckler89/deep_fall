@@ -1,13 +1,13 @@
 
 import os
 import errno
-
+import sys
 import logging
 
 
 class StreamToLogger(object):
     """
-    Redirec all the stdout/err to the logger, therefore both print and traceback
+    Redirect all the stdout/err to the logger, therefore both print and traceback
     are redirected to logger
     """
 
@@ -26,6 +26,9 @@ class StreamToLogger(object):
     def write(self, buf):
         for line in buf.rstrip().splitlines():
             self.logger.log(self.log_level, line.rstrip())
+
+    def flush(self):
+        pass
 
 
 # utility function

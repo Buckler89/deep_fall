@@ -24,7 +24,6 @@ import time
 import utility as u
 
 
-
 ###################################################PARSER ARGUMENT SECTION########################################
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
 
@@ -90,7 +89,7 @@ if (args.config_filename is not None):
     # Command line arguments have the priority: an argument is specified both
     # in the config file and in the command line, the latter is used
     args = parser.parse_args(namespace=args)
-    # special.default values
+# special.default values:
 if args.kernel_shape is None:
     args.kernel_shape = [[3, 3], [3, 3], [3, 3]]
 if args.m_pool is None:
@@ -101,8 +100,8 @@ if args.m_pool is None:
 
 
 ###################################################INIT LOG########################################
-#redirect all the stream to both standar.out, standard.err and self defined logger to the same logger
-strID=str(args.id)
+#redirect all the stream of both standar.out, standard.err to the same logger
+strID = str(args.id)
 
 if args.log:
     import logging
@@ -217,25 +216,28 @@ for s in testsets:
 print("------------------------CROSS VALIDATION---------------")
 
 # init score matrix
+#TODO sistemare nomi
 scoreAucNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
 scoreThsNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
 f = 0
-
-net = autoencoder.autoencoder_fall_detection(args.fit_net)
+net = autoencoder.autoencoder_fall_detection()
 # net.define_static_arch()
 net.define_cnn_arch(args)
 # parametri di defautl anche per compile e fit
-
+models = list()
 
 for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
 
     net.model_compile(optimizer=args.optimizer, loss=args.loss)
-    model = net.model_fit(x_trains[0], _, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle)
-    #TODO trova un modo per salvare i modelli considerado la parallelizzazione!!!
-    decoded_images = net.reconstruct_spectrogram(x_dev)
-    auc, optimal_th, _, _, _ = net.compute_score(x_dev, decoded_images, y_dev)
+    #L'eralysstopping viene fatto in automatico se vengono passati anche x_dev e y_dev
+
+    m = net.model_fit(x_trains[0], _, x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle,
+                      fit_net=args.fit_net)
+    models.append(m)
+    decoded_images = net.reconstruct_spectrogram(x_dev, m)
+    auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)
     scoreAucNew[f] = auc
     scoreThsNew[f] = optimal_th
     f += 1
@@ -269,19 +271,19 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
         scoreAuc = np.loadtxt(scoreAucsFilePath)
         scoreThs = np.loadtxt(scoreThsFilePath)
 
-        for auc, oldAuc, idx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
+        for auc, oldAuc, foldsIdx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
             if auc > oldAuc:  # se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
                 # allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
                 # che per la threshold ottime, i parametri usati e il modello adattato.
                 # per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
-                scoreAucNew[idx[0]] = auc
-                scoreThs[idx[0]] = scoreThsNew[idx[0]]
+                scoreAucNew[foldsIdx[0]] = auc
+                scoreThs[foldsIdx[0]] = scoreThsNew[foldsIdx[0]]
                 # per args e model uso file separati per ogni fold
                 # salvo parametri
-                with open(os.path.join(argsPath, 'argsfold' + str(idx[0] + 1) + '.txt'), 'w') as file:
+                with open(os.path.join(argsPath, 'argsfold' + str(foldsIdx[0] + 1) + '.txt'), 'w') as file:
                     file.write(jsonargs)
                 # salvo modello e pesi
-                net.save_model(model, modelPath, 'modelfold' + str(idx[0] + 1))
+                net.save_model(models[foldsIdx], modelPath, 'modelfold' + str(foldsIdx[0] + 1))
 
         print("savetxt")
         np.savetxt(scoreAucsFilePath, scoreAucNew)

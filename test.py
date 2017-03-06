@@ -106,4 +106,4 @@ for x_test, y_test in zip(x_tests, y_tests):
 print('\n\n\n')
 print("------------------------FINAL REPORT---------------")
 
-net.print_score(my_cm, tot_y_pred, tot_y_true)
+autoencoder.print_score(my_cm, tot_y_pred, tot_y_true)
