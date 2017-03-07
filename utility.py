@@ -1,9 +1,6 @@
 
 import os
 import errno
-import numpy as np
-import scipy
-import scipy.stats
 
 # utility function
 def makedir(path):  # se esiste già non fa nulla e salta l'exceprtion
@@ -87,19 +84,3 @@ def initLogger(ID, log):
 #
 #     def error(self, messageToLog):
 #         self.logger.error(messageToLog)
-
-
-def choices(values):
-    i = np.random.choice(len(values))
-    return values[i]
-
-def uniform_gen(base=2, low=0, high=1, round_exponent=False, round_output=False):
-    exponent = scipy.stats.uniform.rvs(loc=low, scale=(high - low))
-    if round_exponent:
-        exponent = np.round(exponent)
-    value = np.power(base, exponent)
-    if round_output:
-        value = np.round(value)
-    return value
-
-
