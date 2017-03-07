@@ -9,8 +9,9 @@ Created on Fri Mar 3 11:19:08 2017
 import argparse
 from scipy.stats import uniform, norm
 import numpy as np
+import math
 
-############################################ Parsing argomenti (intervalli, nomi file ecc...)
+
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
 
 # Global params
@@ -103,37 +104,52 @@ elif args.search_strategy == "random":
 
 
 
-
 ############################################ definizione classe contenitore esperimento
 class experiment:
     pass
 
 
-def check_dimension(e):
+def check_dimension(e): #--------------------------------------------------------------- da verificare utilità con Diego
     if not hasattr(e, 'conv_layer_numb'):
         return False
 
+    h = e.cnn_input_shape[1]
+    w = e.cnn_input_shape[2]
+    for i in range(e.cnn_layer_numb):
+        if e.border_mode == 'same':
+            ph = e.kernel_shape[i][0] - 1
+            pw = e.kernel_shape[i][1] - 1
+        else:
+            ph = pw = 0
+        h = int((h - e.kernel_shape[i][0] + ph) / e.strides[0]) + 1
+        w = int((w - e.kernel_shape[i][1] + pw) / e.strides[1]) + 1
 
+        if e.pool_type[0] == "all":
+            # if border=='valid' h=int(h/params.params.m_pool[i][0])
+            h = math.ceil(h / e.m_pool[i][0])
+            w = math.ceil(w / e.m_pool[i][1])
+    if e.pool_type[0] == "only_end":
+        # if border=='valid' h=int(h/params.params.m_pool[i][0])
+        h = math.ceil(h / e.m_pool[-1][0])
+        w = math.ceil(w / e.m_pool[-1][1])
 
-------------------------------------------------------------------------------------------------------------------------
-    if params.border_mode == 'same':
-        ph = params.kernel_shape[i][0] - 1
-        pw = params.kernel_shape[i][1] - 1
-    else:
-        ph = pw = 0
-    h = int((h - params.kernel_shape[i][0] + ph) / params.strides[0]) + 1
-    w = int((w - params.kernel_shape[i][1] + pw) / params.strides[1]) + 1
-    d = params.kernel_number[i]
-    pass
-------------------------------------------------------------------------------------------------------------------------
+    if h*w <= 9:  #------------------------------------------------------------------------------------- cosa ci va qui?
+        return False
 
+    return True
 
 
 ############################################ def grid_search:
 def grid_search(args):
     exp_list = []
 
-    # do somethings
+
+
+
+
+
+
+
 
     return exp_list
 
@@ -162,6 +178,7 @@ def random_search(args):
     for n in range(args.N):
         e = experiment()
         e.id = n
+        e.cnn_input_shape = args.cnn_input_shape
 
         while check_dimension(e):
 
@@ -249,17 +266,9 @@ elif args.search_strategy == "random":
 ############################################ creazione dei file per lo scheduler
 for e in experiments:
 
-
-
-    # apri un file di testo (nome?, path?)
-    configuration_name = str(i).zfill(5) + '.cfg'
-
-    # scrivi intestazione
-    # idea: apro un templete e ci appendo la chiamata del processo
-
-
-
-
+    # apri template in lettura
+    # apri un file di testo (nome?, path?)  ---> configuration_name = str(i).zfill(5) + '.cfg'
+    # copia le righe
     # crea la stringa con i parametri
     # scrivi la stringa
     # chiudi il file
