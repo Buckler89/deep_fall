@@ -7,81 +7,90 @@ Created on Fri Mar 3 11:19:08 2017
 """
 
 import argparse
-from scipy.stats import uniform, norm
+from scipy.stats import uniform
 import numpy as np
 import math
 import os
 from shutil import copyfile
+import json
 
 
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
 
+class eval_action(argparse.Action):
+    def __init__(self, option_strings, dest, nargs=None, **kwargs):
+        if nargs is not None:
+            raise ValueError("nargs not allowed")
+        super(eval_action, self).__init__(option_strings, dest, **kwargs)
+    def __call__(self, parser, namespace, values, option_string=None):
+        values = eval(values)
+        setattr(namespace, self.dest, values)
+
 # Global params
-parser.add_argument("-log", '--logging', dest='log', default=False, action='store_true')
-parser.add_argument('-ss', '--search-strategy', dest="search_strategy", default="grid", choices=["grid", "random"])
+parser.add_argument("-log", "--logging", dest="log", default=False, action="store_true")
+parser.add_argument("-ss", "--search-strategy", dest="search_strategy", default="grid", choices=["grid", "random"])
 parser.add_argument("-rnd", "--rnd-exp-number", dest="N", default=0, type=int)
 parser.add_argument("-cf", "--config-file", dest="config_filename", default=None)
 
 parser.add_argument("-sp", "--score-path", dest="scorePath", default="score")
 parser.add_argument("-shp", "--script-path", dest="scriptPath", default="scripts")
-parser.add_argument("-tl", "--trainset-list", dest="trainNameLists", nargs='+', default=['trainset.lst'])
-parser.add_argument("-c", "--case", dest="case", default='case6')
-parser.add_argument("-tn", "--test-list-names", dest="testNamesLists", nargs='+',
-                    default=['testset_1.lst', 'testset_2.lst', 'testset_3.lst', 'testset_4.lst'])
-parser.add_argument("-dn", "--dev-list-names", dest="devNamesLists", nargs='+',
-                    default=['devset_1.lst', 'devset_2.lst', 'devset_3.lst', 'devset_4.lst'])
-parser.add_argument("-it", "--input-type", dest="input_type", default='spectrograms',
+parser.add_argument("-tl", "--trainset-list", dest="trainNameLists", action=eval_action, default=["trainset.lst"])
+parser.add_argument("-c", "--case", dest="case", default="case6")
+parser.add_argument("-tn", "--test-list-names", dest="testNamesLists", action=eval_action,
+                    default=["testset_1.lst", "testset_2.lst", "testset_3.lst", "testset_4.lst"])
+parser.add_argument("-dn", "--dev-list-names", dest="devNamesLists", action=eval_action,
+                    default=["devset_1.lst", "devset_2.lst", "devset_3.lst", "devset_4.lst"])
+parser.add_argument("-it", "--input-type", dest="input_type", default="spectrograms",
                     choices=["spectrograms", "mel_coefficients"])
 
 # CNN params
-parser.add_argument('-is', '--cnn-input-shape', dest="cnn_input_shape", nargs='+', default=[1, 129, 197], type=int)
-parser.add_argument('-cln', '--conv-layers-numb', dest="conv_layer_numb", nargs='+', default=[3], type=int)
-parser.add_argument('-kn', '--kernels-number', dest="kernel_number", nargs='+', default=[16, 8, 8], type=int)
-parser.add_argument('-kst', '--kernel-number-type', dest="kernel_number_type", default="any",
+parser.add_argument("-is", "--cnn-input-shape", dest="cnn_input_shape", action=eval_action, default=[1, 129, 197])
+parser.add_argument("-cln", "--conv-layers-numb", dest="conv_layer_numb", action=eval_action, default=[3])
+parser.add_argument("-kn", "--kernels-number", dest="kernel_number", action=eval_action, default=[16, 8, 8])
+parser.add_argument("-kst", "--kernel-number-type", dest="kernel_number_type", default="any",
                     choices=["decrease", "encrease", "equal", "any"])
-parser.add_argument('-ks', '--kernel-shape', dest="kernel_shape", nargs='+', action='append', type=int)
-parser.add_argument('-kt', '--kernel-type', dest="kernel_type", default="square", choices=["square", "+cols", "+rows", "any"])
-parser.add_argument('-mp', '--max-pool-shape', dest="m_pool", nargs='+', action='append', type=int)
-parser.add_argument('-mpt', '--max-pool-type', dest="m_pool_type", default="square", choices=["square", "+cols", "+rows", "any"])
-parser.add_argument("-p", "--pool-type", dest="pool_type", nargs='+', default=['all'], choices=["all", "only_end"])
+parser.add_argument("-ks", "--kernel-shape", dest="kernel_shape", action=eval_action, default=[[3,3],[3,3],[3,3]])
+parser.add_argument("-kt", "--kernel-type", dest="kernel_type", default="square", choices=["square", "+cols", "+rows", "any"])
+parser.add_argument("-mp", "--max-pool-shape", dest="m_pool", action=eval_action, default=[[2,2],[2,2],[2,2]])
+parser.add_argument("-mpt", "--max-pool-type", dest="m_pool_type", default="square", choices=["square", "+cols", "+rows", "any"])
 
-parser.add_argument('-i', '--cnn-init', dest="cnn_init", nargs='+', default=["glorot_uniform"], choices=["glorot_uniform"])
-parser.add_argument('-ac', '--cnn-conv-activation', dest="cnn_conv_activation", nargs='+', default=["tanh"], choices=["tanh"])
-parser.add_argument('-ad', '--cnn-dense-activation', dest="cnn_dense_activation", nargs='+', default=["tanh"], choices=["tanh"])
-parser.add_argument('-bm', '--border-mode', dest="border_mode", default="same", choices=["valid", "same"])
-parser.add_argument('-st', '--strides-type', dest="strides_type", default="square", choices=["square", "+cols", "+rows", "any"])
-parser.add_argument('-s', '--strides', dest="strides", nargs='+', action='append', type=int)
-parser.add_argument('-wr', '--w-reg', dest="w_reg",
-                    default=None)  # in autoencoder va usato con eval('funzione(parametri)')
-parser.add_argument('-br', '--b-reg', dest="b_reg", default=None)
-parser.add_argument('-ar', '--act-reg', dest="a_reg", default=None)
-parser.add_argument('-wc', '--w-constr', dest="w_constr", default=None)
-parser.add_argument('-bc', '--b-constr', dest="b_constr", default=None)
-parser.add_argument("-nb", "--no-bias", dest="bias", default=True, action='store_false')
+parser.add_argument("-p", "--pool-type", dest="pool_type", action=eval_action, default=["all"]) # choices=["all", "only_end"]
+parser.add_argument("-i", "--cnn-init", dest="cnn_init", action=eval_action, default=["glorot_uniform"])
+parser.add_argument("-ac", "--cnn-conv-activation", dest="cnn_conv_activation", action=eval_action, default=["tanh"])
+parser.add_argument("-ad", "--cnn-dense-activation", dest="cnn_dense_activation", action=eval_action, default=["tanh"])
+parser.add_argument("-bm", "--border-mode", dest="border_mode", default="same", choices=["valid", "same"])
+parser.add_argument("-st", "--strides-type", dest="strides_type", default="square", choices=["square", "+cols", "+rows", "any"])
+
+parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1,1],[1,1],[1,1]])
+parser.add_argument("-wr", "--w-reg", dest="w_reg", default=None) # in autoencoder va usato con eval("funz(parametri)")
+parser.add_argument("-br", "--b-reg", dest="b_reg", default=None)
+parser.add_argument("-ar", "--act-reg", dest="a_reg", default=None)
+parser.add_argument("-wc", "--w-constr", dest="w_constr", default=None)
+parser.add_argument("-bc", "--b-constr", dest="b_constr", default=None)
+parser.add_argument("-nb", "--no-bias", dest="bias", default=[True], action=eval_action)
 
 # dense params
-parser.add_argument('-dln', '--dense-layers-numb', dest="dense_layer_numb", default=1, type=int)
-parser.add_argument('-ds', '--dense-shapes', dest="dense_shapes", nargs='+', default=[64], type=int)
-parser.add_argument('-dst', '--dense-shape-type', dest="dense_shape_type", default="any",
+parser.add_argument("-dln", "--dense-layers-numb", dest="dense_layer_numb", action=eval_action, default=[1])
+parser.add_argument("-ds", "--dense-shapes", dest="dense_shapes", action=eval_action, default=[64])
+parser.add_argument("-dst", "--dense-shape-type", dest="dense_shape_type", default="any",
                     choices=["decrease", "encrease", "equal", "any"])
 
 # fit params
-parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action='store_true')
+parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action="store_true")
 parser.add_argument("-e", "--epoch", dest="epoch", default=50, type=int)
-parser.add_argument("-ns", "--no-shuffle", dest="shuffle", default=True, action='store_false')
-parser.add_argument("-bs", "--batch-size", dest="batch_size", nargs='+', default=[128], type=int)
-parser.add_argument("-o", "--optimizer", dest="optimizer", nargs='+', default=["adadelta"],
-                    choices=["adadelta", "adam", "sgd"])
-parser.add_argument("-l", "--loss", dest="loss", nargs='+', default=["mse"], choices=["mse"])
+parser.add_argument("-ns", "--no-shuffle", dest="shuffle", default=[True], action=eval_action)
+parser.add_argument("-bs", "--batch-size", dest="batch_size", action=eval_action, default=[128])
+parser.add_argument("-o", "--optimizer", dest="optimizer", action=eval_action, default=["adadelta"])
+parser.add_argument("-l", "--loss", dest="loss", action=eval_action, default=["mse"])
 
 args = parser.parse_args()
 
 if args.config_filename is not None:
-    with open(args.config_filename, 'r') as f:
+    with open(args.config_filename, "r") as f:
         lines = f.readlines()
     arguments = []
     for line in lines:
-        if '#' not in line:
+        if "#" not in line:
             arguments.extend(line.split())
     # First parse the arguments specified in the config file
     args = parser.parse_args(args=arguments)
@@ -89,37 +98,21 @@ if args.config_filename is not None:
     # Command line arguments have the priority: an argument is specified both
     # in the config file and in the command line, the latter is used
     args = parser.parse_args(namespace=args)
-# special.default values
-if args.search_strategy == "grid":
-    if args.kernel_shape is None:
-        args.kernel_shape = [[3, 3], [3, 3], [3, 3]]
-    if args.m_pool is None:
-        args.m_pool = [[2, 2], [2, 2], [2, 2]]
-    if args.strides is None:
-        args.strides = [[1, 1]]
-elif args.search_strategy == "random":
-    if args.kernel_shape is None:
-        args.kernel_shape = [3, 3, 3, 3]
-    if args.m_pool is None:
-        args.m_pool = [2, 2, 2, 2]
-    if args.strides is None:
-        args.strides = [1, 1, 1, 1]
 
 
-
-############################################ definizione classe contenitore esperimento
+# container class for single experiments
 class experiment:
     pass
 
-
+                        #--------------------------------------------------------------- verifica formule e poi
 def check_dimension(e): #--------------------------------------------------------------- da verificare utilità con Diego
-    if not hasattr(e, 'conv_layer_numb'):
+    if not hasattr(e, "conv_layer_numb"):
         return False
 
     h = e.cnn_input_shape[1]
     w = e.cnn_input_shape[2]
     for i in range(e.cnn_layer_numb):
-        if e.border_mode == 'same':
+        if e.border_mode == "same":
             ph = e.kernel_shape[i][0] - 1
             pw = e.kernel_shape[i][1] - 1
         else:
@@ -128,11 +121,11 @@ def check_dimension(e): #-------------------------------------------------------
         w = int((w - e.kernel_shape[i][1] + pw) / e.strides[1]) + 1
 
         if e.pool_type[0] == "all":
-            # if border=='valid' h=int(h/params.params.m_pool[i][0])
+            # if border=="valid" h=int(h/params.params.m_pool[i][0])
             h = math.ceil(h / e.m_pool[i][0])
             w = math.ceil(w / e.m_pool[i][1])
     if e.pool_type[0] == "only_end":
-        # if border=='valid' h=int(h/params.params.m_pool[i][0])
+        # if border=="valid" h=int(h/params.params.m_pool[i][0])
         h = math.ceil(h / e.m_pool[-1][0])
         w = math.ceil(w / e.m_pool[-1][1])
 
@@ -145,56 +138,48 @@ def check_dimension(e): #-------------------------------------------------------
 ############################################ def grid_search:
 def grid_search(args):
     exp_list = []
+    n=0
 
+    for cln in args.conv_layer_numb:
+        for kn in args.kernel_number:
+            for ks in args.kernel_shape:
+                for mp in args.m_pool:
+                    for p in args.pool_type:
+                        for s in args.strides:
+                            for dln in args.dense_layer_numb:
+                                for ds in args.dense_shapes:
+                                    for ci in args.cnn_init:
+                                        for ac in args.cnn_conv_activation:
+                                            for ad in args.cnn_dense_activation:
+                                                for bm in args.border_mode:
+                                                    for bs in args.batch_size:
+                                                        for o in args.optimizer:
+                                                            for l in args.loss:
+                                                                for nb in args.bias:
+                                                                    for ns in args.shuffle:
+                                                                        e = experiment()
+                                                                        e.id = n
+                                                                        n += 1
+                                                                        e.cnn_input_shape = args.cnn_input_shape
+                                                                        e.conv_layer_num = cln
+                                                                        e.kernel_number = kn
+                                                                        e.pool_type = p
+                                                                        e.kernel_shape = ks
+                                                                        e.strides = s
+                                                                        e.m_pool = mp
+                                                                        e.cnn_init = ci
+                                                                        e.cnn_conv_activation = ac
+                                                                        e.cnn_dense_activation = ad
+                                                                        e.border_mode = bm
+                                                                        e.dense_layer_numb = dln
+                                                                        e.dense_shapes = ds
+                                                                        e.batch_size = bs
+                                                                        e.optimizer = o
+                                                                        e.loss = l
+                                                                        e.shuffle = ns
+                                                                        e.bias = nb
 
-    parser.add_argument('-is', '--cnn-input-shape', dest="cnn_input_shape", nargs='+', default=[1, 129, 197], type=int)
-    parser.add_argument('-cln', '--conv-layers-numb', dest="conv_layer_numb", nargs='+', default=[3], type=int)
-    parser.add_argument('-kn', '--kernels-number', dest="kernel_number", nargs='+', default=[16, 8, 8], type=int)
-    parser.add_argument('-kst', '--kernel-number-type', dest="kernel_number_type", default="any",
-                        choices=["decrease", "encrease", "equal", "any"])
-    parser.add_argument('-ks', '--kernel-shape', dest="kernel_shape", nargs='+', action='append', type=int)
-    parser.add_argument('-kt', '--kernel-type', dest="kernel_type", default="square",
-                        choices=["square", "+cols", "+rows", "any"])
-    parser.add_argument('-mp', '--max-pool-shape', dest="m_pool", nargs='+', action='append', type=int)
-    parser.add_argument('-mpt', '--max-pool-type', dest="m_pool_type", default="square",
-                        choices=["square", "+cols", "+rows", "any"])
-    parser.add_argument("-p", "--pool-type", dest="pool_type", nargs='+', default=['all'], choices=["all", "only_end"])
-
-    parser.add_argument('-i', '--cnn-init', dest="cnn_init", nargs='+', default=["glorot_uniform"],
-                        choices=["glorot_uniform"])
-    parser.add_argument('-ac', '--cnn-conv-activation', dest="cnn_conv_activation", nargs='+', default=["tanh"],
-                        choices=["tanh"])
-    parser.add_argument('-ad', '--cnn-dense-activation', dest="cnn_dense_activation", nargs='+', default=["tanh"],
-                        choices=["tanh"])
-    parser.add_argument('-bm', '--border-mode', dest="border_mode", default="same", choices=["valid", "same"])
-    parser.add_argument('-st', '--strides-type', dest="strides_type", default="square",
-                        choices=["square", "+cols", "+rows", "any"])
-    parser.add_argument('-s', '--strides', dest="strides", nargs='+', action='append', type=int)
-    parser.add_argument('-wr', '--w-reg', dest="w_reg",
-                        default=None)  # in autoencoder va usato con eval('funzione(parametri)')
-    parser.add_argument('-br', '--b-reg', dest="b_reg", default=None)
-    parser.add_argument('-ar', '--act-reg', dest="a_reg", default=None)
-    parser.add_argument('-wc', '--w-constr', dest="w_constr", default=None)
-    parser.add_argument('-bc', '--b-constr', dest="b_constr", default=None)
-    parser.add_argument("-nb", "--no-bias", dest="bias", default=True, action='store_false')
-
-    # dense params
-    parser.add_argument('-dln', '--dense-layers-numb', dest="dense_layer_numb", default=1, type=int)
-    parser.add_argument('-ds', '--dense-shapes', dest="dense_shapes", nargs='+', default=[64], type=int)
-    parser.add_argument('-dst', '--dense-shape-type', dest="dense_shape_type", default="any",
-                        choices=["decrease", "encrease", "equal", "any"])
-
-
-    parser.add_argument("-bs", "--batch-size", dest="batch_size", nargs='+', default=[128], type=int)
-    parser.add_argument("-o", "--optimizer", dest="optimizer", nargs='+', default=["adadelta"],
-                        choices=["adadelta", "adam", "sgd"])
-    parser.add_argument("-l", "--loss", dest="loss", nargs='+', default=["mse"], choices=["mse"])
-
-
-
-
-
-
+                                                                        exp_list.append(e)
 
     return exp_list
 
@@ -240,9 +225,9 @@ def random_search(args):
             e.kernel_shape = [[rows, cols]]*3
 
             e.kernel_number = [int(np.round(uniform.rvs(args.kernel_number[0], args.kernel_number[1] - args.kernel_number[0])))]
-            for i in range(cnn_layer_numb-1):
+            for j in range(cnn_layer_numb-1):
                 c = int(np.round(uniform.rvs(args.kernel_number[0], args.kernel_number[1] - args.kernel_number[0])))
-                while check_num_tie(e.kernel_number[i-1], c, args.kernel_number_type):
+                while check_num_tie(e.kernel_number[j-1], c, args.kernel_number_type):
                     c = int(np.round(uniform.rvs(args.kernel_number[0], args.kernel_number[1] - args.kernel_number[0])))
                 e.kernel_number.append(c)
 
@@ -278,9 +263,9 @@ def random_search(args):
 
             e.dense_shapes = [int(np.round(uniform.rvs(args.dense_shapes[0],
                                                             args.dense_shapes[1] - args.dense_shapes[0])))]
-            for i in range(dense_layer_numb-1):
+            for j in range(dense_layer_numb-1):
                 c = int(np.round(uniform.rvs(args.dense_shapess[0], args.dense_shapes[1] - args.dense_shapes[0])))
-                while check_num_tie(e.dense_shapes[i-1], c, args.dense_shape_type):
+                while check_num_tie(e.dense_shapes[j-1], c, args.dense_shape_type):
                     c = int(np.round(uniform.rvs(args.dense_shapes[0], args.dense_shapes[1] - args.dense_shapes[0])))
                     e.dense_shapes.append(c)
 
@@ -289,19 +274,15 @@ def random_search(args):
             e.optimizer = np.random.choice(args.optimizer)
             e.loss = np.random.choice(args.loss)
             e.batch_size = int(np.round(uniform.rvs(args.batch_size[0], args.batch_size[1] - args.batch_size[0])))
-
-            # lv = random.choice(range(args.maxLayer)) + 1
-            # dropout = norm.rvs(loc=(args.minDrop + args.maxDrop) / 2, scale=(args.maxDrop - args.minDrop) / 4)  # normale
-            # maxNorm = uniform.rvs(args.minMaxNorm, args.maxMaxNorm - args.minMaxNorm)
-            # x = int(2 ** uniform.rvs(args.minExpNeu, args.maxExpNeu - args.minExpNeu))
-            # learningRate = 10 ** uniform.rvs(args.minExpLr, args.maxExpLr - args.minExpLr)
+            e.shuffle = np.random.choice(args.shuffle)
+            e.bias = np.random.choice(args.bias)
 
         exp_list.append(e)
     return exp_list
 
 ############################################ inizializzalizzazioni
 experiments = []
-root_dir = os.path.realpath('.')
+root_dir = os.path.realpath(".")
 
 ############################################ creazione della lista dei parametri secondo la strategia scelta
 if args.search_strategy == "grid":
@@ -313,54 +294,53 @@ elif args.search_strategy == "random":
 
 i=0
 for e in experiments:
-    sript_path = os.path.join(root_dir, 'scripts' + str(i).zfill(5) + '_fall.pbs')  #--------------------------- dove vanno gli script?
-    copyfile(os.path.join(root_dir, 'template_script.txt'), sript_path)  #-------------------------------------- da settare virtual env su template
+    sript_path = os.path.join(root_dir, "scripts", str(i).zfill(5) + "_fall.pbs")  #--------------------------- dove vanno gli script?
+    copyfile(os.path.join(root_dir, "template_script.txt"), sript_path)  #-------------------------------------- da settare virtual env su template
     command = "THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python "
-    command += " --score-path " + args.scorePath + \
-               " --trainset-list " + args.trainNameLists + \
-               " --case " + args.case + \
-               " --test-list-names " + args.testNamesLists + \
-               " --dev-list-name " + args.devNamesLists + \
-               " --input-type " + args.spectrograms + \
-               " --cnn-input-shape " + args.cnn_input_shape + \
-               " --conv-layers-numb " + e.conv_layer_num + \
-               " --kernel-number-type " + e.kernel_number_type + \
-               " --kernels-number " + e.kernel_number + \
-               " --kernel-type " + e.kernel_type + \
-               " --max-pool-type " + e.m_pool_type + \
-               " --pool-type " + e.pool_type
+    command += " --exp-index " + str(e.id) + \
+               " --score-path " + str(args.scorePath) + \
+               " --trainset-list " + str(args.trainNameLists) + \
+               " --case " + str(args.case) + \
+               " --test-list-names " + str(args.testNamesLists) + \
+               " --dev-list-name " + str(args.devNamesLists) + \
+               " --input-type " + str(args.input_type) + \
+               " --cnn-input-shape " + str(args.cnn_input_shape) + \
+               " --conv-layers-numb " + str(e.conv_layer_num) + \
+               " --kernels-number " + str(e.kernel_number) + \
+               " --pool-type " + str(e.pool_type)
 
     for k in range(len(e.kernel_shape)):
-        command += " --kernel-shape " + e.kernel_shape[k] + \
-                   " --strides " + e.strides[k] + \
-                   " --max-pool-shape " + e.m_pool[k]
+        command += " --kernel-shape " + str(e.kernel_shape[k]) + \
+                   " --strides " + str(e.strides[k]) + \
+                   " --max-pool-shape " + str(e.m_pool[k])
 
-    command += " --cnn-init " + e.cnn_init + \
-               " --cnn-conv-activation " + e.cnn_conv_activation + \
-               " --cnn-dense-activation " + e.cnn_dense_activation + \
-               " --border-mode " + e.border_mode + \
-               " --strides-type " + e.strides_type + \
-               " --w-reg " + args.w_reg + \
-               " --b-reg " + args.b_reg + \
-               " --act-reg " + args.a_reg + \
-               " --w-constr " + args.w_constr + \
-               " --b-constr " + args.b_constr + \
-               " --dense-layers-numb " + e.dense_layer_numb + \
-               " --dense-shape " + e.dense_shapes + \
-               " --dense-shape-type " + e.dense_shape_type + \
-               " --epoch " + args.epoch + \
-               " --batch-size " + e.batch_size + \
-               " --optimizer " + e.optimizer + \
-               " --loss " + e.loss
+    command += " --cnn-init " + str(e.cnn_init) + \
+               " --cnn-conv-activation " + str(e.cnn_conv_activation) + \
+               " --cnn-dense-activation " + str(e.cnn_dense_activation) + \
+               " --border-mode " + str(e.border_mode) + \
+               " --w-reg " + str(args.w_reg) + \
+               " --b-reg " + str(args.b_reg) + \
+               " --act-reg " + str(args.a_reg) + \
+               " --w-constr " + str(args.w_constr) + \
+               " --b-constr " + str(args.b_constr) + \
+               " --dense-layers-numb " + str(e.dense_layer_numb) + \
+               " --dense-shape " + str(e.dense_shapes) + \
+               " --epoch " + str(args.epoch) + \
+               " --batch-size " + str(e.batch_size) + \
+               " --optimizer " + str(e.optimizer) + \
+               " --loss " + str(e.loss) + \
+               " --no-shuffle " + str(e.shuffle) + \
+               " --no-bias " + str(e.bias)
 
     if args.log:
         command += " --logging "
-    if not args.bias:
-        command += " --no-bias "
     if args.fit_net:
         command += " --fit-net "
-    if not args.shuffle:
-        command += " --no-shuffle "
 
-    with open(sript_path, 'a') as f:
+    with open(sript_path, "a") as f:
         f.write(command)
+
+    i+=1
+
+with open(os.path.join(root_dir, "scripts", "experiments.json"), "w") as outfile:
+    json.dump(experiments, outfile)
