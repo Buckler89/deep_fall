@@ -48,7 +48,7 @@ parser.add_argument('-ks', '--kernel-shape', dest="kernel_shape", nargs='+', act
                     type=int)  # default after parser.parse_args()
 parser.add_argument('-mp', '--max-pool-shape', dest="m_pool", nargs='+', action='append',
                     type=int)  # default after parser.parse_args()
-parser.add_argument('-ds', '--dense-shape', dest="dense_layers_inputs", nargs='+', default=[64], type=int)
+parser.add_argument('-ds', '--dense-shapes', dest="dense_layers_inputs", nargs='+', default=[64], type=int)
 parser.add_argument('-i', '--cnn-init', dest="cnn_init", default="glorot_uniform", choices=["glorot_uniform"])
 parser.add_argument('-ac', '--cnn-conv-activation', dest="cnn_conv_activation", default="tanh", choices=["tanh"])
 parser.add_argument('-ad', '--cnn-dense-activation', dest="cnn_dense_activation", default="tanh", choices=["tanh"])

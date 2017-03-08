@@ -1,0 +1,12 @@
+#!/bin/bash
+#PBS -l nodes=1:ppn=1
+#PBS -W x=GRES:gpu@1
+
+export PATH=$PATH:/usr/local/cuda/bin
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+
+nvidia-smi
+
+source ~/virtualenvs/neural_nilm/bin/activate
+
+ 
