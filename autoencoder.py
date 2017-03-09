@@ -306,14 +306,14 @@ class autoencoder_fall_detection:
             d = params.kernel_number[i]
             print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-            if params.pool_type[0]=="all":
+            if params.pool_type=="all":
                 x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
                 # if MaxPooling border=='valid' h=int(h/params.params.m_pool[i][0])
                 h = math.ceil(h / params.m_pool[i][0])
                 w = math.ceil(w / params.m_pool[i][1])
                 print("pool " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-        if params.pool_type[0]=="only_end":
+        if params.pool_type=="only_end":
             x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
             # if MaxPooling border=='valid' h=int(h/params.params.m_pool[i][0])
             h = math.ceil(h / params.m_pool[-1][0])
@@ -378,12 +378,12 @@ class autoencoder_fall_detection:
             d = params.kernel_number[i]
             print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-            if params.pool_type[0] == "only_end" and i == len(params.kernel_number) - 1:
+            if params.pool_type == "only_end" and i == len(params.kernel_number) - 1:
                 x = UpSampling2D(params.m_pool[i])(x)
                 h = h * params.m_pool[i][0]
                 w = w * params.m_pool[i][1]
                 print("up->   (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
-            elif params.pool_type[0]=="all":
+            elif params.pool_type=="all":
                 x = UpSampling2D(params.m_pool[i])(x)
                 h = h * params.m_pool[i][0]
                 w = w * params.m_pool[i][1]
