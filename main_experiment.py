@@ -283,7 +283,7 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
                 scoreAucNew[foldsIdx[0]] = auc
                 scoreThs[foldsIdx[0]] = scoreThsNew[foldsIdx[0]]
                 # per args e model uso file separati per ogni fold
-                # salvo parametri
+                # salvo i parametri
                 with open(os.path.join(argsPath, 'argsfold' + str(foldsIdx[0] + 1) + '.txt'), 'w') as file:
                     file.write(json.dumps(jsonargs, indent=4, sort_keys=True))
                 # salvo modello e pesi
