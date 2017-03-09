@@ -1,0 +1,6 @@
+Theano==0.8.2
+scikit-learn==0.18.1
+scipy==0.18.1
+numpy==1.11.3
+matplotlib==1.5.1
+jsonschema==2.5.1
