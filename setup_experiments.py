@@ -47,19 +47,18 @@ parser.add_argument("-it", "--input-type", dest="input_type", default="spectrogr
 parser.add_argument("-is", "--cnn-input-shape", dest="cnn_input_shape", action=eval_action, default=[1, 129, 197])
 parser.add_argument("-cln", "--conv-layers-numb", dest="conv_layer_numb", action=eval_action, default=[3])
 parser.add_argument("-kn", "--kernels-number", dest="kernel_number", action=eval_action, default=[16, 8, 8])
-parser.add_argument("-kst", "--kernel-number-type", dest="kernel_number_type", default="any",
-                    choices=["decrease", "encrease", "equal", "any"])
+parser.add_argument("-kst", "--kernel-number-type", dest="kernel_number_type", default="any")
 parser.add_argument("-ks", "--kernel-shape", dest="kernel_shape", action=eval_action, default=[[3,3],[3,3],[3,3]])
-parser.add_argument("-kt", "--kernel-type", dest="kernel_type", default="square", choices=["square", "+cols", "+rows", "any"])
+parser.add_argument("-kt", "--kernel-type", dest="kernel_type", default="square")
 parser.add_argument("-mp", "--max-pool-shape", dest="m_pool", action=eval_action, default=[[2,2],[2,2],[2,2]])
-parser.add_argument("-mpt", "--max-pool-type", dest="m_pool_type", default="square", choices=["square", "+cols", "+rows", "any"])
+parser.add_argument("-mpt", "--max-pool-type", dest="m_pool_type", default="square")
 
 parser.add_argument("-p", "--pool-type", dest="pool_type", action=eval_action, default=["all"]) # choices=["all", "only_end"]
 parser.add_argument("-i", "--cnn-init", dest="cnn_init", action=eval_action, default=["glorot_uniform"])
 parser.add_argument("-ac", "--cnn-conv-activation", dest="cnn_conv_activation", action=eval_action, default=["tanh"])
 parser.add_argument("-ad", "--cnn-dense-activation", dest="cnn_dense_activation", action=eval_action, default=["tanh"])
-parser.add_argument("-bm", "--border-mode", dest="border_mode", default="same", choices=["valid", "same"])
-parser.add_argument("-st", "--strides-type", dest="strides_type", default="square", choices=["square", "+cols", "+rows", "any"])
+parser.add_argument("-bm", "--border-mode", dest="border_mode", default=["same"], action=eval_action)
+parser.add_argument("-st", "--strides-type", dest="strides_type", default="square")
 
 parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1,1],[1,1],[1,1]])
 parser.add_argument("-wr", "--w-reg", dest="w_reg", default=None) # in autoencoder va usato con eval("funz(parametri)")
@@ -67,18 +66,17 @@ parser.add_argument("-br", "--b-reg", dest="b_reg", default=None)
 parser.add_argument("-ar", "--act-reg", dest="a_reg", default=None)
 parser.add_argument("-wc", "--w-constr", dest="w_constr", default=None)
 parser.add_argument("-bc", "--b-constr", dest="b_constr", default=None)
-parser.add_argument("-nb", "--no-bias", dest="bias", default=[True], action=eval_action)
+parser.add_argument("-nb", "--bias", dest="bias", default=[True], action=eval_action)
 
 # dense params
 parser.add_argument("-dln", "--dense-layers-numb", dest="dense_layer_numb", action=eval_action, default=[1])
 parser.add_argument("-ds", "--dense-shapes", dest="dense_shapes", action=eval_action, default=[64])
-parser.add_argument("-dst", "--dense-shape-type", dest="dense_shape_type", default="any",
-                    choices=["decrease", "encrease", "equal", "any"])
+parser.add_argument("-dst", "--dense-shape-type", dest="dense_shape_type", default="any")
 
 # fit params
 parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action="store_true")
 parser.add_argument("-e", "--epoch", dest="epoch", default=50, type=int)
-parser.add_argument("-ns", "--no-shuffle", dest="shuffle", default=[True], action=eval_action)
+parser.add_argument("-ns", "--shuffle", dest="shuffle", default=[True], action=eval_action)
 parser.add_argument("-bs", "--batch-size", dest="batch_size", action=eval_action, default=[128])
 parser.add_argument("-o", "--optimizer", dest="optimizer", action=eval_action, default=["adadelta"])
 parser.add_argument("-l", "--loss", dest="loss", action=eval_action, default=["mse"])
@@ -90,8 +88,7 @@ if args.config_filename is not None:
         lines = f.readlines()
     arguments = []
     for line in lines:
-        if "#" not in line:
-            arguments.extend(line.split())
+        arguments.extend(line.split("#")[0].split())
     # First parse the arguments specified in the config file
     args = parser.parse_args(args=arguments)
     # Then append the command line arguments
@@ -107,24 +104,25 @@ class experiment:
                         #--------------------------------------------------------------- verifica formule e poi
 def check_dimension(e): #--------------------------------------------------------------- da verificare utilità con Diego
     if not hasattr(e, "conv_layer_numb"):
-        return False
+        # for emulate do while struct
+        return True
 
     h = e.cnn_input_shape[1]
     w = e.cnn_input_shape[2]
-    for i in range(e.cnn_layer_numb):
+    for i in range(e.conv_layer_numb):
         if e.border_mode == "same":
             ph = e.kernel_shape[i][0] - 1
             pw = e.kernel_shape[i][1] - 1
         else:
             ph = pw = 0
-        h = int((h - e.kernel_shape[i][0] + ph) / e.strides[0]) + 1
-        w = int((w - e.kernel_shape[i][1] + pw) / e.strides[1]) + 1
+        h = int((h - e.kernel_shape[i][0] + ph) / e.strides[i][0]) + 1
+        w = int((w - e.kernel_shape[i][1] + pw) / e.strides[i][1]) + 1
 
-        if e.pool_type[0] == "all":
+        if e.pool_type == "all":
             # if border=="valid" h=int(h/params.params.m_pool[i][0])
             h = math.ceil(h / e.m_pool[i][0])
             w = math.ceil(w / e.m_pool[i][1])
-    if e.pool_type[0] == "only_end":
+    if e.pool_type == "only_end":
         # if border=="valid" h=int(h/params.params.m_pool[i][0])
         h = math.ceil(h / e.m_pool[-1][0])
         w = math.ceil(w / e.m_pool[-1][1])
@@ -161,7 +159,7 @@ def grid_search(args):
                                                                         e.id = n
                                                                         n += 1
                                                                         e.cnn_input_shape = args.cnn_input_shape
-                                                                        e.conv_layer_num = cln
+                                                                        e.conv_layer_numb = cln
                                                                         e.kernel_number = kn
                                                                         e.pool_type = p
                                                                         e.kernel_shape = ks
@@ -184,23 +182,55 @@ def grid_search(args):
     return exp_list
 
 
+def gen_with_shape_tie(rng, tie_type):
+    ack=False
+    while not ack:
+        rows = np.random.choice(range(rng[0], rng[1] + 1))
+        cols = np.random.choice(range(rng[2], rng[3] + 1))
+        if rows == cols and "square" in tie_type or \
+            rows <= cols and "+cols" in tie_type or \
+            rows >= cols and "+rows" in tie_type or \
+            tie_type == "any":
+            ack = True
+    return [rows, cols]
 
-def check_shape_tie(rows, cols, tie_type):
-    if rows == cols and tie_type == "square" or \
-        rows < cols and tie_type == "+cols" or \
-        rows > cols and tie_type == "+rows" or \
-        tie_type == "any":
-        return True
-    return False
 
-
-def check_num_tie(x, tie, tie_type):
-    if x == tie and tie_type == "equal" or \
-        x > tie and tie_type == "decrease" or \
-        x < tie and tie_type == "encrease" or \
-        tie_type == "any":
-        return True
-    return False
+def gen_with_ties(dim, num, bounds, tie_type):
+    ties=tie_type.split(",")
+    if dim == 1:
+        if "equal" in ties:
+            v = [np.random.choice(range(bounds[0], bounds[1] + 1))] * num
+        else:
+            v = [np.random.choice(range(bounds[0], bounds[1] + 1))]
+            for j in range(1, num):
+                ack = False
+                c = [np.random.choice(range(bounds[0], bounds[1] + 1))]
+                while not ack:
+                    if c <= v[j-1] and "decrease" in ties or \
+                       c >= v[j-1] and "encrease" in ties or \
+                       "any" in ties:
+                        ack = True
+                    else:
+                        c = [np.random.choice(range(bounds[0], bounds[1] + 1))]
+                v.extend(c)
+    elif dim == 2:
+        if ties[1] == ties[2] =="equal":
+            v = [gen_with_shape_tie(bounds, ties[0])] * num
+        else:
+            v = [gen_with_shape_tie(bounds, ties[0])]
+            for j in range(1, num):
+                ack = False
+                while not ack:
+                    c = gen_with_shape_tie(bounds, ties[0])
+                    ack = True
+                    if c[0] > v[j-1][0] and ties[1] == "decrease" or \
+                       c[0] < v[j-1][0] and ties[1] == "encrease":
+                        ack = False
+                    if c[1] > v[j-1][1] and "decrease" in tie_type or \
+                       c[1] < v[j-1][1] and "encrease" in tie_type:
+                        ack = False
+                v.append(c)
+    return v
 
 
 def random_search(args):
@@ -213,62 +243,24 @@ def random_search(args):
         while check_dimension(e):
 
             ################################################################################### Convolutional layers
-            cnn_layer_numb = np.random.choice(range(args.conv_layer_numb)) + 1
-            e.conv_layer_numb = cnn_layer_numb
-
-            rows = int(np.round(uniform.rvs(args.kernel_shape[0], args.kernel_shape[1]-args.kernel_shape[0])))
-            cols = int(np.round(uniform.rvs(args.kernel_shape[2], args.kernel_shape[3]-args.kernel_shape[2])))
-            while check_shape_tie(rows, cols, args.kernel_type):
-                rows = int(np.round(uniform.rvs(args.kernel_shape[0], args.kernel_shape[1]-args.kernel_shape[0])))
-                cols = int(np.round(uniform.rvs(args.kernel_shape[2], args.kernel_shape[3]-args.kernel_shape[2])))
-            # for now all kernel of the same shape
-            e.kernel_shape = [[rows, cols]]*3
-
-            e.kernel_number = [int(np.round(uniform.rvs(args.kernel_number[0], args.kernel_number[1] - args.kernel_number[0])))]
-            for j in range(cnn_layer_numb-1):
-                c = int(np.round(uniform.rvs(args.kernel_number[0], args.kernel_number[1] - args.kernel_number[0])))
-                while check_num_tie(e.kernel_number[j-1], c, args.kernel_number_type):
-                    c = int(np.round(uniform.rvs(args.kernel_number[0], args.kernel_number[1] - args.kernel_number[0])))
-                e.kernel_number.append(c)
-
+            conv_layer_numb = np.random.choice(args.conv_layer_numb)
+            e.conv_layer_numb = conv_layer_numb
+            e.kernel_shape = gen_with_ties(2, conv_layer_numb, args.kernel_shape, args.kernel_type)
+            e.kernel_number = gen_with_ties(1, conv_layer_numb, args.kernel_number, args.kernel_number_type)
+            e.border_mode = np.random.choice(args.border_mode)
+            # strides
+            e.strides = gen_with_ties(2, conv_layer_numb, args.strides, args.strides_type)
+            # max pool
+            e.m_pool = gen_with_ties(2, conv_layer_numb, args.m_pool, args.m_pool_type)
+            e.pool_type = np.random.choice(args.pool_type)
             e.cnn_init = np.random.choice(args.cnn_init)
             e.cnn_conv_activation = np.random.choice(args.cnn_conv_activation)
-            e.cnn_dense_activation = np.random.choice(args.cnn_dense_activation)
-            e.border_mode = np.random.choice(args.border_mode)
-
-            # strides
-            rows = int(np.round(uniform.rvs(args.strides[0], args.strides[1]-args.strides[0])))
-            cols = int(np.round(uniform.rvs(args.strides[2], args.strides[3]-args.strides[2])))
-            while check_shape_tie(rows, cols, args.strides_type):
-                rows = int(np.round(uniform.rvs(args.strides[0], args.strides[1]-args.strides[0])))
-                cols = int(np.round(uniform.rvs(args.strides[2], args.strides[3]-args.strides[2])))
-            # for now all cnn layer have the same strides shape
-            e.strides = [[rows, cols]]*3
-
-            # max pool
-            rows = int(np.round(uniform.rvs(args.m_pool[0], args.m_pool[1]-args.m_pool[0])))
-            cols = int(np.round(uniform.rvs(args.m_pool[2], args.m_pool[3]-args.m_pool[2])))
-            while check_shape_tie(rows, cols, args.m_pool_type):
-                rows = int(np.round(uniform.rvs(args.m_pool[0], args.m_pool[1]-args.m_pool[0])))
-                cols = int(np.round(uniform.rvs(args.m_pool[2], args.m_pool[3]-args.m_pool[2])))
-            # for now all max pool layer have the same shape
-            e.m_pool = [[rows, cols]]*3
-
-            e.optimizer = np.random.choice(args.optimizer)
-            e.pool_type = np.random.choice(args.pool_type)
-
             ################################################################################### Danse layers
-            dense_layer_numb = np.random.choice(range(args.dense_layer_numb)) + 1
+            #dense_layer_numb = np.random.choice(args.dense_layer_numb)
+            dense_layer_numb = np.random.choice(range(args.dense_layer_numb[0], args.dense_layer_numb[1] + 1))
             e.dense_layer_numb = dense_layer_numb
-
-            e.dense_shapes = [int(np.round(uniform.rvs(args.dense_shapes[0],
-                                                            args.dense_shapes[1] - args.dense_shapes[0])))]
-            for j in range(dense_layer_numb-1):
-                c = int(np.round(uniform.rvs(args.dense_shapess[0], args.dense_shapes[1] - args.dense_shapes[0])))
-                while check_num_tie(e.dense_shapes[j-1], c, args.dense_shape_type):
-                    c = int(np.round(uniform.rvs(args.dense_shapes[0], args.dense_shapes[1] - args.dense_shapes[0])))
-                    e.dense_shapes.append(c)
-
+            e.dense_shapes = gen_with_ties(1, dense_layer_numb, args.dense_shapes, args.dense_shape_type)
+            e.cnn_dense_activation = np.random.choice(args.cnn_dense_activation)
             ################################################################################### Learning params
             e.shuffle = np.random.choice([True, False])
             e.optimizer = np.random.choice(args.optimizer)
@@ -286,8 +278,10 @@ root_dir = os.path.realpath(".")
 
 ############################################ creazione della lista dei parametri secondo la strategia scelta
 if args.search_strategy == "grid":
+    print("define point of grid search")
     experiments = grid_search(args)
 elif args.search_strategy == "random":
+    print("define point of random search")
     experiments = random_search(args)
 
 ############################################ creazione dei file per lo scheduler
@@ -296,51 +290,49 @@ i=0
 for e in experiments:
     sript_path = os.path.join(root_dir, "scripts", str(i).zfill(5) + "_fall.pbs")  #--------------------------- dove vanno gli script?
     copyfile(os.path.join(root_dir, "template_script.txt"), sript_path)  #-------------------------------------- da settare virtual env su template
-    command = "THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python "
-    command += " --exp-index " + str(e.id) + \
-               " --score-path " + str(args.scorePath) + \
-               " --trainset-list " + str(args.trainNameLists) + \
-               " --case " + str(args.case) + \
-               " --test-list-names " + str(args.testNamesLists) + \
-               " --dev-list-name " + str(args.devNamesLists) + \
-               " --input-type " + str(args.input_type) + \
-               " --cnn-input-shape " + str(args.cnn_input_shape) + \
-               " --conv-layers-numb " + str(e.conv_layer_num) + \
-               " --kernels-number " + str(e.kernel_number) + \
-               " --pool-type " + str(e.pool_type)
+    command = "THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python " + \
+              "--exp-index " + str(e.id) + \
+              " --score-path " + str(args.scorePath) + \
+              " --trainset-list " + str(args.trainNameLists).replace(" ", "") + \
+              " --case " + str(args.case) + \
+              " --test-list-names " + str(args.testNamesLists).replace(" ", "") + \
+              " --dev-list-name " + str(args.devNamesLists).replace(" ", "") + \
+              " --input-type " + str(args.input_type) + \
+              " --cnn-input-shape " + str(args.cnn_input_shape).replace(" ", "") + \
+              " --conv-layers-numb " + str(e.conv_layer_numb) + \
+              " --kernels-number " + str(e.kernel_number).replace(" ", "") + \
+              " --pool-type " + str(e.pool_type) + \
+              " --kernel-shape " + str(e.kernel_shape).replace(" ", "") + \
+              " --strides " + str(e.strides).replace(" ", "") + \
+              " --max-pool-shape " + str(e.m_pool).replace(" ", "") + \
+              " --cnn-init " + str(e.cnn_init) + \
+              " --cnn-conv-activation " + str(e.cnn_conv_activation) + \
+              " --cnn-dense-activation " + str(e.cnn_dense_activation) + \
+              " --border-mode " + str(e.border_mode) + \
+              " --w-reg " + str(args.w_reg) + \
+              " --b-reg " + str(args.b_reg) + \
+              " --act-reg " + str(args.a_reg) + \
+              " --w-constr " + str(args.w_constr) + \
+              " --b-constr " + str(args.b_constr) + \
+              " --dense-layers-numb " + str(e.dense_layer_numb) + \
+              " --dense-shape " + str(e.dense_shapes).replace(" ", "") + \
+              " --epoch " + str(args.epoch) + \
+              " --batch-size " + str(e.batch_size) + \
+              " --optimizer " + str(e.optimizer) + \
+              " --loss " + str(e.loss)
 
-    for k in range(len(e.kernel_shape)):
-        command += " --kernel-shape " + str(e.kernel_shape[k]) + \
-                   " --strides " + str(e.strides[k]) + \
-                   " --max-pool-shape " + str(e.m_pool[k])
-
-    command += " --cnn-init " + str(e.cnn_init) + \
-               " --cnn-conv-activation " + str(e.cnn_conv_activation) + \
-               " --cnn-dense-activation " + str(e.cnn_dense_activation) + \
-               " --border-mode " + str(e.border_mode) + \
-               " --w-reg " + str(args.w_reg) + \
-               " --b-reg " + str(args.b_reg) + \
-               " --act-reg " + str(args.a_reg) + \
-               " --w-constr " + str(args.w_constr) + \
-               " --b-constr " + str(args.b_constr) + \
-               " --dense-layers-numb " + str(e.dense_layer_numb) + \
-               " --dense-shape " + str(e.dense_shapes) + \
-               " --epoch " + str(args.epoch) + \
-               " --batch-size " + str(e.batch_size) + \
-               " --optimizer " + str(e.optimizer) + \
-               " --loss " + str(e.loss) + \
-               " --no-shuffle " + str(e.shuffle) + \
-               " --no-bias " + str(e.bias)
-
+    if not e.shuffle:
+        command += " --no-shuffle"
+    if not e.bias:
+        command += " --no-bias"
     if args.log:
-        command += " --logging "
+        command += " --logging"
     if args.fit_net:
-        command += " --fit-net "
+        command += " --fit-net"
 
     with open(sript_path, "a") as f:
         f.write(command)
 
     i+=1
 
-with open(os.path.join(root_dir, "scripts", "experiments.json"), "w") as outfile:
-    json.dump(experiments, outfile)
+np.save(os.path.join(root_dir, "scripts", "experiments.npy"), experiments)

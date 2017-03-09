@@ -289,7 +289,7 @@ class autoencoder_fall_detection:
                               init=params.cnn_init,
                               activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
-                              subsample=tuple(params.strides),
+                              subsample=tuple(params.strides[i]),
                               W_regularizer=params.w_reg,
                               b_regularizer=params.b_reg,
                               activity_regularizer=params.a_reg,
@@ -309,32 +309,25 @@ class autoencoder_fall_detection:
 
             if params.pool_type[0]=="all":
                 x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
-                # if border=='valid' h=int(h/params.params.m_pool[i][0])
+                # if MaxPooling border=='valid' h=int(h/params.params.m_pool[i][0])
                 h = math.ceil(h / params.m_pool[i][0])
                 w = math.ceil(w / params.m_pool[i][1])
                 print("pool " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         if params.pool_type[0]=="only_end":
             x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
-            # if border=='valid' h=int(h/params.params.m_pool[i][0])
+            # if MaxPooling border=='valid' h=int(h/params.params.m_pool[i][0])
             h = math.ceil(h / params.m_pool[-1][0])
             w = math.ceil(w / params.m_pool[-1][1])
             print("pool->  (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         x = Flatten()(x)
 
-        x = Dense(d * h * w,
-                  init=params.cnn_init,
-                  activation=params.cnn_dense_activation,
-                  W_regularizer=params.w_reg,
-                  b_regularizer=params.b_reg,
-                  activity_regularizer=params.a_reg,
-                  W_constraint=params.w_constr,
-                  b_constraint=params.b_constr,
-                  bias=params.bias)(x)
+        inputs = [d*h*w]
+        inputs.extend(params.dense_shapes)
 
-        for i in range(len(params.dense_layers_inputs)):
-            x = Dense(params.dense_layers_inputs[i],
+        for i in range(len(inputs)):
+            x = Dense(inputs[i],
                       init=params.cnn_init,
                       activation=params.cnn_dense_activation,
                       W_regularizer=params.w_reg,
@@ -356,16 +349,6 @@ class autoencoder_fall_detection:
                       W_constraint=params.w_constr,
                       b_constraint=params.b_constr,
                       bias=params.bias)(x)
-
-        x = Dense(d * h * w,
-                  init=params.cnn_init,
-                  activation=params.cnn_dense_activation,
-                  W_regularizer=params.w_reg,
-                  b_regularizer=params.b_reg,
-                  activity_regularizer=params.a_reg,
-                  W_constraint=params.w_constr,
-                  b_constraint=params.b_constr,
-                  bias=params.bias)(x)
 
         x = Reshape((d, h, w))(x)
         print("----------------------------------->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")

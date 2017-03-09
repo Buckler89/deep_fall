@@ -56,7 +56,7 @@ parser.add_argument("-is", "--cnn-input-shape", dest="cnn_input_shape", action=e
 parser.add_argument("-kn", "--kernels-number", dest="kernel_number", action=eval_action, default=[16, 8, 8])
 parser.add_argument("-ks", "--kernel-shape", dest="kernel_shape", action=eval_action, default=[[3, 3],[3, 3],[3, 3]])
 parser.add_argument("-mp", "--max-pool-shape", dest="m_pool", action=eval_action, default=[[2, 2],[2, 2],[2, 2]])
-
+parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1, 1],[1, 1],[1, 1]])
 
 parser.add_argument("-dln", "--dense-layers-numb", dest="dense_layer_numb", default=1, type=int)
 parser.add_argument("-ds", "--dense-shapes", dest="dense_layers_inputs", action=eval_action, default=[64])
@@ -64,7 +64,6 @@ parser.add_argument("-i", "--cnn-init", dest="cnn_init", default="glorot_uniform
 parser.add_argument("-ac", "--cnn-conv-activation", dest="cnn_conv_activation", default="tanh", choices=["tanh"])
 parser.add_argument("-ad", "--cnn-dense-activation", dest="cnn_dense_activation", default="tanh", choices=["tanh"])
 parser.add_argument("-bm", "--border-mode", dest="border_mode", default="same", choices=["valid", "same"])
-parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1, 1],[1, 1],[1, 1]])
 parser.add_argument("-wr", "--w-reg", dest="w_reg", default=None) # in autoencoder va usato con eval("funz(parametri)")
 parser.add_argument("-br", "--b-reg", dest="b_reg", default=None)
 parser.add_argument("-ar", "--act-reg", dest="a_reg", default=None)
@@ -88,8 +87,7 @@ if args.config_filename is not None:
         lines = f.readlines()
     arguments = []
     for line in lines:
-        if "#" not in line:
-            arguments.extend(line.split())
+        arguments.extend(line.split("#")[0].split())
     # First parse the arguments specified in the config file
     args, unknown = parser.parse_known_args(args=arguments)
     # Then append the command line arguments
