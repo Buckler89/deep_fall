@@ -51,3 +51,5 @@ model/
 models/
 score/
 *.idea/
+
+scripts/

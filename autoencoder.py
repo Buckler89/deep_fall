@@ -243,11 +243,11 @@ class autoencoder_fall_detection:
         self._nk = [16, 8, 8]  # serve solo su def_static_arch
         input_img = Input(shape=(1, 129, 197))
 
-        x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(input_img)
+        x = Convolution2D(nk[0], ks[0], ks[1], activation='tanh', border_mode='same')(input_img)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(self._nk[1], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
+        x = Convolution2D(nk[1], ks[0], ks[1], activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
-        x = Convolution2D(self._nk[2], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
+        x = Convolution2D(nk[2], ks[0], ks[1], activation='tanh', border_mode='same')(x)
         x = MaxPooling2D((2, 2), border_mode='same')(x)
         # at this point the representation is (8, 4, 4) i.e. 128-dimensional
 
@@ -258,16 +258,16 @@ class autoencoder_fall_detection:
         x = Dense(3400, activation='tanh')(encoded)
         x = Reshape((8, 17, 25))(x)
 
-        x = Convolution2D(self._nk[2], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
+        x = Convolution2D(nk[2], ks[0], ks[1], activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(self._nk[1], self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
+        x = Convolution2D(nk[1], ks[0], ks[1], activation='tanh', border_mode='same')(x)
         x = UpSampling2D((2, 2))(x)
-        x = Convolution2D(self._nk[0], self._ks[0], self._ks[1], activation='tanh')(x)
+        x = Convolution2D(nk[0], ks[0], ks[1], activation='tanh')(x)
         x = UpSampling2D((2, 2))(x)
         x = ZeroPadding2D(padding=(0, 0, 0, 1))(x)
         x = Cropping2D(cropping=((1, 2), (0, 0)))(x)
 
-        decoded = Convolution2D(1, self._ks[0], self._ks[1], activation='tanh', border_mode='same')(x)
+        decoded = Convolution2D(1, ks[0], ks[1], activation='tanh', border_mode='same')(x)
 
         #        layer1 = Model(input_img, decoded)
         #        layer1.summary()
@@ -293,7 +293,7 @@ class autoencoder_fall_detection:
                               init=params.cnn_init,
                               activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
-                              subsample=tuple(params.strides),
+                              subsample=tuple(params.strides[i]),
                               W_regularizer=params.w_reg,
                               b_regularizer=params.b_reg,
                               activity_regularizer=params.a_reg,
@@ -306,39 +306,32 @@ class autoencoder_fall_detection:
                 pw = params.kernel_shape[i][1] - 1
             else:
                 ph = pw = 0
-            h = int((h - params.kernel_shape[i][0] + ph) / params.strides[0]) + 1
-            w = int((w - params.kernel_shape[i][1] + pw) / params.strides[1]) + 1
+            h = int((h - params.kernel_shape[i][0] + ph) / params.strides[i][0]) + 1
+            w = int((w - params.kernel_shape[i][1] + pw) / params.strides[i][1]) + 1
             d = params.kernel_number[i]
             print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-            if not params.pool_only_to_end:
+            if params.pool_type=="all":
                 x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
-                # if border=='valid' h=int(h/params.params.m_pool[i][0])
+                # if MaxPooling border=='valid' h=int(h/params.params.m_pool[i][0])
                 h = math.ceil(h / params.m_pool[i][0])
                 w = math.ceil(w / params.m_pool[i][1])
                 print("pool " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-        if params.pool_only_to_end:
+        if params.pool_type=="only_end":
             x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
-            # if border=='valid' h=int(h/params.params.m_pool[i][0])
-            h = math.ceil(h / params.m_pool[i][0])
-            w = math.ceil(w / params.m_pool[i][1])
+            # if MaxPooling border=='valid' h=int(h/params.params.m_pool[i][0])
+            h = math.ceil(h / params.m_pool[-1][0])
+            w = math.ceil(w / params.m_pool[-1][1])
             print("pool->  (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         x = Flatten()(x)
 
-        x = Dense(d * h * w,
-                  init=params.cnn_init,
-                  activation=params.cnn_dense_activation,
-                  W_regularizer=params.w_reg,
-                  b_regularizer=params.b_reg,
-                  activity_regularizer=params.a_reg,
-                  W_constraint=params.w_constr,
-                  b_constraint=params.b_constr,
-                  bias=params.bias)(x)
+        inputs = [d*h*w]
+        inputs.extend(params.dense_shapes)
 
-        for i in range(len(params.dense_layers_inputs)):
-            x = Dense(params.dense_layers_inputs[i],
+        for i in range(len(inputs)):
+            x = Dense(inputs[i],
                       init=params.cnn_init,
                       activation=params.cnn_dense_activation,
                       W_regularizer=params.w_reg,
@@ -361,16 +354,6 @@ class autoencoder_fall_detection:
                       b_constraint=params.b_constr,
                       bias=params.bias)(x)
 
-        x = Dense(d * h * w,
-                  init=params.cnn_init,
-                  activation=params.cnn_dense_activation,
-                  W_regularizer=params.w_reg,
-                  b_regularizer=params.b_reg,
-                  activity_regularizer=params.a_reg,
-                  W_constraint=params.w_constr,
-                  b_constraint=params.b_constr,
-                  bias=params.bias)(x)
-
         x = Reshape((d, h, w))(x)
         print("----------------------------------->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
@@ -382,7 +365,7 @@ class autoencoder_fall_detection:
                               init=params.cnn_init,
                               activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
-                              subsample=tuple(params.strides),
+                              subsample=tuple(params.strides[i]),
                               W_regularizer=params.w_reg,
                               b_regularizer=params.b_reg,
                               activity_regularizer=params.a_reg,
@@ -395,17 +378,17 @@ class autoencoder_fall_detection:
                 pw = params.kernel_shape[i][1] - 1
             else:
                 ph = pw = 0
-            h = int((h - params.kernel_shape[i][0] + ph) / params.strides[0]) + 1
-            w = int((w - params.kernel_shape[i][1] + pw) / params.strides[1]) + 1
+            h = int((h - params.kernel_shape[i][0] + ph) / params.strides[i][0]) + 1
+            w = int((w - params.kernel_shape[i][1] + pw) / params.strides[i][1]) + 1
             d = params.kernel_number[i]
             print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-            if params.pool_only_to_end and i == len(params.kernel_number) - 1:
+            if params.pool_type == "only_end" and i == len(params.kernel_number) - 1:
                 x = UpSampling2D(params.m_pool[i])(x)
                 h = h * params.m_pool[i][0]
                 w = w * params.m_pool[i][1]
                 print("up->   (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
-            elif not params.pool_only_to_end:
+            elif params.pool_type=="all":
                 x = UpSampling2D(params.m_pool[i])(x)
                 h = h * params.m_pool[i][0]
                 w = w * params.m_pool[i][1]
@@ -440,7 +423,7 @@ class autoencoder_fall_detection:
                                 init=params.cnn_init,
                                 activation=params.cnn_conv_activation,
                                 border_mode=params.border_mode,
-                                subsample=tuple(params.strides),
+                                subsample=(1,1), #---------------------------------------------- qua va comunque = (1,1)
                                 W_regularizer=params.w_reg,
                                 b_regularizer=params.b_reg,
                                 activity_regularizer=params.a_reg,
@@ -459,10 +442,10 @@ class autoencoder_fall_detection:
         """
         print("model_compile")
 
-        if model == None:
-            self._autoencoder.compile(optimizer='adadelta', loss='mse')
+        if model is None:
+            self._autoencoder.compile(optimizer=optimizer, loss=loss)
         else:
-            model.compile(optimizer='adadelta', loss='mse')
+            model.compile(optimizer=optimizer, loss=loss)
 
     def model_fit(self, x_train, y_train, x_dev=None, y_dev=None, nb_epoch=50, batch_size=128, shuffle=True, model=None,
                   fit_net=True):
@@ -489,7 +472,7 @@ class autoencoder_fall_detection:
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
-                                      shuffle=True,
+                                      shuffle=shuffle,
                                       callbacks=[earlyStoppingAuc],
                                       # TODO ReduceLROnPlateau per ridurre il learing rate quando l'auc non cresce più
                                       verbose=1)  # with a different vale ProbarLogging is not called
@@ -500,7 +483,7 @@ class autoencoder_fall_detection:
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
-                                      shuffle=True,
+                                      shuffle=shuffle,
                                       verbose=2)
                 # save the model an weights on disk
                 # self.save_model(self._autoencoder)
