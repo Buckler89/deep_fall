@@ -46,7 +46,7 @@ parser.add_argument("-tl", "--trainset-list", dest="trainNameLists", action=eval
 parser.add_argument("-c", "--case", dest="case", default="case6")
 parser.add_argument("-tln", "--test-list-names", dest="testNamesLists", action=eval_action,
                     default=["testset_1.lst", "testset_2.lst", "testset_3.lst", "testset_4.lst"])
-parser.add_argument("-dln", "--dev-list-names", dest="devNamesLists", action=eval_action,
+parser.add_argument("-dl", "--dev-list-names", dest="devNamesLists", action=eval_action,
                     default=["devset_1.lst", "devset_2.lst", "devset_3.lst", "devset_4.lst"])
 parser.add_argument("-it", "--input-type", dest="input_type", default="spectrograms")
 
