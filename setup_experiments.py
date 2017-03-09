@@ -155,29 +155,32 @@ def grid_search(args):
                                                             for l in args.loss:
                                                                 for nb in args.bias:
                                                                     for ns in args.shuffle:
-                                                                        e = experiment()
-                                                                        e.id = n
-                                                                        n += 1
-                                                                        e.cnn_input_shape = args.cnn_input_shape
-                                                                        e.conv_layer_numb = cln
-                                                                        e.kernel_number = kn
-                                                                        e.pool_type = p
-                                                                        e.kernel_shape = ks
-                                                                        e.strides = s
-                                                                        e.m_pool = mp
-                                                                        e.cnn_init = ci
-                                                                        e.cnn_conv_activation = ac
-                                                                        e.cnn_dense_activation = ad
-                                                                        e.border_mode = bm
-                                                                        e.dense_layer_numb = dln
-                                                                        e.dense_shapes = ds
-                                                                        e.batch_size = bs
-                                                                        e.optimizer = o
-                                                                        e.loss = l
-                                                                        e.shuffle = ns
-                                                                        e.bias = nb
+                                                                        # only sane combination
+                                                                        if len(kn) == len(ks) == len(s) == len(mp) == cln:
+                                                                            if len(ds) == dln:
+                                                                                e = experiment()
+                                                                                e.id = n
+                                                                                n += 1
+                                                                                e.cnn_input_shape = args.cnn_input_shape
+                                                                                e.conv_layer_numb = cln
+                                                                                e.kernel_number = kn
+                                                                                e.kernel_shape = ks
+                                                                                e.strides = s
+                                                                                e.m_pool = mp
+                                                                                e.pool_type = p
+                                                                                e.cnn_init = ci
+                                                                                e.cnn_conv_activation = ac
+                                                                                e.cnn_dense_activation = ad
+                                                                                e.border_mode = bm
+                                                                                e.dense_layer_numb = dln
+                                                                                e.dense_shapes = ds
+                                                                                e.batch_size = bs
+                                                                                e.optimizer = o
+                                                                                e.loss = l
+                                                                                e.shuffle = ns
+                                                                                e.bias = nb
 
-                                                                        exp_list.append(e)
+                                                                                exp_list.append(e)
 
     return exp_list
 
