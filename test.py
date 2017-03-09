@@ -88,7 +88,7 @@ for x_test, y_test in zip(x_tests, y_tests):
     net = autoencoder.autoencoder_fall_detection(logger, False);
     modelPath = path.join(scoreModelPath, 'modelfold' + str(fold) + '.h5')
     weightsPath = path.join(scoreModelPath, 'modelfold' + str(fold) + '_weights.h5')
-    net.load_model(modelPath,weightsPath)
+    net.load_model(modelPath)
 
 
     decoded_images = net.reconstruct_spectrogram(x_test)

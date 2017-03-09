@@ -123,8 +123,6 @@ if args.log:
     sys.stderr = sl #ovverride funcion
 print("LOG OF PROCESS ID = "+strID)
 
-
-
 ###################################################END INIT LOG########################################
 
 
@@ -163,7 +161,9 @@ elif os.listdir(scoreCasePath) == []:  # se è vuota significa che è il primo e
 # se la cartella già esiste devo verificare la consistenza dei file all'interno
 elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(set(os.listdir(scoreCasePath))):
     message='Score fold inconsistency detected. Check if all the file are present in ' + scoreCasePath + '. Process aborted'
-    print(message)
+    #print(message)
+    stderr_logger.error(message)
+
     raise Exception(message)
 
 ######################################END CHECK SCORE FOLDER STRUCTURE############################################
@@ -229,7 +229,7 @@ net.define_cnn_arch(args)
 models = list()
 
 for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
-
+    print('\n\n\n----------------------------------FOLD {}-----------------------------------'.format(f))
     net.model_compile(optimizer=args.optimizer, loss=args.loss)
     #L'eralysstopping viene fatto in automatico se vengono passati anche x_dev e y_dev
 
@@ -250,6 +250,7 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
         print("open File to lock")
         fileToLock = open(scoreAucsFilePath, 'a+')  # se metto w+ mi cancella il vecchio!!!
     except OSError as exception:
+        stderr_logger.error(exception)
         raise
     # prova a bloccare il file: se non riesce ritenta dopo un po. Non va avanti finche non riesce a bloccare il file
     try:
@@ -263,6 +264,9 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
             except IOError as e:
                 # raise on unrelated IOErrors
                 if e.errno != errno.EAGAIN:
+                    #print('ERROR occured trying acquuire file')
+                    stderr_logger.error('ERROR occured trying acquuire file')
+                    stderr_logger.error(e)
                     raise
                 else:
                     print("wait fo file to Lock")
@@ -270,7 +274,7 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
         print("loadtxt")
         scoreAuc = np.loadtxt(scoreAucsFilePath)
         scoreThs = np.loadtxt(scoreThsFilePath)
-
+        print('check if new best score is achieved')
         for auc, oldAuc, foldsIdx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
             if auc > oldAuc:  # se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
                 # allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
@@ -281,9 +285,9 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
                 # per args e model uso file separati per ogni fold
                 # salvo parametri
                 with open(os.path.join(argsPath, 'argsfold' + str(foldsIdx[0] + 1) + '.txt'), 'w') as file:
-                    file.write(jsonargs)
+                    file.write(json.dumps(jsonargs, indent=4, sort_keys=True))
                 # salvo modello e pesi
-                net.save_model(models[foldsIdx], modelPath, 'modelfold' + str(foldsIdx[0] + 1))
+                net.save_model(models[foldsIdx[0]], modelPath, 'modelfold' + str(foldsIdx[0] + 1))
 
         print("savetxt")
         np.savetxt(scoreAucsFilePath, scoreAucNew)
