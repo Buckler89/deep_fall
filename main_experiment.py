@@ -107,12 +107,12 @@ if args.log:
     import logging
     import sys
 
-    logFolder = "logs"
-    nameFileLog = os.path.join(logFolder, "process_" + strID + ".log")
+    logFolder = 'logs'
+    nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
     u.makedir(logFolder)  # crea la fold solo se non esiste
     if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
-        fileInFolder = [x for x in os.listdir(logFolder) if x.startswith("process_")]
-        os.rename(nameFileLog, nameFileLog + "_" + str(len(fileInFolder) + 1))  # so the name is different
+        fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
+        os.rename(nameFileLog, nameFileLog + '_' + str(len(fileInFolder) + 1))  # so the name is different
 
     stdout_logger = logging.getLogger(strID)
     sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
@@ -123,8 +123,6 @@ if args.log:
     sys.stderr = sl #ovverride funcion
 print("LOG OF PROCESS ID = "+strID)
 
-
-
 ###################################################END INIT LOG########################################
 
 
@@ -133,14 +131,14 @@ print("LOG OF PROCESS ID = "+strID)
 # POTREBBERO CREARE PROBLEMI DI ACCESSO TRA I VARI PROCESSI
 
 # in questi 2 file ogni riga corrisponde ad una fold
-scoreAucsFileName = "score_auc.txt"
-thFileName = "thresholds.txt"
+scoreAucsFileName = 'score_auc.txt'
+thFileName = 'thresholds.txt'
 
 scoreCasePath = os.path.join(args.scorePath, args.case)
 scoreAucsFilePath = os.path.join(scoreCasePath, scoreAucsFileName)
 scoreThsFilePath = os.path.join(scoreCasePath, thFileName)
-argsFolder = "args"
-modelFolder = "models"
+argsFolder = 'args'
+modelFolder = 'models'
 argsPath = os.path.join(scoreCasePath, argsFolder)
 modelPath = os.path.join(scoreCasePath, modelFolder)
 jsonargs = json.dumps(args.__dict__)
@@ -151,7 +149,7 @@ if not os.path.exists(scoreCasePath):
     u.makedir(modelPath)
     np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
     np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
-elif not os.listdir(scoreCasePath):  # se è vuota significa che è il primo esperimento
+elif os.listdir(scoreCasePath) == []:  # se è vuota significa che è il primo esperimento
     # quindi creo le cartelle necessarie e salvo un file delle auc e th inizializzato a 0
     print("make arg and model dir and init scoreFile")
     u.makedir(argsPath)
@@ -160,22 +158,24 @@ elif not os.listdir(scoreCasePath):  # se è vuota significa che è il primo esp
     np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
 
 # TODO in realtà questo controllo non scansiona se mancano i modelli o/e i parametri
-# se la cartella già esiste devo verificare la consistenza dei file all"interno
-elif not {scoreAucsFileName, thFileName, argsFolder, modelFolder}.issubset(set(os.listdir(scoreCasePath))):
-    message="Score fold inconsistency detected. Check if all the file are present in " + scoreCasePath + ". Process aborted"
-    print(message)
+# se la cartella già esiste devo verificare la consistenza dei file all'interno
+elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(set(os.listdir(scoreCasePath))):
+    message='Score fold inconsistency detected. Check if all the file are present in ' + scoreCasePath + '. Process aborted'
+    #print(message)
+    stderr_logger.error(message)
+
     raise Exception(message)
 
 ######################################END CHECK SCORE FOLDER STRUCTURE############################################
 
 
-root_dir = path.realpath(".")
+root_dir = path.realpath('.')
 
-listTrainpath = path.join(root_dir, "lists", "train")
-listPath = path.join(root_dir, "lists", "dev+test", args.case)
+listTrainpath = path.join(root_dir, 'lists', 'train')
+listPath = path.join(root_dir, 'lists', 'dev+test', args.case)
 
 # GESTIONE DATASET
-a3fall = dm.load_A3FALL(path.join(root_dir, "dataset", args.input_type))  # load dataset
+a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', args.input_type))  # load dataset
 
 # il trainset è 1 e sempre lo stesso per tutti gli esperimenti
 trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0]  # creo i trainset per calcolare
@@ -217,10 +217,10 @@ print("------------------------CROSS VALIDATION---------------")
 
 # init score matrix
 #TODO sistemare nomi
-# matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
-scoreAucNew = np.zeros(len(args.testNamesLists))
-# matrice che conterra tutte le threshold ottime ottenute p er le diverse fold e diversi set di parametri
-scoreThsNew = np.zeros(len(args.testNamesLists))
+scoreAucNew = np.zeros(len(
+    args.testNamesLists))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
+scoreThsNew = np.zeros(len(
+    args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
 f = 0
 net = autoencoder.autoencoder_fall_detection()
 # net.define_static_arch()
@@ -229,12 +229,12 @@ net.define_cnn_arch(args)
 models = list()
 
 for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
-
+    print('\n\n\n----------------------------------FOLD {}-----------------------------------'.format(f))
     net.model_compile(optimizer=args.optimizer, loss=args.loss)
     #L'eralysstopping viene fatto in automatico se vengono passati anche x_dev e y_dev
 
-    m = net.model_fit(x_trains[0], _, x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch, batch_size=args.batch_size,
-                      shuffle=args.shuffle, fit_net=args.fit_net)
+    m = net.model_fit(x_trains[0], _, x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle,
+                      fit_net=args.fit_net)
     models.append(m)
     decoded_images = net.reconstruct_spectrogram(x_dev, m)
     auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)
@@ -248,8 +248,9 @@ print("------------------------SCORE SELECTION---------------")
 if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perche viene creata precedentemente
     try:
         print("open File to lock")
-        fileToLock = open(scoreAucsFilePath, "a+")  # se metto w+ mi cancella il vecchio!!!
+        fileToLock = open(scoreAucsFilePath, 'a+')  # se metto w+ mi cancella il vecchio!!!
     except OSError as exception:
+        stderr_logger.error(exception)
         raise
     # prova a bloccare il file: se non riesce ritenta dopo un po. Non va avanti finche non riesce a bloccare il file
     try:
@@ -263,6 +264,9 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
             except IOError as e:
                 # raise on unrelated IOErrors
                 if e.errno != errno.EAGAIN:
+                    #print('ERROR occured trying acquuire file')
+                    stderr_logger.error('ERROR occured trying acquuire file')
+                    stderr_logger.error(e)
                     raise
                 else:
                     print("wait fo file to Lock")
@@ -270,7 +274,7 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
         print("loadtxt")
         scoreAuc = np.loadtxt(scoreAucsFilePath)
         scoreThs = np.loadtxt(scoreThsFilePath)
-
+        print('check if new best score is achieved')
         for auc, oldAuc, foldsIdx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
             if auc > oldAuc:  # se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
                 # allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
@@ -279,11 +283,11 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
                 scoreAucNew[foldsIdx[0]] = auc
                 scoreThs[foldsIdx[0]] = scoreThsNew[foldsIdx[0]]
                 # per args e model uso file separati per ogni fold
-                # salvo parametri
-                with open(os.path.join(argsPath, "argsfold" + str(foldsIdx[0] + 1) + ".txt"), "w") as file:
-                    file.write(jsonargs)
+                # salvo i parametri
+                with open(os.path.join(argsPath, 'argsfold' + str(foldsIdx[0] + 1) + '.txt'), 'w') as file:
+                    file.write(json.dumps(jsonargs, indent=4, sort_keys=True))
                 # salvo modello e pesi
-                net.save_model(models[foldsIdx], modelPath, "modelfold" + str(foldsIdx[0] + 1))
+                net.save_model(models[foldsIdx[0]], modelPath, 'modelfold' + str(foldsIdx[0] + 1))
 
         print("savetxt")
         np.savetxt(scoreAucsFilePath, scoreAucNew)
@@ -319,7 +323,7 @@ print("------------------------FINE CROSS VALIDATION---------------")
 #     idx += 1
 #
 # # report finale
-# print("\n\n\n")
+# print('\n\n\n')
 # print("------------------------FINAL REPORT---------------")
 #
 # net.print_score(my_cm, tot_y_pred, tot_y_true)

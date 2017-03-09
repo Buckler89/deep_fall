@@ -21,6 +21,7 @@ import matplotlib
 import math
 from scipy.spatial.distance import euclidean
 import dataset_manupulation as dm
+import json
 
 
 # import matplotlib.image as img
@@ -454,31 +455,31 @@ class autoencoder_fall_detection:
         if model is not None:
             self._autoencoder = model
 
-        if not fit_net:  # take a modeld already fitted
-            # if i want to load from disk the model
-            # autoencoder = load_model('my_model.h5')
-            # autoencoder.load_weights('my_model_weights.h5')
-            # self._autoencoder = autoencoder
-            self.load_model('my_model.h5', 'my_model_weights.h5')
+        if not fit_net:  # take a model already fitted
+            self.load_model('my_model.h5')
 
         else:
             if x_dev is not None and y_dev is not None:  # se ho a disposizione un validation set allora faccio anche l'early stopping
                 earlyStoppingAuc = EarlyStoppingAuc(self.__class__,  # devo passargli la classe stessa perche poi
                                                     # dalla classe EarlyStoppingAuc ho bisogno di chiamare
-                                                    # reconstruct_spectrogram che ha bisogno del self!
+                                                    # reconstruct_spectrogram che ha bisogno del self! #TODO c'è un modo miglore?
                                                     autoencoder=self._autoencoder,
                                                     validation_data=x_dev,
-                                                    validation_data_label=y_dev)
+                                                    validation_data_label=y_dev,
+                                                    aucMinImprovment=0.01,
+                                                    patience=2)
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
                                       shuffle=shuffle,
                                       callbacks=[earlyStoppingAuc],
                                       # TODO ReduceLROnPlateau per ridurre il learing rate quando l'auc non cresce più
-                                      verbose=1)  # with a different vale ProbarLogging is not called
+                                      verbose=1)  # with a value != 1 ProbarLogging is not called
                 # print(str(earlyStoppingAuc.losses))
                 # print(str(earlyStoppingAuc.aucs))
                 print('losses: {}, \naucs: {},'.format(earlyStoppingAuc.losses, earlyStoppingAuc.aucs))
+                self._autoencoder = earlyStoppingAuc.bestmodel
+
             else:
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
@@ -497,11 +498,13 @@ class autoencoder_fall_detection:
         # self._fit_net = False
         return self._autoencoder
 
-    def load_model(self, model, weights):
+    def load_model(self, model, weights=None):
         # if i want to load from disk the model
         autoencoder = load_model(model)
-        autoencoder.load_weights(weights)
+        if weights is not None:
+            autoencoder.load_weights(weights) #é inutile: load_model carica anche i pesi
         self._autoencoder = autoencoder
+
         return autoencoder
 
     def save_model(self, model=None, path='.', name='my_model'):
@@ -513,7 +516,12 @@ class autoencoder_fall_detection:
             model = self._autoencoder
 
         model.save(os.path.join(path, name + '.h5'))
-        model.save_weights(os.path.join(path, name + '_weights.h5'))
+        #model.save_weights(os.path.join(path, name + '_weights.h5')) è inutile: save salva anche i pesi
+        json_string = model.to_json()
+        with open(os.path.join(path, name + '.json'), "w") as text_file:
+            text_file.write(json.dumps(json_string, indent=4, sort_keys=True))
+
+        return
 
     def reconstruct_spectrogram(self, x_test, model=None):
         """
@@ -525,10 +533,11 @@ class autoencoder_fall_detection:
         else:
             decoded_imgs = model.predict(x_test)
 
-        # to load from variable
-        # autoencoder = Model.from_config(net_config)
-        # autoencoder.set_weights(net_weight)
 
+        return decoded_imgs
+
+    #def plot_decoded_imgs(self, decoded_imgs):
+        #plot reconstructed image ( mnist_dataset only )
         #        n = 41
         #        plt.figure(figsize=(20*4, 4*4))
         #        for i in range(1,n):
@@ -546,7 +555,6 @@ class autoencoder_fall_detection:
         #            ax.get_xaxis().set_visible(False)
         #            ax.get_yaxis().set_visible(False)
         #        plt.show()
-        return decoded_imgs
 
     def reconstruct_handwritedigit_mnist(self, x_test):  # @Diego -> da cancellare?
         """
@@ -636,18 +644,21 @@ class EarlyStoppingAuc(Callback):
         self.autoencoder = autoencoder
         self.aucMinImprovment = aucMinImprovment
         self.patiance = patience + 1  # il +1 serve per considerare che alla prima epoca non si ha sicuramente un improvment (perchè usao self.auc[-1])
+        self.actualPatiance=self.patiance
+        self.bestmodel = None
 
     def on_train_begin(self, logs={}):
         self.aucs = []
         self.losses = []
-
     # def on_batch_end(self, batch, logs=None):
     #     #ProgbarLogger()
     #     #print('epoch: {}, logs: {}'.format(batch, logs))
     #     pass
 
     def on_epoch_end(self, epoch, logs={}):
+
         self.losses.append(logs.get('loss'))
+        print('')
         decoded_images = autoencoder_fall_detection.reconstruct_spectrogram(self.net,
                                                                             x_test=self.val_data,
                                                                             model=self.autoencoder)
@@ -656,12 +667,19 @@ class EarlyStoppingAuc(Callback):
                                               self.val_data_lab)
         self.aucs.append(epoch_auc)
 
-        print('epoch: {}, logs: {}, auc: {}'.format(epoch, logs, epoch_auc))
-        if (epoch_auc - self.aucs[-1]) < self.aucMinImprovment:
-            print('no improvment for auc')
-            self.patiance -= 1
-            print('remaining patiance: {}'.format(self.patiance))
-            if self.patiance is 0:
+        print('Epoch: {}, logs: {}, auc: {}'.format(epoch, logs, epoch_auc))
+
+        if epoch is 0: # if is the first epoch the first model is the best model
+            self.bestmodel = self.model
+
+        if (epoch_auc - self.aucs[-1]) <= self.aucMinImprovment:
+            print('No improvment for auc')
+            self.actualPatiance -= 1
+            print('Remaining patiance: {}'.format(self.actualPatiance))
+            if self.actualPatiance is 0:
                 print('Patience finished: STOP FITTING')
-                self.model.stop_training = True #TODO trovare il modo di riportare il modello allo stato in cui si era trovato l'ultimo imporvment (ovvero quando la patiance è diminuita di uno)
+                self.model.stop_training = True
+        else:
+            self.actualPatiance = self.patiance# if the model improves, reset the patiance
+            self.bestmodel = self.model#and the new best model is the actual model
         return
