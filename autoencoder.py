@@ -418,7 +418,7 @@ class autoencoder_fall_detection:
                                 init=params.cnn_init,
                                 activation=params.cnn_conv_activation,
                                 border_mode=params.border_mode,
-                                subsample=tuple(params.strides[i]),
+                                subsample=(1,1), #---------------------------------------------- qua va comunque = (1,1)
                                 W_regularizer=params.w_reg,
                                 b_regularizer=params.b_reg,
                                 activity_regularizer=params.a_reg,
@@ -440,7 +440,7 @@ class autoencoder_fall_detection:
         if model is None:
             self._autoencoder.compile(optimizer=optimizer, loss=loss)
         else:
-            model.compile(optimizer='adadelta', loss='mse')
+            model.compile(optimizer=optimizer, loss=loss)
 
     def model_fit(self, x_train, y_train, x_dev=None, y_dev=None, nb_epoch=50, batch_size=128, shuffle=True, model=None,
                   fit_net=True):
@@ -467,7 +467,7 @@ class autoencoder_fall_detection:
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
-                                      shuffle=True,
+                                      shuffle=shuffle,
                                       callbacks=[earlyStoppingAuc],
                                       # TODO ReduceLROnPlateau per ridurre il learing rate quando l'auc non cresce più
                                       verbose=1)  # with a different vale ProbarLogging is not called
@@ -478,7 +478,7 @@ class autoencoder_fall_detection:
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
-                                      shuffle=True,
+                                      shuffle=shuffle,
                                       verbose=2)
                 # save the model an weights on disk
                 # self.save_model(self._autoencoder)
