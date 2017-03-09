@@ -277,7 +277,6 @@ class autoencoder_fall_detection:
         d = params.cnn_input_shape[0]
         h = params.cnn_input_shape[1]
         w = params.cnn_input_shape[2]
-        print("(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         input_img = Input(shape=params.cnn_input_shape)
         x = input_img
@@ -302,8 +301,8 @@ class autoencoder_fall_detection:
                 pw = params.kernel_shape[i][1] - 1
             else:
                 ph = pw = 0
-            h = int((h - params.kernel_shape[i][0] + ph) / params.strides[0]) + 1
-            w = int((w - params.kernel_shape[i][1] + pw) / params.strides[1]) + 1
+            h = int((h - params.kernel_shape[i][0] + ph) / params.strides[i][0]) + 1
+            w = int((w - params.kernel_shape[i][1] + pw) / params.strides[i][1]) + 1
             d = params.kernel_number[i]
             print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
@@ -361,7 +360,7 @@ class autoencoder_fall_detection:
                               init=params.cnn_init,
                               activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
-                              subsample=tuple(params.strides),
+                              subsample=tuple(params.strides[i]),
                               W_regularizer=params.w_reg,
                               b_regularizer=params.b_reg,
                               activity_regularizer=params.a_reg,
@@ -374,8 +373,8 @@ class autoencoder_fall_detection:
                 pw = params.kernel_shape[i][1] - 1
             else:
                 ph = pw = 0
-            h = int((h - params.kernel_shape[i][0] + ph) / params.strides[0]) + 1
-            w = int((w - params.kernel_shape[i][1] + pw) / params.strides[1]) + 1
+            h = int((h - params.kernel_shape[i][0] + ph) / params.strides[i][0]) + 1
+            w = int((w - params.kernel_shape[i][1] + pw) / params.strides[i][1]) + 1
             d = params.kernel_number[i]
             print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
@@ -419,7 +418,7 @@ class autoencoder_fall_detection:
                                 init=params.cnn_init,
                                 activation=params.cnn_conv_activation,
                                 border_mode=params.border_mode,
-                                subsample=tuple(params.strides),
+                                subsample=tuple(params.strides[i]),
                                 W_regularizer=params.w_reg,
                                 b_regularizer=params.b_reg,
                                 activity_regularizer=params.a_reg,
