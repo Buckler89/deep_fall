@@ -59,7 +59,7 @@ parser.add_argument("-mp", "--max-pool-shape", dest="m_pool", action=eval_action
 parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1, 1],[1, 1],[1, 1]])
 
 parser.add_argument("-dln", "--dense-layers-numb", dest="dense_layer_numb", default=1, type=int)
-parser.add_argument("-ds", "--dense-shapes", dest="dense_layers_inputs", action=eval_action, default=[64])
+parser.add_argument("-ds", "--dense-shapes", dest="dense_shapes", action=eval_action, default=[64])
 parser.add_argument("-i", "--cnn-init", dest="cnn_init", default="glorot_uniform", choices=["glorot_uniform"])
 parser.add_argument("-ac", "--cnn-conv-activation", dest="cnn_conv_activation", default="tanh", choices=["tanh"])
 parser.add_argument("-ad", "--cnn-dense-activation", dest="cnn_dense_activation", default="tanh", choices=["tanh"])
@@ -149,7 +149,7 @@ if not os.path.exists(scoreCasePath):
     u.makedir(modelPath)
     np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
     np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
-elif os.listdir(scoreCasePath) == []:  # se è vuota significa che è il primo esperimento
+elif not os.listdir(scoreCasePath):  # se è vuota significa che è il primo esperimento
     # quindi creo le cartelle necessarie e salvo un file delle auc e th inizializzato a 0
     print("make arg and model dir and init scoreFile")
     u.makedir(argsPath)

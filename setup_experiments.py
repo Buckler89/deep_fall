@@ -61,11 +61,11 @@ parser.add_argument("-bm", "--border-mode", dest="border_mode", default=["same"]
 parser.add_argument("-st", "--strides-type", dest="strides_type", default="square")
 
 parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1,1],[1,1],[1,1]])
-parser.add_argument("-wr", "--w-reg", dest="w_reg", default=None) # in autoencoder va usato con eval("funz(parametri)")
-parser.add_argument("-br", "--b-reg", dest="b_reg", default=None)
-parser.add_argument("-ar", "--act-reg", dest="a_reg", default=None)
-parser.add_argument("-wc", "--w-constr", dest="w_constr", default=None)
-parser.add_argument("-bc", "--b-constr", dest="b_constr", default=None)
+parser.add_argument("-wr", "--w-reg", dest="w_reg", action=eval_action, default=None) # in autoencoder va usato con eval("funz(parametri)")
+parser.add_argument("-br", "--b-reg", dest="b_reg", action=eval_action, default=None)
+parser.add_argument("-ar", "--act-reg", dest="a_reg", action=eval_action, default=None)
+parser.add_argument("-wc", "--w-constr", dest="w_constr", action=eval_action, default=None)
+parser.add_argument("-bc", "--b-constr", dest="b_constr", action=eval_action, default=None)
 parser.add_argument("-nb", "--bias", dest="bias", default=[True], action=eval_action)
 
 # dense params
@@ -265,7 +265,7 @@ def random_search(args):
             e.dense_shapes = gen_with_ties(1, dense_layer_numb, args.dense_shapes, args.dense_shape_type)
             e.cnn_dense_activation = np.random.choice(args.cnn_dense_activation)
             ################################################################################### Learning params
-            e.shuffle = np.random.choice([True, False])
+            e.shuffle = np.random.choice(args.shuffle)
             e.optimizer = np.random.choice(args.optimizer)
             e.loss = np.random.choice(args.loss)
             e.batch_size = int(np.round(uniform.rvs(args.batch_size[0], args.batch_size[1] - args.batch_size[0])))
@@ -291,15 +291,16 @@ elif args.search_strategy == "random":
 
 i=0
 for e in experiments:
-    sript_path = os.path.join(root_dir, "scripts", str(i).zfill(5) + "_fall.pbs")  #--------------------------- dove vanno gli script?
-    copyfile(os.path.join(root_dir, "template_script.txt"), sript_path)  #-------------------------------------- da settare virtual env su template
+    script_name = os.path.join(args.scriptPath, str(i).zfill(5) + "_fall.pbs")  #--------------------------- dove vanno gli script?
+    copyfile(os.path.join(root_dir, "template_script.txt"), script_name)  #-------------------------------------- da settare virtual env su template
     command = "THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python " + \
-              "--exp-index " + str(e.id) + \
+              os.path.join(root_dir, "main_experiment.py") + \
+              " --exp-index " + str(e.id) + \
               " --score-path " + str(args.scorePath) + \
-              " --trainset-list " + str(args.trainNameLists).replace(" ", "") + \
+              " --trainset-list " + '"' + str(args.trainNameLists).replace(" ", "") + '"' + \
               " --case " + str(args.case) + \
-              " --test-list-names " + str(args.testNamesLists).replace(" ", "") + \
-              " --dev-list-name " + str(args.devNamesLists).replace(" ", "") + \
+              " --test-list-names " + '"' + str(args.testNamesLists).replace(" ", "") + '"' + \
+              " --dev-list-name " + '"' + str(args.devNamesLists).replace(" ", "") + '"' + \
               " --input-type " + str(args.input_type) + \
               " --cnn-input-shape " + str(args.cnn_input_shape).replace(" ", "") + \
               " --conv-layers-numb " + str(e.conv_layer_numb) + \
@@ -333,7 +334,7 @@ for e in experiments:
     if args.fit_net:
         command += " --fit-net"
 
-    with open(sript_path, "a") as f:
+    with open(script_name, "a") as f:
         f.write(command)
 
     i+=1

@@ -240,8 +240,8 @@ class autoencoder_fall_detection:
         QUESTa è usata solo per bypassare la creazione dinamica che vuole tutti i parametri!
         """
         print('define TEST arch ')
-        self._ks = [3, 3]  # serve solo su def_static_arch
-        self._nk = [16, 8, 8]  # serve solo su def_static_arch
+        ks = [3, 3]  # serve solo su def_static_arch
+        nk = [16, 8, 8]  # serve solo su def_static_arch
         input_img = Input(shape=(1, 129, 197))
 
         x = Convolution2D(nk[0], ks[0], ks[1], activation='tanh', border_mode='same')(input_img)
@@ -295,11 +295,11 @@ class autoencoder_fall_detection:
                               activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
                               subsample=tuple(params.strides[i]),
-                              W_regularizer=params.w_reg,
-                              b_regularizer=params.b_reg,
-                              activity_regularizer=params.a_reg,
-                              W_constraint=params.w_constr,
-                              b_constraint=params.b_constr,
+                              W_regularizer=eval(params.w_reg),
+                              b_regularizer=eval(params.b_reg),
+                              activity_regularizer=eval(params.a_reg),
+                              W_constraint=eval(params.w_constr),
+                              b_constraint=eval(params.b_constr),
                               bias=params.bias)(x)
 
             if params.border_mode == 'same':
@@ -310,21 +310,21 @@ class autoencoder_fall_detection:
             h = int((h - params.kernel_shape[i][0] + ph) / params.strides[i][0]) + 1
             w = int((w - params.kernel_shape[i][1] + pw) / params.strides[i][1]) + 1
             d = params.kernel_number[i]
-            print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+            print("conv(" + str(i) + ") -> (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
             if params.pool_type=="all":
                 x = MaxPooling2D(params.m_pool[i], border_mode='same')(x)
                 # if MaxPooling border=='valid' h=int(h/params.params.m_pool[i][0])
                 h = math.ceil(h / params.m_pool[i][0])
                 w = math.ceil(w / params.m_pool[i][1])
-                print("pool " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+                print("pool(" + str(i) + ") -> (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         if params.pool_type=="only_end":
             x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
             # if MaxPooling border=='valid' h=int(h/params.params.m_pool[i][0])
             h = math.ceil(h / params.m_pool[-1][0])
             w = math.ceil(w / params.m_pool[-1][1])
-            print("pool->  (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+            print("pool  -> (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         x = Flatten()(x)
 
@@ -335,25 +335,27 @@ class autoencoder_fall_detection:
             x = Dense(inputs[i],
                       init=params.cnn_init,
                       activation=params.cnn_dense_activation,
-                      W_regularizer=params.w_reg,
-                      b_regularizer=params.b_reg,
-                      activity_regularizer=params.a_reg,
-                      W_constraint=params.w_constr,
-                      b_constraint=params.b_constr,
+                      W_regularizer=eval(params.w_reg),
+                      b_regularizer=eval(params.b_reg),
+                      activity_regularizer=eval(params.a_reg),
+                      W_constraint=eval(params.w_constr),
+                      b_constraint=eval(params.b_constr),
                       bias=params.bias)(x)
+            print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
 
         # ---------------------------------------------------------- Decoding
 
-        for i in range(len(params.dense_layers_inputs) - 2, -1, -1):  # backwards indices last excluded
-            x = Dense(params.dense_layers_inputs[i],
+        for i in range(len(inputs) - 2, -1, -1):  # backwards indices last excluded
+            x = Dense(inputs[i],
                       init=params.cnn_init,
                       activation=params.cnn_dense_activation,
-                      W_regularizer=params.w_reg,
-                      b_regularizer=params.b_reg,
-                      activity_regularizer=params.a_reg,
-                      W_constraint=params.w_constr,
-                      b_constraint=params.b_constr,
+                      W_regularizer=eval(params.w_reg),
+                      b_regularizer=eval(params.b_reg),
+                      activity_regularizer=eval(params.a_reg),
+                      W_constraint=eval(params.w_constr),
+                      b_constraint=eval(params.b_constr),
                       bias=params.bias)(x)
+            print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
 
         x = Reshape((d, h, w))(x)
         print("----------------------------------->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
@@ -367,11 +369,11 @@ class autoencoder_fall_detection:
                               activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
                               subsample=tuple(params.strides[i]),
-                              W_regularizer=params.w_reg,
-                              b_regularizer=params.b_reg,
-                              activity_regularizer=params.a_reg,
-                              W_constraint=params.w_constr,
-                              b_constraint=params.b_constr,
+                              W_regularizer=eval(params.w_reg),
+                              b_regularizer=eval(params.b_reg),
+                              activity_regularizer=eval(params.a_reg),
+                              W_constraint=eval(params.w_constr),
+                              b_constraint=eval(params.b_constr),
                               bias=params.bias)(x)
 
             if params.border_mode == 'same':
@@ -425,11 +427,11 @@ class autoencoder_fall_detection:
                                 activation=params.cnn_conv_activation,
                                 border_mode=params.border_mode,
                                 subsample=(1,1), #---------------------------------------------- qua va comunque = (1,1)
-                                W_regularizer=params.w_reg,
-                                b_regularizer=params.b_reg,
-                                activity_regularizer=params.a_reg,
-                                W_constraint=params.w_constr,
-                                b_constraint=params.b_constr,
+                                W_regularizer=eval(params.w_reg),
+                                b_regularizer=eval(params.b_reg),
+                                activity_regularizer=eval(params.a_reg),
+                                W_constraint=eval(params.w_constr),
+                                b_constraint=eval(params.b_constr),
                                 bias=params.bias)(x)
 
         self._autoencoder = Model(input_img, decoded)
