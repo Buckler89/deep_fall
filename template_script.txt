@@ -1,12 +1,26 @@
 #!/bin/bash
-#PBS -l nodes=1:ppn=1
-#PBS -W x=GRES:gpu@1
+#PBS -A IscrC_DASHE
+#PBS -j oe
+#----------------------------------------------------------------------problema
+#-------------------------------per testare si puo' fare senza (.sh)
+#PBS -l walltime=23:45:00
+#PBS -l select=1:ncpus=1:ngpus=1
 
-export PATH=$PATH:/usr/local/cuda/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+module load profile/advanced; sleep 5
+module load python/3.5.2; sleep 5
+module load cuda/8.0.61; sleep 5
+module load gnu/4.9.2; sleep 5
+module load blas/3.6.0--gnu--4.9.2; sleep 5
+module load lapack/3.6.0--gnu--4.9.2; sleep 5
 
-nvidia-smi
+export LD_LIBRARY_PATH=$WORK/cudnn_5/cuda/lib64:$LD_LIBRARY_PATH
+export CPATH=$WORK/cudnn_5/cuda/include:$CPATH
+export LIBRARY_PATH=$WORK/cudnn_5/cuda/lib64:$LIBRARY_PATH
 
-source ~/virtualenvs/neural_nilm/bin/activate
+source $WORK/VirtualEnvs/fall_detection_env/bin/activate
+
+
+
+
 
  

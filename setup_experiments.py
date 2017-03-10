@@ -12,7 +12,7 @@ import numpy as np
 import math
 import os
 from shutil import copyfile
-import json
+import utility as u
 
 
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
@@ -278,6 +278,8 @@ def random_search(args):
 ############################################ inizializzalizzazioni
 experiments = []
 root_dir = os.path.realpath(".")
+if not os.path.exists(args.scriptPath):
+    u.makedir(args.scriptPath)
 
 ############################################ creazione della lista dei parametri secondo la strategia scelta
 if args.search_strategy == "grid":
@@ -288,7 +290,6 @@ elif args.search_strategy == "random":
     experiments = random_search(args)
 
 ############################################ creazione dei file per lo scheduler
-
 i=0
 for e in experiments:
     script_name = os.path.join(args.scriptPath, str(i).zfill(5) + "_fall.pbs")  #--------------------------- dove vanno gli script?
