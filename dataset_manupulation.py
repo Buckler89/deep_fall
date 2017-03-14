@@ -81,7 +81,7 @@ def split_A3FALL_simple(data, train_tag=None):
 
 def split_A3FALL_from_lists(data, listpath, namelist):
     '''
-    Richede in inglesso la cartella dove risiedono i file di testo che elencano i vari segnali che farano parte di un voluto set di dati.
+    Richede in ingresso la cartella dove risiedono i file di testo che elencano i vari segnali che farano parte di un voluto set di dati.
     Inltre in namelist vanno specificati i nomi dei file di testo da usare.
     Ritorna una lista contentete le liste dei dataset di shape: (len(namelist),data.shape)
     '''
