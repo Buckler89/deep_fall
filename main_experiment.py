@@ -106,7 +106,7 @@ strID = str(args.id)
 if args.log:
     import logging
     import sys
-
+    print("init log")
     logFolder = 'logs'
     nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
     u.makedir(logFolder)  # crea la fold solo se non esiste

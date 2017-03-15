@@ -17,7 +17,7 @@ export LIBRARY_PATH=$WORK/cudnn_5/cuda/lib64:$LIBRARY_PATH
 
 source $WORK/VirtualEnvs/fall_detection_env/bin/activate
 
-python main_experiment.py -cf experiment.conf
+python main_experiment.py -cf experiment_galileo_test.conf
 
 
 
