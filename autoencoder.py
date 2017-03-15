@@ -638,7 +638,7 @@ class autoencoder_fall_detection:
 
 
 class EarlyStoppingAuc(Callback):
-    def __init__(self, net, autoencoder, validation_data, validation_data_label, aucMinImprovment=0.01, patience=2):
+    def __init__(self, net, autoencoder, validation_data, validation_data_label, aucMinImprovment=0.01, patience=20):
         super(Callback, self).__init__()
         self.net = net
         self.val_data = validation_data
