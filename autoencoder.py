@@ -469,7 +469,7 @@ class autoencoder_fall_detection:
                                                     validation_data=x_dev,
                                                     validation_data_label=y_dev,
                                                     aucMinImprovment=0.01,
-                                                    patience=2)
+                                                    patience=20)
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
@@ -646,7 +646,7 @@ class EarlyStoppingAuc(Callback):
         self.autoencoder = autoencoder
         self.aucMinImprovment = aucMinImprovment
         self.patiance = patience + 1  # il +1 serve per considerare che alla prima epoca non si ha sicuramente un improvment (perchè usao self.auc[-1])
-        self.actualPatiance=self.patiance
+        self.actualPatiance = self.patiance
         self.bestmodel = None
 
     def on_train_begin(self, logs={}):
@@ -674,7 +674,7 @@ class EarlyStoppingAuc(Callback):
         if epoch is 0: # if is the first epoch the first model is the best model
             self.bestmodel = self.model
 
-        if (epoch_auc - self.aucs[-1]) <= self.aucMinImprovment:
+        if (epoch_auc - self.aucs[-1]) <= self.aucMinImprovment:#if the last auc differance of the actual epoch and the last auc is less then a threshold
             print('No improvment for auc')
             self.actualPatiance -= 1
             print('Remaining patiance: {}'.format(self.actualPatiance))
