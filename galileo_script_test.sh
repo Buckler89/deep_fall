@@ -3,7 +3,6 @@
 #PBS -j oe
 #PBS -l walltime=23:45:00
 #PBS -l select=1:ncpus=1:ngpus=1
-
 module load profile/advanced;
 module load python/3.5.2;
 module load cuda/7.5.18;
