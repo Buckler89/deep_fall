@@ -78,7 +78,7 @@ parser.add_argument("-ns", "--no-shuffle", dest="shuffle", default=True, action=
 parser.add_argument("-bs", "--batch-size", dest="batch_size", default=128, type=int)
 parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action="store_true")
 parser.add_argument("-o", "--optimizer", dest="optimizer", default="adadelta", choices=["adadelta", "adam", "sgd"])
-parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse"])
+parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse", "msle"])
 
 args = parser.parse_args()
 
