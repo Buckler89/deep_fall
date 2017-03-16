@@ -87,6 +87,8 @@ parser.add_argument("-bs", "--batch-size", dest="batch_size", default=128, type=
 parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action="store_true")
 parser.add_argument("-o", "--optimizer", dest="optimizer", default="adadelta", choices=["adadelta", "adam", "sgd"])
 parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse", "msle"])
+parser.add_argument("-pt", "--patiance", dest="patiance", default=20, type=int)
+parser.add_argument("-ami", "--aucMinImp", dest="aucMinImprovment", default=0.01, type=float)
 
 args = parser.parse_args()
 
@@ -245,7 +247,7 @@ for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     #L'eralysstopping viene fatto in automatico se vengono passati anche x_dev e y_dev
 
     m = net.model_fit(x_trains[0], _, x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle,
-                      fit_net=args.fit_net)
+                      fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment)
     models.append(m)
     decoded_images = net.reconstruct_spectrogram(x_dev, m)
     auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)

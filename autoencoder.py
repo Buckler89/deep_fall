@@ -458,7 +458,7 @@ class autoencoder_fall_detection:
             model.compile(optimizer=opti, loss=loss)
 
     def model_fit(self, x_train, y_train, x_dev=None, y_dev=None, nb_epoch=50, batch_size=128, shuffle=True, model=None,
-                  fit_net=True):
+                  fit_net=True, patiance=20, aucMinImprovment=0.01):
         print("model_fit")
 
         if model is not None:
@@ -475,8 +475,8 @@ class autoencoder_fall_detection:
                                                     autoencoder=self._autoencoder,
                                                     validation_data=x_dev,
                                                     validation_data_label=y_dev,
-                                                    aucMinImprovment=0.01,
-                                                    patience=20)
+                                                    aucMinImprovment=aucMinImprovment,
+                                                    patience=patiance)
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,

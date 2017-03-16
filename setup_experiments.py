@@ -19,14 +19,14 @@ class experiment:
     pass
 
 
-class choices():
+class choices:
     def __init__(self, values):
         self.values = values
     def rvs(self):
         return np.random.choice(self.values)
 
 
-class loguniform_gen():
+class loguniform_gen:
     def __init__(self, base=2, low=0, high=1, round_exponent=False, round_output=False):
       self.base = base
       self.low = low
@@ -39,7 +39,7 @@ class loguniform_gen():
         exponent = np.round(exponent)
       value = np.power(self.base, exponent)
       if self.round_output:
-        value = np.round(value)
+        value = int(np.round(value))
       return value
 
 
@@ -115,8 +115,11 @@ parser.add_argument("-e", "--epoch", dest="epoch", default=50, type=int)
 parser.add_argument("-ns", "--shuffle", dest="shuffle", default=[True], action=eval_action)
 parser.add_argument("-bs", "--batch-size", dest="batch_size", action=eval_action, default=[128])
 parser.add_argument("-o", "--optimizer", dest="optimizer", action=eval_action, default=["adadelta"])
-parser.add_argument("-l", "--loss", dest="loss", action=eval_action, default=["mse"])
+parser.add_argument("-l", "--loss", dest="loss", action=eval_action, default=["msle"])
 parser.add_argument("-lr", "--learning-rate", dest="learning_rate", action=eval_action, default=[1.0])
+parser.add_argument("-ami", "--aucMinImp", dest="aucMinImprovment", default=0.01, type=float)
+parser.add_argument("-pt", "--patiance", dest="patiance", default=20, type=int)
+
 
 args = parser.parse_args()
 
@@ -217,14 +220,14 @@ def grid_search(args):
     return exp_list
 
 
-def gen_with_shape_tie(rng, tie_type, distribution="uniform", base=2):
+def gen_with_shape_tie(rng, tie_type, distribution="uniform", base=2, round_exponent=False, round_output=True):
     ack=False
     if distribution == "uniform":
         gen_rows = choices(range(rng[0], rng[1] + 1))
         gen_cols = choices(range(rng[2], rng[3] + 1))
     elif distribution == "loguniform":
-        gen_rows = loguniform_gen(base, rng[0], rng[1], round_output=True)
-        gen_cols = loguniform_gen(base, rng[2], rng[3], round_output=True)
+        gen_rows = loguniform_gen(base, rng[0], rng[1], round_exponent, round_output)
+        gen_cols = loguniform_gen(base, rng[2], rng[3], round_exponent, round_output)
     while not ack:
         rows = gen_rows.rvs()
         cols = gen_cols.rvs()
@@ -236,13 +239,13 @@ def gen_with_shape_tie(rng, tie_type, distribution="uniform", base=2):
     return [rows, cols]
 
 
-def gen_with_ties(dim, num, bounds, tie_type, distribution="uniform", base=2):
+def gen_with_ties(dim, num, bounds, tie_type, distribution="uniform", base=2, round_exponent=False, round_output=True):
     ties=tie_type.split(",")
     if dim == 1:
         if distribution == "uniform":
             gen = choices(range(bounds[0], bounds[1] + 1))
         elif distribution == "loguniform":
-            gen = loguniform_gen(base, bounds[0], bounds[1], round_output=True)
+            gen = loguniform_gen(base, bounds[0], bounds[1], round_exponent, round_output)
         if "equal" in ties:
             v = [gen.rvs()] * num
         else:
@@ -251,8 +254,8 @@ def gen_with_ties(dim, num, bounds, tie_type, distribution="uniform", base=2):
                 ack = False
                 c = [gen.rvs()]
                 while not ack:
-                    if c <= v[j-1] and "decrease" in ties or \
-                       c >= v[j-1] and "encrease" in ties or \
+                    if c[0] <= v[j-1] and "decrease" in ties or \
+                       c[0] >= v[j-1] and "encrease" in ties or \
                        "any" in ties:
                         ack = True
                     else:
@@ -260,13 +263,13 @@ def gen_with_ties(dim, num, bounds, tie_type, distribution="uniform", base=2):
                 v.extend(c)
     elif dim == 2:
         if ties[1] == ties[2] =="equal":
-            v = [gen_with_shape_tie(bounds, ties[0], distribution)] * num
+            v = [gen_with_shape_tie(bounds, ties[0], distribution, base, round_exponent, round_output)] * num
         else:
-            v = [gen_with_shape_tie(bounds, ties[0], distribution)]
+            v = [gen_with_shape_tie(bounds, ties[0], distribution, base, round_exponent, round_output)]
             for j in range(1, num):
                 ack = False
                 while not ack:
-                    c = gen_with_shape_tie(bounds, ties[0], distribution)
+                    c = gen_with_shape_tie(bounds, ties[0], distribution, base, round_exponent, round_output)
                     ack = True
                     if c[0] > v[j-1][0] and ties[1] == "decrease" or \
                        c[0] < v[j-1][0] and ties[1] == "encrease":
@@ -291,7 +294,7 @@ def random_search(args):
             conv_layer_numb = np.random.choice(args.conv_layer_numb)
             e.conv_layer_numb = conv_layer_numb
             e.kernel_shape = gen_with_ties(2, conv_layer_numb, args.kernel_shape, args.kernel_type, "uniform")
-            e.kernel_number = gen_with_ties(1, conv_layer_numb, np.log2(args.kernel_number), args.kernel_number_type, "loguniform", 2)
+            e.kernel_number = gen_with_ties(1, conv_layer_numb, np.log2(args.kernel_number), args.kernel_number_type, "loguniform", 2, True)
             e.border_mode = np.random.choice(args.border_mode)
             # strides
             e.strides = gen_with_ties(2, conv_layer_numb, args.strides, args.strides_type, "uniform")
@@ -313,9 +316,10 @@ def random_search(args):
             e.optimizer = np.random.choice(args.optimizer)
             e.loss = np.random.choice(args.loss)
             e.batch_size = gen_with_ties(1, 1, np.log2(args.batch_size), "any", "loguniform", 2)
-            e.learning_rate = gen_with_ties(1, 1, np.log10(args.batch_size), "any", "loguniform", 10)
+            e.learning_rate = gen_with_ties(1, 1, np.log10(args.learning_rate), "any", "loguniform", 10, False, False)
             e.shuffle = np.random.choice(args.shuffle)
             e.bias = np.random.choice(args.bias)
+
 
         exp_list.append(e)
     return exp_list
@@ -374,7 +378,12 @@ for e in experiments:
               " --epoch " + str(args.epoch) + \
               " --batch-size " + str(e.batch_size) + \
               " --optimizer " + str(e.optimizer) + \
-              " --loss " + str(e.loss)
+              " --loss " + str(e.loss) + \
+              " --dropout " + str(e.dropout) + \
+              " --drop-rate " + str(e.drop_rate) + \
+              " --learning-rate " + str(e.learning_rate) + \
+              " --patiance " + str(args.patiance) + \
+              " --aucMinImp " + str(args.aucMinImprovment)
 
     if not e.shuffle:
         command += " --no-shuffle"
