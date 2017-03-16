@@ -9,10 +9,10 @@ Created on Wed Jan 18 18:43:32 2017
 import os
 
 os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
-
-from keras.layers import Input, Dense, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, ZeroPadding2D, \
-    Cropping2D
 from keras.models import Model, load_model
+from keras.layers import Input, Dense, Dropout, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, \
+    ZeroPadding2D, Cropping2D
+from keras.optimizers import Adadelta
 from keras.callbacks import Callback, ProgbarLogger
 import numpy as np
 import matplotlib.pyplot as plt
@@ -295,11 +295,11 @@ class autoencoder_fall_detection:
                               activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
                               subsample=tuple(params.strides[i]),
-                              W_regularizer=eval(params.w_reg),
-                              b_regularizer=eval(params.b_reg),
-                              activity_regularizer=eval(params.a_reg),
-                              W_constraint=eval(params.w_constr),
-                              b_constraint=eval(params.b_constr),
+                              W_regularizer=eval(params.cnn_w_reg),
+                              b_regularizer=eval(params.cnn_b_reg),
+                              activity_regularizer=eval(params.cnn_a_reg),
+                              W_constraint=eval(params.cnn_w_constr),
+                              b_constraint=eval(params.cnn_b_constr),
                               bias=params.bias)(x)
 
             if params.border_mode == 'same':
@@ -335,13 +335,15 @@ class autoencoder_fall_detection:
             x = Dense(inputs[i],
                       init=params.cnn_init,
                       activation=params.cnn_dense_activation,
-                      W_regularizer=eval(params.w_reg),
-                      b_regularizer=eval(params.b_reg),
-                      activity_regularizer=eval(params.a_reg),
-                      W_constraint=eval(params.w_constr),
-                      b_constraint=eval(params.b_constr),
+                      W_regularizer=eval(params.d_w_reg),
+                      b_regularizer=eval(params.d_b_reg),
+                      activity_regularizer=eval(params.d_a_reg),
+                      W_constraint=eval(params.d_w_constr),
+                      b_constraint=eval(params.d_b_constr),
                       bias=params.bias)(x)
             print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
+            if (params.dropout):
+                x = Dropout(rate=params.drop_rate, seed=666)
 
         # ---------------------------------------------------------- Decoding
 
@@ -349,13 +351,15 @@ class autoencoder_fall_detection:
             x = Dense(inputs[i],
                       init=params.cnn_init,
                       activation=params.cnn_dense_activation,
-                      W_regularizer=eval(params.w_reg),
-                      b_regularizer=eval(params.b_reg),
-                      activity_regularizer=eval(params.a_reg),
-                      W_constraint=eval(params.w_constr),
-                      b_constraint=eval(params.b_constr),
+                      W_regularizer=eval(params.d_w_reg),
+                      b_regularizer=eval(params.d_b_reg),
+                      activity_regularizer=eval(params.d_a_reg),
+                      W_constraint=eval(params.d_w_constr),
+                      b_constraint=eval(params.d_b_constr),
                       bias=params.bias)(x)
             print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
+            if (params.dropout):
+                x = Dropout(rate=params.drop_rate, seed=666)
 
         x = Reshape((d, h, w))(x)
         print("----------------------------------->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
@@ -369,11 +373,11 @@ class autoencoder_fall_detection:
                               activation=params.cnn_conv_activation,
                               border_mode=params.border_mode,
                               subsample=tuple(params.strides[i]),
-                              W_regularizer=eval(params.w_reg),
-                              b_regularizer=eval(params.b_reg),
-                              activity_regularizer=eval(params.a_reg),
-                              W_constraint=eval(params.w_constr),
-                              b_constraint=eval(params.b_constr),
+                              W_regularizer=eval(params.cnn_w_reg),
+                              b_regularizer=eval(params.cnn_b_reg),
+                              activity_regularizer=eval(params.cnn_a_reg),
+                              W_constraint=eval(params.cnn_w_constr),
+                              b_constraint=eval(params.cnn_b_constr),
                               bias=params.bias)(x)
 
             if params.border_mode == 'same':
@@ -426,12 +430,12 @@ class autoencoder_fall_detection:
                                 init=params.cnn_init,
                                 activation=params.cnn_conv_activation,
                                 border_mode=params.border_mode,
-                                subsample=(1,1), #---------------------------------------------- qua va comunque = (1,1)
-                                W_regularizer=eval(params.w_reg),
-                                b_regularizer=eval(params.b_reg),
-                                activity_regularizer=eval(params.a_reg),
-                                W_constraint=eval(params.w_constr),
-                                b_constraint=eval(params.b_constr),
+                                subsample=(1,1),
+                                W_regularizer=eval(params.cnn_w_reg),
+                                b_regularizer=eval(params.cnn_b_reg),
+                                activity_regularizer=eval(params.cnn_a_reg),
+                                W_constraint=eval(params.cnn_w_constr),
+                                b_constraint=eval(params.cnn_b_constr),
                                 bias=params.bias)(x)
 
         self._autoencoder = Model(input_img, decoded)
@@ -439,16 +443,19 @@ class autoencoder_fall_detection:
 
         return self._autoencoder
 
-    def model_compile(self, model=None, optimizer='adadelta', loss='mse'):
+    def model_compile(self, model=None, optimizer='adadelta', learning_rate=1.0, loss='mse'):
         """
         compila il modello con i parametri passati: se non viene passato compila il modello istanziato dalla classe
         """
         print("model_compile")
 
+        if optimizer == "adadelta":
+            opti = Adadelta(lr=learning_rate, rho=0.95, epsilon=1e-06)
+
         if model is None:
-            self._autoencoder.compile(optimizer=optimizer, loss=loss)
+            self._autoencoder.compile(optimizer=opti, loss=loss)
         else:
-            model.compile(optimizer=optimizer, loss=loss)
+            model.compile(optimizer=opti, loss=loss)
 
     def model_fit(self, x_train, y_train, x_dev=None, y_dev=None, nb_epoch=50, batch_size=128, shuffle=True, model=None,
                   fit_net=True):
@@ -468,14 +475,13 @@ class autoencoder_fall_detection:
                                                     autoencoder=self._autoencoder,
                                                     validation_data=x_dev,
                                                     validation_data_label=y_dev,
-                                                    aucMinImprovment=0.01,
-                                                    patience=2)
+                                                    aucMinImprovment=0.01, ----------------------------------------------------------------------------hhhhhhhhhh
+                                                    patience=2)   -------------------------------------------------------------------------------------hhhhhhhhhh
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
                                       shuffle=shuffle,
                                       callbacks=[earlyStoppingAuc],
-                                      # TODO ReduceLROnPlateau per ridurre il learing rate quando l'auc non cresce più
                                       verbose=1)  # with a value != 1 ProbarLogging is not called
                 # print(str(earlyStoppingAuc.losses))
                 # print(str(earlyStoppingAuc.aucs))

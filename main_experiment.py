@@ -57,18 +57,26 @@ parser.add_argument("-kn", "--kernels-number", dest="kernel_number", action=eval
 parser.add_argument("-ks", "--kernel-shape", dest="kernel_shape", action=eval_action, default=[[3, 3],[3, 3],[3, 3]])
 parser.add_argument("-mp", "--max-pool-shape", dest="m_pool", action=eval_action, default=[[2, 2],[2, 2],[2, 2]])
 parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1, 1],[1, 1],[1, 1]])
+parser.add_argument("-cwr", "--cnn-w-reg", dest="cnn_w_reg", action=eval_action, default=None) # in autoencoder va usato con eval("funz(parametri)")
+parser.add_argument("-cbr", "--cnn-b-reg", dest="cnn_b_reg", action=eval_action, default=None)
+parser.add_argument("-car", "--cnn-act-reg", dest="cnn_a_reg", action=eval_action, default=None)
+parser.add_argument("-cwc", "--cnn-w-constr", dest="cnn_w_constr", action=eval_action, default=None)
+parser.add_argument("-cbc", "--cnn-b-constr", dest="cnn_b_constr", action=eval_action, default=None)
+parser.add_argument("-ac", "--cnn-conv-activation", dest="cnn_conv_activation", default="tanh", choices=["tanh"])
 
 parser.add_argument("-dln", "--dense-layers-numb", dest="dense_layer_numb", default=1, type=int)
 parser.add_argument("-ds", "--dense-shapes", dest="dense_shapes", action=eval_action, default=[64])
 parser.add_argument("-i", "--cnn-init", dest="cnn_init", default="glorot_uniform", choices=["glorot_uniform"])
-parser.add_argument("-ac", "--cnn-conv-activation", dest="cnn_conv_activation", default="tanh", choices=["tanh"])
 parser.add_argument("-ad", "--cnn-dense-activation", dest="cnn_dense_activation", default="tanh", choices=["tanh"])
 parser.add_argument("-bm", "--border-mode", dest="border_mode", default="same", choices=["valid", "same"])
-parser.add_argument("-wr", "--w-reg", dest="w_reg", default=None) # in autoencoder va usato con eval("funz(parametri)")
-parser.add_argument("-br", "--b-reg", dest="b_reg", default=None)
-parser.add_argument("-ar", "--act-reg", dest="a_reg", default=None)
-parser.add_argument("-wc", "--w-constr", dest="w_constr", default=None)
-parser.add_argument("-bc", "--b-constr", dest="b_constr", default=None)
+parser.add_argument("-dwr", "--d-w-reg", dest="d_w_reg", action=eval_action, default=None) # in autoencoder va usato con eval("funz(parametri)")
+parser.add_argument("-dbr", "--d-b-reg", dest="d_b_reg", action=eval_action, default=None)
+parser.add_argument("-dar", "--d-act-reg", dest="d_a_reg", action=eval_action, default=None)
+parser.add_argument("-dwc", "--d-w-constr", dest="d_w_constr", action=eval_action, default=None)
+parser.add_argument("-dbc", "--d-b-constr", dest="d_b_constr", action=eval_action, default=None)
+parser.add_argument("-drp", "--dropout", dest="dropout", default=False, action="store_true")
+parser.add_argument("-drpr", "--drop-rate", dest="drop_rate", default=0.5, type=float)
+
 parser.add_argument("-nb", "--no-bias", dest="bias", default=True, action="store_false")
 parser.add_argument("-p", "--pool-type", dest="pool_type", default="all", choices=["all", "only_end"])
 
@@ -79,6 +87,7 @@ parser.add_argument("-bs", "--batch-size", dest="batch_size", default=128, type=
 parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action="store_true")
 parser.add_argument("-o", "--optimizer", dest="optimizer", default="adadelta", choices=["adadelta", "adam", "sgd"])
 parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse"])
+parser.add_argument("-lr", "--learning-rate", dest="learning_rate", default=1.0, type=float)
 
 args = parser.parse_args()
 
@@ -230,7 +239,7 @@ models = list()
 
 for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     print('\n\n\n----------------------------------FOLD {}-----------------------------------'.format(f))
-    net.model_compile(optimizer=args.optimizer, loss=args.loss)
+    net.model_compile(optimizer=args.optimizer, loss=args.loss, learning_rate=args.learning_rate)
     #L'eralysstopping viene fatto in automatico se vengono passati anche x_dev e y_dev
 
     m = net.model_fit(x_trains[0], _, x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle,
