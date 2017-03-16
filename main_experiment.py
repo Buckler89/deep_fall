@@ -20,7 +20,7 @@ import errno
 import json
 import fcntl
 import time
-
+import datetime
 import utility as u
 
 
@@ -86,8 +86,7 @@ parser.add_argument("-ns", "--no-shuffle", dest="shuffle", default=True, action=
 parser.add_argument("-bs", "--batch-size", dest="batch_size", default=128, type=int)
 parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action="store_true")
 parser.add_argument("-o", "--optimizer", dest="optimizer", default="adadelta", choices=["adadelta", "adam", "sgd"])
-parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse"])
-parser.add_argument("-lr", "--learning-rate", dest="learning_rate", default=1.0, type=float)
+parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse", "msle"])
 
 args = parser.parse_args()
 
@@ -115,7 +114,7 @@ strID = str(args.id)
 if args.log:
     import logging
     import sys
-
+    print("init log")
     logFolder = 'logs'
     nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
     u.makedir(logFolder)  # crea la fold solo se non esiste
@@ -130,9 +129,12 @@ if args.log:
     stderr_logger = logging.getLogger(strID)
     sl = u.StreamToLogger(stderr_logger, nameFileLog, logging.ERROR)
     sys.stderr = sl #ovverride funcion
-print("LOG OF PROCESS ID = "+strID)
-
 ###################################################END INIT LOG########################################
+
+print("LOG OF PROCESS ID = "+strID)
+ts0 = time.time()
+st0 = datetime.datetime.fromtimestamp(ts0).strftime('%Y-%m-%d %H:%M:%S')
+print("experiment start in date: "+st0)
 
 
 ######################################CHECK SCORE FOLDER STRUCTURE############################################
@@ -305,6 +307,14 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
         print("file UnLock")
         fcntl.flock(fileToLock, fcntl.LOCK_UN)
 print("------------------------FINE CROSS VALIDATION---------------")
+
+
+ts1 = time.time()
+st1 = datetime.datetime.fromtimestamp(ts0).strftime('%Y-%m-%d %H:%M:%S')
+print("experiment start in date: "+st1)
+print("Experiment time (DAYS:HOURS:MIN:SEC):"+u.GetTime(ts1-ts0))
+
+
 
 # # test-finale-------------------------------
 # print("------------------------TEST---------------")

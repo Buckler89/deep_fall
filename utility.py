@@ -3,7 +3,7 @@ import os
 import errno
 import sys
 import logging
-
+from datetime import datetime, timedelta
 
 class StreamToLogger(object):
     """
@@ -41,6 +41,20 @@ def makedir(path):  # se esiste già non fa nulla e salta l'exceprtion
             raise
         pass
 
+def GetTime(s):
+    '''
+
+    :param s: seconds (int)
+    :return: the days hours minutes and second thet correspond to the seconds input, as string
+    '''
+    sec = timedelta(seconds=s)
+    #sec = timedelta(seconds=int(input('Enter the number of seconds: ')))
+    d = datetime(1, 1, 1) + sec
+
+    #print("DAYS:HOURS:MIN:SEC")
+    #print("%d:%d:%d:%d" % (d.day - 1, d.hour, d.minute, d.second))
+    t = "%d:%d:%d:%d" % (d.day - 1, d.hour, d.minute, d.second)
+    return t
 
 # def initLogger(id, log):
 #     '''
