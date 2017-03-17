@@ -142,7 +142,7 @@ def concatenate_matrix(data):
     return matrix
 
 
-def labelize_data(y):
+def labelize_data(y):#TODO usare sklearn.preprocessing.LabelEncoder ?
     """
     labellzza numericamente i nomi dei file
     assegna 1 se è una caduta del manichino, 0 altrimenti
