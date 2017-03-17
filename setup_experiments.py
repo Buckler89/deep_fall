@@ -315,8 +315,8 @@ def random_search(args):
             e.shuffle = np.random.choice(args.shuffle)
             e.optimizer = np.random.choice(args.optimizer)
             e.loss = np.random.choice(args.loss)
-            e.batch_size = gen_with_ties(1, 1, np.log2(args.batch_size), "any", "loguniform", 2)
-            e.learning_rate = gen_with_ties(1, 1, np.log10(args.learning_rate), "any", "loguniform", 10, False, False)
+            e.batch_size = gen_with_ties(1, 1, np.log2(args.batch_size), "any", "loguniform", 2)[0]
+            e.learning_rate = gen_with_ties(1, 1, np.log10(args.learning_rate), "any", "loguniform", 10, False, False)[0]
             e.shuffle = np.random.choice(args.shuffle)
             e.bias = np.random.choice(args.bias)
 
