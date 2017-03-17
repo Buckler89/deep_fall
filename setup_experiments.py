@@ -113,7 +113,7 @@ parser.add_argument("-drpr", "--drop-rate", dest="drop_rate", action=eval_action
 parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action="store_true")
 parser.add_argument("-e", "--epoch", dest="epoch", default=50, type=int)
 parser.add_argument("-ns", "--shuffle", dest="shuffle", default=[True], action=eval_action)
-parser.add_argument("-bs", "--batch-size", dest="batch_size", action=eval_action, default=[128])
+parser.add_argument("-bs", "--batch-size-fract", dest="batch_size_fract", action=eval_action, default=["1/10"])
 parser.add_argument("-o", "--optimizer", dest="optimizer", action=eval_action, default=["adadelta"])
 parser.add_argument("-l", "--loss", dest="loss", action=eval_action, default=["msle"])
 parser.add_argument("-lr", "--learning-rate", dest="learning_rate", action=eval_action, default=[1.0])
@@ -209,7 +209,7 @@ def grid_search(args):
                                                                                 e.border_mode = bm
                                                                                 e.dense_layer_numb = dln
                                                                                 e.dense_shapes = ds
-                                                                                e.batch_size = bs
+                                                                                e.batch_size_fract = bs
                                                                                 e.optimizer = o
                                                                                 e.loss = l
                                                                                 e.shuffle = ns
@@ -315,7 +315,8 @@ def random_search(args):
             e.shuffle = np.random.choice(args.shuffle)
             e.optimizer = np.random.choice(args.optimizer)
             e.loss = np.random.choice(args.loss)
-            e.batch_size = gen_with_ties(1, 1, np.log2(args.batch_size), "any", "loguniform", 2)[0]
+            b_size = [eval(args.batch_size_fract[0]),eval(args.batch_size_fract[1])]
+            e.batch_size_fract = gen_with_ties(1, 1, np.log2(b_size), "any", "loguniform", 2, False, False)[0]
             e.learning_rate = gen_with_ties(1, 1, np.log10(args.learning_rate), "any", "loguniform", 10, False, False)[0]
             e.shuffle = np.random.choice(args.shuffle)
             e.bias = np.random.choice(args.bias)
@@ -376,7 +377,7 @@ for e in experiments:
               " --dense-layers-numb " + str(e.dense_layer_numb) + \
               " --dense-shape " + str(e.dense_shapes).replace(" ", "") + \
               " --epoch " + str(args.epoch) + \
-              " --batch-size " + str(e.batch_size) + \
+              " --batch-size " + str(e.batch_size_fract) + \
               " --optimizer " + str(e.optimizer) + \
               " --loss " + str(e.loss) + \
               " --dropout " + str(e.dropout) + \

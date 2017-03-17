@@ -83,7 +83,7 @@ parser.add_argument("-p", "--pool-type", dest="pool_type", default="all", choice
 # fit params
 parser.add_argument("-e", "--epoch", dest="epoch", default=50, type=int)
 parser.add_argument("-ns", "--no-shuffle", dest="shuffle", default=True, action="store_false")
-parser.add_argument("-bs", "--batch-size", dest="batch_size", default=128, type=int)
+parser.add_argument("-bs", "--batch-size-fract", dest="batch_size_fract", default=0.1, type=float)
 parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action="store_true")
 parser.add_argument("-o", "--optimizer", dest="optimizer", default="adadelta", choices=["adadelta", "adam", "sgd"])
 parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse", "msle"])
@@ -201,6 +201,8 @@ a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', args.input_type))  # load
 trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0]  # creo i trainset per calcolare
 # media e varianza per poter normalizzare
 trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the trainset and normalize the trainset
+# calcolo il batch size
+batch_size=int(len(trainset)*args.batch_size_fract)
 
 a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std)  # ormalize the dataset with the mean and std of the trainset
 a3fall_n_z = dm.awgn_padding_set(a3fall_n)
@@ -253,8 +255,10 @@ for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     net.model_compile(optimizer=args.optimizer, loss=args.loss, learning_rate=args.learning_rate)
     #L'eralysstopping viene fatto in automatico se vengono passati anche x_dev e y_dev
 
-    m = net.model_fit(x_trains[0], _, x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle,
-                      fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment, nameFileLogCsv=nameFileLogCsv)
+    m = net.model_fit(x_trains[0], _, x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch,
+                      batch_size=batch_size, shuffle=args.shuffle,
+                      fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment,
+                      nameFileLogCsv=nameFileLogCsv)
     models.append(m)
     decoded_images = net.reconstruct_spectrogram(x_dev, m)
     auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)

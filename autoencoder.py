@@ -12,7 +12,7 @@ os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
 from keras.models import Model, load_model
 from keras.layers import Input, Dense, Dropout, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, \
     ZeroPadding2D, Cropping2D
-from keras.optimizers import Adadelta
+from keras.optimizers import Adadelta, Adam
 from keras.callbacks import Callback, ProgbarLogger, CSVLogger
 import numpy as np
 import matplotlib.pyplot as plt
@@ -452,6 +452,8 @@ class autoencoder_fall_detection:
 
         if optimizer == "adadelta":
             opti = Adadelta(lr=learning_rate, rho=0.95, epsilon=1e-06)
+        if optimizer == "adam":
+            opti = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
 
         if model is None:
             self._autoencoder.compile(optimizer=opti, loss=loss)
