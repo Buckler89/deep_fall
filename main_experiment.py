@@ -180,9 +180,9 @@ elif not os.listdir(scoreCasePath):  # se è vuota significa che è il primo esp
 # TODO in realtà questo controllo non scansiona se mancano i modelli o/e i parametri
 # se la cartella già esiste devo verificare la consistenza dei file all'interno
 elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(set(os.listdir(scoreCasePath))):
-    message='Score fold inconsistency detected. Check if all the file are present in ' + scoreCasePath + '. Process aborted'
+    message = 'Score fold inconsistency detected. Check if all the file are present in ' + scoreCasePath + '. Process aborted'
     #print(message)
-    stderr_logger.error(message)
+    stderr_logger.error(message) #TODO se log è false il logger non è definito
 
     raise Exception(message)
 
