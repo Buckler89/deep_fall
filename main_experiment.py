@@ -114,6 +114,7 @@ if args.config_filename is not None:
 #redirect all the stream of both standar.out, standard.err to the same logger
 strID = str(args.id)
 
+nameFileLogCsv = None #init the name
 if args.log:
     import logging
     import sys

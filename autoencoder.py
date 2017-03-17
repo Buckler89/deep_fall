@@ -459,8 +459,10 @@ class autoencoder_fall_detection:
             model.compile(optimizer=opti, loss=loss)
 
     def model_fit(self, x_train, y_train, x_dev=None, y_dev=None, nb_epoch=50, batch_size=128, shuffle=True, model=None,
-                  fit_net=True, patiance=20, aucMinImprovment=0.01, nameFileLogCsv='log.csv'):
+                  fit_net=True, patiance=20, aucMinImprovment=0.01, nameFileLogCsv='losses.csv'):
         print("model_fit")
+        if nameFileLogCsv is None:
+            nameFileLogCsv = 'losses.csv'
 
         if model is not None:
             self._autoencoder = model
