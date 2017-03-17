@@ -57,11 +57,11 @@ parser.add_argument("-kn", "--kernels-number", dest="kernel_number", action=eval
 parser.add_argument("-ks", "--kernel-shape", dest="kernel_shape", action=eval_action, default=[[3, 3],[3, 3],[3, 3]])
 parser.add_argument("-mp", "--max-pool-shape", dest="m_pool", action=eval_action, default=[[2, 2],[2, 2],[2, 2]])
 parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1, 1],[1, 1],[1, 1]])
-parser.add_argument("-cwr", "--cnn-w-reg", dest="cnn_w_reg", action=eval_action, default=None) # in autoencoder va usato con eval("funz(parametri)")
-parser.add_argument("-cbr", "--cnn-b-reg", dest="cnn_b_reg", action=eval_action, default=None)
-parser.add_argument("-car", "--cnn-act-reg", dest="cnn_a_reg", action=eval_action, default=None)
-parser.add_argument("-cwc", "--cnn-w-constr", dest="cnn_w_constr", action=eval_action, default=None)
-parser.add_argument("-cbc", "--cnn-b-constr", dest="cnn_b_constr", action=eval_action, default=None)
+parser.add_argument("-cwr", "--cnn-w-reg", dest="cnn_w_reg", default="None") # in autoencoder va usato con eval("funz(parametri)")
+parser.add_argument("-cbr", "--cnn-b-reg", dest="cnn_b_reg", default="None")
+parser.add_argument("-car", "--cnn-act-reg", dest="cnn_a_reg", default="None")
+parser.add_argument("-cwc", "--cnn-w-constr", dest="cnn_w_constr", default="None")
+parser.add_argument("-cbc", "--cnn-b-constr", dest="cnn_b_constr", default="None")
 parser.add_argument("-ac", "--cnn-conv-activation", dest="cnn_conv_activation", default="tanh", choices=["tanh"])
 
 parser.add_argument("-dln", "--dense-layers-numb", dest="dense_layer_numb", default=1, type=int)
@@ -69,11 +69,11 @@ parser.add_argument("-ds", "--dense-shapes", dest="dense_shapes", action=eval_ac
 parser.add_argument("-i", "--cnn-init", dest="cnn_init", default="glorot_uniform", choices=["glorot_uniform"])
 parser.add_argument("-ad", "--cnn-dense-activation", dest="cnn_dense_activation", default="tanh", choices=["tanh"])
 parser.add_argument("-bm", "--border-mode", dest="border_mode", default="same", choices=["valid", "same"])
-parser.add_argument("-dwr", "--d-w-reg", dest="d_w_reg", action=eval_action, default=None) # in autoencoder va usato con eval("funz(parametri)")
-parser.add_argument("-dbr", "--d-b-reg", dest="d_b_reg", action=eval_action, default=None)
-parser.add_argument("-dar", "--d-act-reg", dest="d_a_reg", action=eval_action, default=None)
-parser.add_argument("-dwc", "--d-w-constr", dest="d_w_constr", action=eval_action, default=None)
-parser.add_argument("-dbc", "--d-b-constr", dest="d_b_constr", action=eval_action, default=None)
+parser.add_argument("-dwr", "--d-w-reg", dest="d_w_reg", default="None") # in autoencoder va usato con eval("funz(parametri)")
+parser.add_argument("-dbr", "--d-b-reg", dest="d_b_reg", default="None")
+parser.add_argument("-dar", "--d-act-reg", dest="d_a_reg", default="None")
+parser.add_argument("-dwc", "--d-w-constr", dest="d_w_constr", default="None")
+parser.add_argument("-dbc", "--d-b-constr", dest="d_b_constr", default="None")
 parser.add_argument("-drp", "--dropout", dest="dropout", default=False, action="store_true")
 parser.add_argument("-drpr", "--drop-rate", dest="drop_rate", default=0.5, type=float)
 
@@ -119,10 +119,15 @@ if args.log:
     print("init log")
     logFolder = 'logs'
     nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
+    nameFileLogCsv = os.path.join(logFolder, 'process_' + strID + 'csv')#log in csv file the losses for further analysis
+
     u.makedir(logFolder)  # crea la fold solo se non esiste
     if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
         fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
         os.rename(nameFileLog, nameFileLog + '_' + str(len(fileInFolder) + 1))  # so the name is different
+        #rename also the csv log for the losses
+        if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
+            os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
 
     stdout_logger = logging.getLogger(strID)
     sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
@@ -235,7 +240,7 @@ scoreAucNew = np.zeros(len(
 scoreThsNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
 f = 0
-net = autoencoder.autoencoder_fall_detection()
+net = autoencoder.autoencoder_fall_detection(strID)
 # net.define_static_arch()
 net.define_cnn_arch(args)
 # parametri di defautl anche per compile e fit
@@ -247,7 +252,7 @@ for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     #L'eralysstopping viene fatto in automatico se vengono passati anche x_dev e y_dev
 
     m = net.model_fit(x_trains[0], _, x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle,
-                      fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment)
+                      fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment, nameFileLogCsv=nameFileLogCsv)
     models.append(m)
     decoded_images = net.reconstruct_spectrogram(x_dev, m)
     auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)
