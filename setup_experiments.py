@@ -185,7 +185,7 @@ def grid_search(args):
                                         for ac in args.cnn_conv_activation:
                                             for ad in args.cnn_dense_activation:
                                                 for bm in args.border_mode:
-                                                    for bs in args.batch_size:
+                                                    for bs in args.batcfh_size:
                                                         for o in args.optimizer:
                                                             for l in args.loss:
                                                                 for nb in args.bias:

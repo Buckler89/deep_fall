@@ -119,10 +119,15 @@ if args.log:
     print("init log")
     logFolder = 'logs'
     nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
+    nameFileLogCsv = os.path.join(logFolder, 'process_' + strID + 'csv')#log in csv file the losses for further analysis
+
     u.makedir(logFolder)  # crea la fold solo se non esiste
     if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
         fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
         os.rename(nameFileLog, nameFileLog + '_' + str(len(fileInFolder) + 1))  # so the name is different
+        #rename also the csv log for the losses
+        if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
+            os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
 
     stdout_logger = logging.getLogger(strID)
     sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
@@ -235,7 +240,7 @@ scoreAucNew = np.zeros(len(
 scoreThsNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
 f = 0
-net = autoencoder.autoencoder_fall_detection()
+net = autoencoder.autoencoder_fall_detection(strID)
 # net.define_static_arch()
 net.define_cnn_arch(args)
 # parametri di defautl anche per compile e fit
@@ -247,7 +252,7 @@ for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     #L'eralysstopping viene fatto in automatico se vengono passati anche x_dev e y_dev
 
     m = net.model_fit(x_trains[0], _, x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle,
-                      fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment)
+                      fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment, nameFileLogCsv=nameFileLogCsv)
     models.append(m)
     decoded_images = net.reconstruct_spectrogram(x_dev, m)
     auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)

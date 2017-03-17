@@ -13,7 +13,7 @@ from keras.models import Model, load_model
 from keras.layers import Input, Dense, Dropout, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, \
     ZeroPadding2D, Cropping2D
 from keras.optimizers import Adadelta
-from keras.callbacks import Callback, ProgbarLogger
+from keras.callbacks import Callback, ProgbarLogger, CSVLogger
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, roc_auc_score, classification_report, f1_score
@@ -225,7 +225,7 @@ def print_score(cm, y_pred, y_true):
 
 
 class autoencoder_fall_detection:
-    def __init__(self, ):
+    def __init__(self, id):
         """
 
         :param id: The id of the experiment. Is also the name of the logger that must be used!
@@ -233,6 +233,7 @@ class autoencoder_fall_detection:
         """
         print("__init__")
         self._autoencoder = 0
+        self.id=id
 
     def define_static_arch(self):
         """
@@ -343,7 +344,7 @@ class autoencoder_fall_detection:
                       bias=params.bias)(x)
             print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
             if (params.dropout):
-                x = Dropout(params.drop_rate)
+                x = Dropout(params.drop_rate, seed=666)
 
         # ---------------------------------------------------------- Decoding
 
@@ -359,7 +360,7 @@ class autoencoder_fall_detection:
                       bias=params.bias)(x)
             print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
             if (params.dropout):
-                x = Dropout(params.drop_rate)
+                x = Dropout(params.drop_rate, seed=666)#ATTENZIONE: nostra versione keras1.2. nella documentazione ufficiale dropout è cambiato ma a noi serve il vecchio ovverro quello con il parametro "p"
 
         x = Reshape((d, h, w))(x)
         print("----------------------------------->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
@@ -458,7 +459,7 @@ class autoencoder_fall_detection:
             model.compile(optimizer=opti, loss=loss)
 
     def model_fit(self, x_train, y_train, x_dev=None, y_dev=None, nb_epoch=50, batch_size=128, shuffle=True, model=None,
-                  fit_net=True, patiance=20, aucMinImprovment=0.01):
+                  fit_net=True, patiance=20, aucMinImprovment=0.01, nameFileLogCsv='log.csv'):
         print("model_fit")
 
         if model is not None:
@@ -468,6 +469,8 @@ class autoencoder_fall_detection:
             self.load_model('my_model.h5')
 
         else:
+            csv_logger = CSVLogger(nameFileLogCsv)
+
             if x_dev is not None and y_dev is not None:  # se ho a disposizione un validation set allora faccio anche l'early stopping
                 earlyStoppingAuc = EarlyStoppingAuc(self.__class__,  # devo passargli la classe stessa perche poi
                                                     # dalla classe EarlyStoppingAuc ho bisogno di chiamare
@@ -481,7 +484,7 @@ class autoencoder_fall_detection:
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
                                       shuffle=shuffle,
-                                      callbacks=[earlyStoppingAuc],
+                                      callbacks=[earlyStoppingAuc,csv_logger],
                                       verbose=1)  # with a value != 1 ProbarLogging is not called
                 # print(str(earlyStoppingAuc.losses))
                 # print(str(earlyStoppingAuc.aucs))
