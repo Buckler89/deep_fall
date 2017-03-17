@@ -242,7 +242,7 @@ scoreAucNew = np.zeros(len(
 scoreThsNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
 f = 0
-net = autoencoder.autoencoder_fall_detection(strID)
+net = autoencoder.autoencoder_fall_detection()
 # net.define_static_arch()
 net.define_cnn_arch(args)
 # parametri di defautl anche per compile e fit

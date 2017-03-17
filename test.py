@@ -12,18 +12,21 @@ import dataset_manupulation as dm
 from keras.models import Model, load_model
 import autoencoder
 import utility as u
+import sys
+import logging
 
 
 trainNameLists = ['trainset.lst']
 input_type = 'spectrograms'
 case = 'case6'
+log=False
 
 # devNamesLists=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst']
 testNamesLists = ['testset_1.lst', 'testset_2.lst', 'testset_3.lst', 'testset_4.lst']
 root_dir = path.realpath('.')
 
 listTrainpath = path.join(root_dir, 'lists', 'train')
-listPath = path.join(root_dir, 'lists', 'dev+test', 'case1')
+listPath = path.join(root_dir, 'lists', 'dev+test', case)
 
 scoreAucFileName = 'score_auc.txt'
 thFileName = 'thresholds.txt'
@@ -33,10 +36,18 @@ scorePath = path.join('score')
 scoreCasePath = path.join(scorePath, case)
 scoreModelPath = path.join(scorePath, case, modelFolder)
 scoreArgsPath = path.join(scorePath, case, argsFolder)
+nameFileLog = path.join(scoreCasePath, 'test_'+case+'.log')
 
-dm.crateLogger(case, False)
-logger=u.MyLogger(case, False)
+#LOGGER
+if log is True:
+    stdout_logger = logging.getLogger(case)
+    sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
+    sys.stdout = sl  # ovverride funcion
 
+    stderr_logger = logging.getLogger(case)
+    sl = u.StreamToLogger(stderr_logger, nameFileLog, logging.ERROR)
+    sys.stderr = sl  # ovverride funcion
+#----------
 # GESTIONE DATASET
 a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', input_type))  # load dataset
 
@@ -85,14 +96,13 @@ tot_y_true = []
 for x_test, y_test in zip(x_tests, y_tests):
 
     # caricare modello
-    net = autoencoder.autoencoder_fall_detection(logger, False);
+    net = autoencoder.autoencoder_fall_detection();
     modelPath = path.join(scoreModelPath, 'modelfold' + str(fold) + '.h5')
-    weightsPath = path.join(scoreModelPath, 'modelfold' + str(fold) + '_weights.h5')
     net.load_model(modelPath)
 
 
     decoded_images = net.reconstruct_spectrogram(x_test)
-    auc, _, my_cm, y_true, y_pred = net.compute_score(x_test, decoded_images, y_test)
+    auc, _, my_cm, y_true, y_pred = autoencoder.compute_score(x_test, decoded_images, y_test)
     # raccolto tutti i risultati delle fold, per poter fare un report generale
     for x in y_pred:
         tot_y_pred.append(x)

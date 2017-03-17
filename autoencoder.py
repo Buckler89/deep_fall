@@ -12,7 +12,7 @@ os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
 from keras.models import Model, load_model
 from keras.layers import Input, Dense, Dropout, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, \
     ZeroPadding2D, Cropping2D
-from keras.optimizers import Adadelta
+from keras.optimizers import Adam, Adadelta
 from keras.callbacks import Callback, ProgbarLogger, CSVLogger
 import numpy as np
 import matplotlib.pyplot as plt
@@ -72,7 +72,7 @@ def compute_score(original_image, decoded_images, labels):
     euclidean_distances = compute_distances(original_image, decoded_images)
 
     fpr, tpr, roc_auc, thresholds = ROCCurve(true_numeric_labels, euclidean_distances, pos_label=1,
-                                             makeplot='no', opt_th_plot='no')
+                                             makeplot='no', opt_th_plot='yes') #TODO need a ebetter system for makeplot
     if max(fpr) != 1 or max(tpr) != 1 or min(fpr) != 0 or min(
             tpr) != 0:  # in teoria questi mi e max dovrebbero essere sempre 1 e 0 rispettivamente
         print("max min tpr fpr error")
@@ -224,8 +224,28 @@ def print_score(cm, y_pred, y_true):
     print(classification_report(y_true, y_pred, target_names=['NoFall', 'Fall']))
 
 
+def plot_decoded_imgs(original, decoded_imgs):
+   #plot reconstructed image ( mnist_dataset only )
+    n = 5
+    plt.figure(figsize=(20*4, 4*4))
+    for i in range(1,n):
+        # display original
+        ax = plt.subplot(2, n, i)
+        plt.imshow(original[i].reshape(129, 197))
+        plt.gray()
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+
+        # display reconstruction
+        ax = plt.subplot(2, n, i + n)
+        plt.imshow(decoded_imgs[i].reshape(129, 197))
+        plt.gray()
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+    plt.show()
+
 class autoencoder_fall_detection:
-    def __init__(self, id):
+    def __init__(self,):
         """
 
         :param id: The id of the experiment. Is also the name of the logger that must be used!
@@ -233,7 +253,6 @@ class autoencoder_fall_detection:
         """
         print("__init__")
         self._autoencoder = 0
-        self.id=id
 
     def define_static_arch(self):
         """
@@ -452,7 +471,8 @@ class autoencoder_fall_detection:
 
         if optimizer == "adadelta":
             opti = Adadelta(lr=learning_rate, rho=0.95, epsilon=1e-06)
-
+        if optimizer == "adam":
+            opti = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
         if model is None:
             self._autoencoder.compile(optimizer=opti, loss=loss)
         else:
@@ -512,7 +532,7 @@ class autoencoder_fall_detection:
         return self._autoencoder
 
     def load_model(self, model, weights=None):
-        # if i want to load from disk the model
+        #load from disk the model
         autoencoder = load_model(model)
         if weights is not None:
             autoencoder.load_weights(weights) #é inutile: load_model carica anche i pesi
@@ -546,28 +566,8 @@ class autoencoder_fall_detection:
         else:
             decoded_imgs = model.predict(x_test)
 
-
         return decoded_imgs
 
-    #def plot_decoded_imgs(self, decoded_imgs):
-        #plot reconstructed image ( mnist_dataset only )
-        #        n = 41
-        #        plt.figure(figsize=(20*4, 4*4))
-        #        for i in range(1,n):
-        #            # display original
-        #            ax = plt.subplot(2, n, i)
-        #            plt.imshow(x_test[i].reshape(28, 28))
-        #            plt.gray()
-        #            ax.get_xaxis().set_visible(False)
-        #            ax.get_yaxis().set_visible(False)
-        #
-        #            # display reconstruction
-        #            ax = plt.subplot(2, n, i + n)
-        #            plt.imshow(decoded_imgs[i].reshape(28, 28))
-        #            plt.gray()
-        #            ax.get_xaxis().set_visible(False)
-        #            ax.get_yaxis().set_visible(False)
-        #        plt.show()
 
     def reconstruct_handwritedigit_mnist(self, x_test):  # @Diego -> da cancellare?
         """
@@ -667,7 +667,16 @@ class EarlyStoppingAuc(Callback):
     #     #ProgbarLogger()
     #     #print('epoch: {}, logs: {}'.format(batch, logs))
     #     pass
-
+        print("EPOCH -1 :")
+        decoded_images = autoencoder_fall_detection.reconstruct_spectrogram(self.net,
+                                                                            x_test=self.val_data,
+                                                                            model=self.autoencoder)
+        epoch_auc, _, _, _, _ = compute_score(self.val_data,
+                                              decoded_images,
+                                              self.val_data_lab)
+        self.aucs.append(epoch_auc)
+        print("Epoch -1 auc:"+ str(epoch_auc))
+        #plot_decoded_imgs(self.val_data, decoded_images)
     def on_epoch_end(self, epoch, logs={}):
 
         self.losses.append(logs.get('loss'))
@@ -678,6 +687,8 @@ class EarlyStoppingAuc(Callback):
         epoch_auc, _, _, _, _ = compute_score(self.val_data,
                                               decoded_images,
                                               self.val_data_lab)
+        #plot_decoded_imgs(self.val_data, decoded_images )
+
         self.aucs.append(epoch_auc)
 
         print('Epoch: {}, logs: {}, auc: {}'.format(epoch, logs, epoch_auc))
