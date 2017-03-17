@@ -344,7 +344,7 @@ class autoencoder_fall_detection:
                       bias=params.bias)(x)
             print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
             if (params.dropout):
-                x = Dropout(params.drop_rate, seed=666)
+                x = Dropout(params.drop_rate)(x)
 
         # ---------------------------------------------------------- Decoding
 
@@ -360,7 +360,7 @@ class autoencoder_fall_detection:
                       bias=params.bias)(x)
             print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
             if (params.dropout):
-                x = Dropout(params.drop_rate, seed=666)#ATTENZIONE: nostra versione keras1.2. nella documentazione ufficiale dropout è cambiato ma a noi serve il vecchio ovverro quello con il parametro "p"
+                x = Dropout(params.drop_rate)(x)#ATTENZIONE: nostra versione keras1.2. nella documentazione ufficiale dropout è cambiato ma a noi serve il vecchio ovverro quello con il parametro "p"
 
         x = Reshape((d, h, w))(x)
         print("----------------------------------->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")

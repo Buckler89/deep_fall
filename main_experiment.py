@@ -89,6 +89,7 @@ parser.add_argument("-o", "--optimizer", dest="optimizer", default="adadelta", c
 parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse", "msle"])
 parser.add_argument("-pt", "--patiance", dest="patiance", default=20, type=int)
 parser.add_argument("-ami", "--aucMinImp", dest="aucMinImprovment", default=0.01, type=float)
+parser.add_argument("-lr", "--learning-rate", dest="learning_rate", default=1.0, type=float)
 
 args = parser.parse_args()
 
