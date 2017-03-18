@@ -531,6 +531,7 @@ class autoencoder_fall_detection:
                                                     validation_data_label=y_dev,
                                                     aucMinImprovment=aucMinImprovment,
                                                     patience=patiance)
+
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
                                       batch_size=batch_size,
@@ -629,58 +630,6 @@ class autoencoder_fall_detection:
 
 
 
-        # def labelize_data(self, y): #MOVED TO DATASET MANIPULATION
-        #     """
-        #     labellzza numericamente i nomi dei file
-        #     assegna 1 se è una caduta del manichino, 0 altrimenti
-        #     :param y:
-        #     :return:
-        #
-        #     """
-        #     print("labelize_data")
-        #
-        #     i = 0
-        #     numeric_labels = list()
-        #     for d in y:
-        #         if 'rndy' in d:
-        #             numeric_labels.append(1)
-        #         else:
-        #             numeric_labels.append(0)
-        #         i += 1
-        #
-        #     return numeric_labels
-
-
-
-
-
-
-        # class EarlyStoppingAuc(Callback):
-        #     def __init__(self, net, autoencoder, validation_data, validation_data_label):
-        #         super(Callback, self).__init__()
-        #         self.val_data = validation_data
-        #         self.val_data_lab = validation_data_label
-        #         self.autoencoder = autoencoder
-        #         self.net = net
-        #
-        #     def on_train_begin(self, logs={}):
-        #         self.aucs = []
-        #         self.losses = []
-        #
-        #     def on_epoch_end(self, epoch, logs={}):
-        #         self.losses.append(logs.get('loss'))
-        #         decoded_images = autoencoder_fall_detection.reconstruct_spectrogram(self.net,
-        #                                                                             x_test=self.val_data,
-        #                                                                             model=self.autoencoder)
-        #         epoch_auc, _, _, _, _ = autoencoder_fall_detection.compute_score(self.net,
-        #                                                                          self.val_data,
-        #                                                                          decoded_images,
-        #                                                                          self.val_data_lab)
-        #         self.aucs.append(epoch_auc)
-        #
-        #         # self.model.stop
-        #         return
-
 
 class EarlyStoppingAuc(Callback):
     def __init__(self, net, train_label, validation_data, validation_data_label, aucMinImprovment=0.01, patience=20, logPath='log'):
@@ -693,8 +642,9 @@ class EarlyStoppingAuc(Callback):
         self.patiance = patience + 1  # il +1 serve per considerare che alla prima epoca non si ha sicuramente un improvment (perchè usao self.auc[-1])
         self.actualPatiance = self.patiance
         self.bestmodel = None
-        self.logPath = logPath
-        self.pathSaveFig = 'imgForGif'
+        self.logPath = logPath #TODO inserire come argomento nel parser
+        self.pathSaveFig = 'imgForGif' #TODO inserire come argomento nel parser
+
 
     def on_train_begin(self, logs={}):
         self.aucs = []
@@ -715,8 +665,8 @@ class EarlyStoppingAuc(Callback):
         self.aucs.append(epoch_auc)
         print("Epoch -1 auc:" + str(epoch_auc))
 
-        pathSaveFigName = os.path.join(self.pathSaveFig, 'img-1.png')
-
+        #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
+        #pathSaveFigName = os.path.join(self.pathSaveFig, 'img-1.png')
         #plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
 
     def on_epoch_end(self, epoch, logs={}):
@@ -730,7 +680,8 @@ class EarlyStoppingAuc(Callback):
                                               decoded_images,
                                               self.val_data_lab)
 
-        pathSaveFig = os.path.join(self.pathSaveFig, 'img'+str(epoch)+'.png')
+        #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
+        #pathSaveFig = os.path.join(self.pathSaveFig, 'img'+str(epoch)+'.png')
         #plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
 
         self.aucs.append(epoch_auc)
@@ -740,7 +691,7 @@ class EarlyStoppingAuc(Callback):
         if epoch is 0: # if is the first epoch the first model is the best model
             self.bestmodel = self.model
 
-        if (epoch_auc - self.aucs[-1]) <= self.aucMinImprovment:#if the last auc differance of the actual epoch and the last auc is less then a threshold
+        if (epoch_auc - self.aucs[-1]) <= self.aucMinImprovment:  # if the last auc differance of the actual epoch and the last auc is less then a threshold
             print('No improvment for auc')
             self.actualPatiance -= 1
             print('Remaining patiance: {}'.format(self.actualPatiance))
@@ -748,8 +699,8 @@ class EarlyStoppingAuc(Callback):
                 print('Patience finished: STOP FITTING')
                 self.model.stop_training = True
         else:
-            self.actualPatiance = self.patiance# if the model improves, reset the patiance
-            self.bestmodel = self.model#and the new best model is the actual model
+            self.actualPatiance = self.patiance  # if the model improves, reset the patiance
+            self.bestmodel = self.model  # and the new best model is the actual model
         return
 
 
