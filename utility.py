@@ -33,6 +33,11 @@ class StreamToLogger(object):
 
 # utility function
 def makedir(path):  # se esiste già non fa nulla e salta l'exceprtion
+    """
+    Make dir only is it doesn't exist yet
+    :param path: path to the folder that is to be created
+    :return:
+    """
     try:
         os.makedirs(path)
         print("make " + path + " dir")
@@ -40,6 +45,7 @@ def makedir(path):  # se esiste già non fa nulla e salta l'exceprtion
         if exception.errno != errno.EEXIST:
             raise
         pass
+    return
 
 def GetTime(s):
     '''

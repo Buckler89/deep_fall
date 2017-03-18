@@ -47,8 +47,15 @@ def awgn_padding_set(set_to_pad, loc=0.0, scale=1.0):
 
 
 def reshape_set(set_to_reshape, channels=1):
-    '''
-    '''
+    """
+    reshape the data in a form that keras want:
+        -for theano dim ordering: (nsample, channel, row ,col)
+        -for tensorflow not supported yet
+        -other not specified yet
+    :param set_to_reshape:
+    :param channels:
+    :return:
+    """
     print("reshape_set")
     n_sample = len(set_to_reshape)
     row, col = set_to_reshape[0][1].shape

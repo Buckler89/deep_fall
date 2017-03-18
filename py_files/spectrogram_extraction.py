@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     root_dir = path.realpath('..')
 
-    wav_dir_path = path.join(root_dir,'dataset','wav_files')
+    wav_dir_path = path.join(root_dir,'dataset','all_file')
     dest_path=path.join(root_dir,'dataset','spectrograms')
     dest_path_log_mel=path.join(root_dir,'dataset','mel_coefficients')
     window_type = 'hamming'

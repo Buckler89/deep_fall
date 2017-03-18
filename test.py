@@ -94,7 +94,7 @@ sk_cm = np.zeros((2, 2))
 tot_y_pred = []
 tot_y_true = []
 for x_test, y_test in zip(x_tests, y_tests):
-
+    print('FOLD'+str(fold)+'-----------------------------------')
     # caricare modello
     net = autoencoder.autoencoder_fall_detection();
     modelPath = path.join(scoreModelPath, 'modelfold' + str(fold) + '.h5')
