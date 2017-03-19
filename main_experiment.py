@@ -7,9 +7,7 @@ Created on Thu Jan 19 15:11:09 2017
 """
 import numpy as np
 
-np.random.seed(888)  # for experiment repetibility: this goes here, before importing keras (inside autoencoder modele)
-# from py_files import autoencoder
-# from py_files import dataset_manupulation as dm
+np.random.seed(888)  # for experiment repetibility: this goes here, before importing keras (inside autoencoder modele) It works?
 import autoencoder
 import dataset_manupulation as dm
 
@@ -23,18 +21,20 @@ import time
 import datetime
 import utility as u
 
-
 ###################################################PARSER ARGUMENT SECTION########################################
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
+
 
 class eval_action(argparse.Action):
     def __init__(self, option_strings, dest, nargs=None, **kwargs):
         if nargs is not None:
             raise ValueError("nargs not allowed")
         super(eval_action, self).__init__(option_strings, dest, **kwargs)
+
     def __call__(self, parser, namespace, values, option_string=None):
         values = eval(values)
         setattr(namespace, self.dest, values)
+
 
 # Global params
 parser.add_argument("-id", "--exp-index", dest="id", default=0, type=int)
@@ -54,10 +54,11 @@ parser.add_argument("-it", "--input-type", dest="input_type", default="spectrogr
 parser.add_argument("-cln", "--conv-layers-numb", dest="conv_layer_numb", default=3, type=int)
 parser.add_argument("-is", "--cnn-input-shape", dest="cnn_input_shape", action=eval_action, default=[1, 129, 197])
 parser.add_argument("-kn", "--kernels-number", dest="kernel_number", action=eval_action, default=[16, 8, 8])
-parser.add_argument("-ks", "--kernel-shape", dest="kernel_shape", action=eval_action, default=[[3, 3],[3, 3],[3, 3]])
-parser.add_argument("-mp", "--max-pool-shape", dest="m_pool", action=eval_action, default=[[2, 2],[2, 2],[2, 2]])
-parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1, 1],[1, 1],[1, 1]])
-parser.add_argument("-cwr", "--cnn-w-reg", dest="cnn_w_reg", default="None") # in autoencoder va usato con eval("funz(parametri)")
+parser.add_argument("-ks", "--kernel-shape", dest="kernel_shape", action=eval_action, default=[[3, 3], [3, 3], [3, 3]])
+parser.add_argument("-mp", "--max-pool-shape", dest="m_pool", action=eval_action, default=[[2, 2], [2, 2], [2, 2]])
+parser.add_argument("-s", "--strides", dest="strides", action=eval_action, default=[[1, 1], [1, 1], [1, 1]])
+parser.add_argument("-cwr", "--cnn-w-reg", dest="cnn_w_reg",
+                    default="None")  # in autoencoder va usato con eval("funz(parametri)")
 parser.add_argument("-cbr", "--cnn-b-reg", dest="cnn_b_reg", default="None")
 parser.add_argument("-car", "--cnn-act-reg", dest="cnn_a_reg", default="None")
 parser.add_argument("-cwc", "--cnn-w-constr", dest="cnn_w_constr", default="None")
@@ -69,7 +70,8 @@ parser.add_argument("-ds", "--dense-shapes", dest="dense_shapes", action=eval_ac
 parser.add_argument("-i", "--cnn-init", dest="cnn_init", default="glorot_uniform", choices=["glorot_uniform"])
 parser.add_argument("-ad", "--cnn-dense-activation", dest="cnn_dense_activation", default="tanh", choices=["tanh"])
 parser.add_argument("-bm", "--border-mode", dest="border_mode", default="same", choices=["valid", "same"])
-parser.add_argument("-dwr", "--d-w-reg", dest="d_w_reg", default="None") # in autoencoder va usato con eval("funz(parametri)")
+parser.add_argument("-dwr", "--d-w-reg", dest="d_w_reg",
+                    default="None")  # in autoencoder va usato con eval("funz(parametri)")
 parser.add_argument("-dbr", "--d-b-reg", dest="d_b_reg", default="None")
 parser.add_argument("-dar", "--d-act-reg", dest="d_a_reg", default="None")
 parser.add_argument("-dwc", "--d-w-constr", dest="d_w_constr", default="None")
@@ -111,42 +113,41 @@ if args.config_filename is not None:
 
 
 ###################################################INIT LOG########################################
-#redirect all the stream of both standar.out, standard.err to the same logger
+# redirect all the stream of both standar.out, standard.err to the same logger
 strID = str(args.id)
 
-nameFileLogCsv = None #init the name
-logFolder = os.path.join('logs', args.case) #need also for saving csv file!
-u.makedir(logFolder)
+print("init log")
 
+nameFileLogCsv = None  # init the name
+logFolder = os.path.join('logs', args.case)  # need also for saving csv file!
+u.makedir(logFolder)
+nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
+nameFileLogCsv = os.path.join(logFolder, 'process_' + strID + '.csv')  # log in csv file the losses for further analysis
 if args.log:
     import logging
     import sys
-    print("init log")
-    nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
-    nameFileLogCsv = os.path.join(logFolder, 'process_' + strID + '.csv')#log in csv file the losses for further analysis
 
     u.makedir(logFolder)  # crea la fold solo se non esiste
     if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
         fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
         os.rename(nameFileLog, nameFileLog + '_' + str(len(fileInFolder) + 1))  # so the name is different
-        #rename also the csv log for the losses
+        # rename also the csv log for the losses
         if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
             os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
 
     stdout_logger = logging.getLogger(strID)
     sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
-    sys.stdout = sl  #ovverride funcion
+    sys.stdout = sl  # ovverride funcion
 
     stderr_logger = logging.getLogger(strID)
     sl = u.StreamToLogger(stderr_logger, nameFileLog, logging.ERROR)
-    sys.stderr = sl #ovverride funcion
+    sys.stderr = sl  # ovverride funcion
 ###################################################END INIT LOG########################################
 
-print("LOG OF PROCESS ID = "+strID)
+print("LOG OF PROCESS ID = " + strID)
 ts0 = time.time()
 st0 = datetime.datetime.fromtimestamp(ts0).strftime('%Y-%m-%d %H:%M:%S')
-print("experiment start in date: "+st0)
-
+print("experiment start in date: " + st0)
 
 ######################################CHECK SCORE FOLDER STRUCTURE############################################
 # check the score folder structure #TODO PORTARE IN UN FILE ESTERNO CHE PREPARE TUTTO? ALTRIMENTI SE LO FACCIAMO QUI, SI
@@ -199,8 +200,9 @@ listPath = path.join(root_dir, 'lists', 'dev+test', args.case)
 a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', args.input_type))  # load dataset
 
 # il trainset è 1 e sempre lo stesso per tutti gli esperimenti
-trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0]  # need a traiset in order to compute the mean and variance.
-#Then use this mea and variance for normalize all the dataset
+trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[
+    0]  # need a traiset in order to compute the mean and variance.
+# Then use this mea and variance for normalize all the dataset
 
 trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the trainset and normalize the trainset
 
@@ -238,30 +240,44 @@ for s in testsets:
 print("------------------------CROSS VALIDATION---------------")
 
 # init score matrix
-#TODO sistemare nomi
+# TODO sistemare nomi
 scoreAucNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
 scoreThsNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
-f = 0
-net = autoencoder.autoencoder_fall_detection(args.id)
-# net.define_static_arch()
-net.define_cnn_arch(args)
-# parametri di defautl anche per compile e fit
+
 models = list()
-
+f = 0
 for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
-    print('\n\n\n----------------------------------FOLD {}-----------------------------------'.format(f))
+    print('\n\n\n----------------------------------FOLD {}-----------------------------------'.format(f + 1))
+    # Need to redefine the same architecture and compile it for each fold.
+    # If you do the net does't start fit from the beginnig at the second fold
+    net = autoencoder.autoencoder_fall_detection(str(args.id), args.case, str(f + 1))
+    # net.define_static_arch()
+    prefit_model = net.define_cnn_arch(args)
     net.model_compile(optimizer=args.optimizer, loss=args.loss, learning_rate=args.learning_rate)
-    #L'eralysstopping viene fatto in automatico se vengono passati anche x_dev e y_dev
 
-    m = net.model_fit(x_trains[0], y_trains[0], x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch, batch_size=args.batch_size, shuffle=args.shuffle,
-                      fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment, logPath=logFolder, nameFileLogCsv=nameFileLogCsv)
+    # print('\n\n\n----------------------------------PRefitted-----------------------------------')
+    #
+    # decoded_images = net.reconstruct_spectrogram(x_dev, prefit_model)
+    # auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)
+    # print('auc prefitted: ' + str(auc))
+    # pathSaveFigName = os.path.join('imgForGif', 'prefitted-img-1'+str(f+1)+'.png')
+    # autoencoder.plot_decoded_img(y_dev[11], x_dev[11], decoded_images[11], pathSaveFigName)
+    # print('\n\n\n----------------------------------end PRefitted-----------------------------------')
+
+    # L'eralystopping viene fatto in automatico se vengono passati anche x_dev e y_dev
+
+    m = net.model_fit(x_trains[0], y_trains[0], x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch,
+                      batch_size=args.batch_size, shuffle=args.shuffle,
+                      fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment,
+                      logPath=logFolder, nameFileLogCsv=nameFileLogCsv)
     models.append(m)
-    decoded_images = net.reconstruct_spectrogram(x_dev, m)
+    decoded_images = net.reconstruct_spectrogram(x_dev)
     auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)
     scoreAucNew[f] = auc
     scoreThsNew[f] = optimal_th
+
     f += 1
 
 print("------------------------SCORE SELECTION---------------")
@@ -281,12 +297,12 @@ if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perch
                 print("file Lock")
                 fcntl.flock(fileToLock,
                             fcntl.LOCK_EX | fcntl.LOCK_NB)  # NOTA BENE: file locks on Unix are advisory only:ecco perche
-                                                            #serve tutto questo giro
+                # serve tutto questo giro
                 break
             except IOError as e:
                 # raise on unrelated IOErrors
                 if e.errno != errno.EAGAIN:
-                    #print('ERROR occured trying acquuire file')
+                    # print('ERROR occured trying acquuire file')
                     stderr_logger.error('ERROR occured trying acquuire file')
                     stderr_logger.error(e)
                     raise
@@ -321,14 +337,16 @@ print("------------------------FINE CROSS VALIDATION---------------")
 print("------------------------Cross Validation Summary---------------")
 f = 0
 for auc in scoreAucNew:
-    print('Fold_'+str(f)+' auc :' + str(auc))
+    print('Fold_' + str(f + 1) + ' auc :' + str(auc))
     f += 1
 
 ts1 = time.time()
 st1 = datetime.datetime.fromtimestamp(ts0).strftime('%Y-%m-%d %H:%M:%S')
-print("experiment start in date: "+st1)
-print("Experiment time (DAYS:HOURS:MIN:SEC):"+u.GetTime(ts1-ts0))
+print("experiment start in date: " + st1)
+print("Experiment time (DAYS:HOURS:MIN:SEC):" + u.GetTime(ts1 - ts0))
 
+if args.log is True:
+    u.logcleaner(nameFileLog)  # rmove garbage character from log file
 
 
 # # test-finale-------------------------------
@@ -361,4 +379,3 @@ print("Experiment time (DAYS:HOURS:MIN:SEC):"+u.GetTime(ts1-ts0))
 # print("------------------------FINAL REPORT---------------")
 #
 # net.print_score(my_cm, tot_y_pred, tot_y_true)
-

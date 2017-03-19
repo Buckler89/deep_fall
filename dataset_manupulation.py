@@ -136,9 +136,13 @@ def normalize_data(data, mean=None, std=None):
 
 
 def concatenate_matrix(data):
-    '''
+    """
     concatena gli spettri in un unica matrice: vule una lista e restituisce un array
-    '''
+
+    :param data:
+    :return:
+    """
+
     print("concatenate_matrix")
 
     data_ = data.copy()

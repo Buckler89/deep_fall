@@ -96,7 +96,7 @@ tot_y_true = []
 for x_test, y_test in zip(x_tests, y_tests):
     print('FOLD'+str(fold)+'-----------------------------------')
     # caricare modello
-    net = autoencoder.autoencoder_fall_detection();
+    net = autoencoder.autoencoder_fall_detection(_,case,fold);
     modelPath = path.join(scoreModelPath, 'modelfold' + str(fold) + '.h5')
     net.load_model(modelPath)
 

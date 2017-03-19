@@ -22,11 +22,12 @@ import math
 from scipy.spatial.distance import euclidean
 import dataset_manupulation as dm
 import json
+import utility as u
 
 
 # import matplotlib.image as img
 
-def compute_distances(x_test, decoded_images):
+def compute_distances(x_test, decoded_images):#TODO adatta per i channel > 1
     """
     calcola le distanze euclide tra 2 vettori di immagini con shape (n_img,1,row,col)
     ritorna un vettore con le distanze con shape (n_img,1)
@@ -251,6 +252,7 @@ def plot_decoded_img(label, original, decoded_img, destSavePath):
     plt.ioff() #turn off interactive mode otherwise plt plot the figure when it wants
 
     fig = plt.figure()
+    fig.suptitle(label)
     # display original
     ax = plt.subplot(2, 1, 1)
     plt.imshow(original.reshape(129, 197))
@@ -272,7 +274,7 @@ def plot_decoded_img(label, original, decoded_img, destSavePath):
     plt.ion()#turn on interactive mode
 
 class autoencoder_fall_detection:
-    def __init__(self, id):
+    def __init__(self, id_process, case, fold):
         """
 
         :param id: The id of the experiment. Is also the name of the logger that must be used!
@@ -280,7 +282,9 @@ class autoencoder_fall_detection:
         """
         print("__init__")
         self._autoencoder = 0
-        self.id = id
+        self._case=case
+        self._id = id_process
+        self._fold = fold
 
     def define_static_arch(self):
         """
@@ -495,7 +499,14 @@ class autoencoder_fall_detection:
     def model_compile(self, model=None, optimizer='adadelta', learning_rate=1.0, loss='mse'):
         """
         compila il modello con i parametri passati: se non viene passato compila il modello istanziato dalla classe
+
+        :param model:
+        :param optimizer:
+        :param learning_rate:
+        :param loss:
+        :return:
         """
+
         print("model_compile")
 
         if optimizer == "adadelta":
@@ -507,8 +518,10 @@ class autoencoder_fall_detection:
         else:
             model.compile(optimizer=opti, loss=loss)
 
+        return self._autoencoder
+
     def model_fit(self, x_train, y_train, x_dev=None, y_dev=None, nb_epoch=50, batch_size=128, shuffle=True, model=None,
-                  fit_net=True, patiance=20, aucMinImprovment=0.01, logPath='log', nameFileLogCsv='losses.csv'):#TODO inserire logPath come argomento!!!
+                  fit_net=True, patiance=20, aucMinImprovment=0.01, logPath='log', nameFileLogCsv='losses.csv'):#TODO inserire logPath come argomento nel parser!!!
         print("model_fit")
         if nameFileLogCsv is None:
             nameFileLogCsv = 'losses.csv'
@@ -520,17 +533,20 @@ class autoencoder_fall_detection:
             self.load_model('my_model.h5')
 
         else:
-            csv_logger = CSVLogger(nameFileLogCsv)
+            epochScorePath = os.path.join(logPath, 'epochs_score', 'process_'+self._id)
+            u.makedir(epochScorePath)
+            csv_logger = CSVLogger(os.path.join(epochScorePath, 'lossesProcess_'+str(self._fold)+'.csv'))
 
             if x_dev is not None and y_dev is not None:  # se ho a disposizione un validation set allora faccio anche l'early stopping
                 earlyStoppingAuc = EarlyStoppingAuc(self.__class__,  # devo passargli la classe stessa perche poi
                                                     # dalla classe EarlyStoppingAuc ho bisogno di chiamare
                                                     # reconstruct_spectrogram che ha bisogno del self! #TODO c'è un modo miglore?
-                                                    train_label=y_train,
+                                                    train_labels=y_train,
                                                     validation_data=x_dev,
                                                     validation_data_label=y_dev,
                                                     aucMinImprovment=aucMinImprovment,
-                                                    patience=patiance)
+                                                    patience=patiance,
+                                                    pathSaveFig=os.path.join('imgForGif', self._case, 'fold_'+self._fold))
 
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
@@ -541,7 +557,8 @@ class autoencoder_fall_detection:
                 # print(str(earlyStoppingAuc.losses))
                 # print(str(earlyStoppingAuc.aucs))
                 print('losses: {}, \naucs: {},'.format(earlyStoppingAuc.losses, earlyStoppingAuc.aucs))
-                np.savetxt(os.path.join(logPath, 'aucProcess_'+str(self.id)+'.csv'), earlyStoppingAuc.aucs) #save the auc in file for further analisys
+
+                np.savetxt(os.path.join(epochScorePath, 'aucProcess_'+str(self._fold)+'.csv'), earlyStoppingAuc.aucs) #save the auc in file for further analisys
                 self._autoencoder = earlyStoppingAuc.bestmodel
 
             else:
@@ -604,55 +621,53 @@ class autoencoder_fall_detection:
         return decoded_imgs
 
 
-    def reconstruct_handwritedigit_mnist(self, x_test):  # @Diego -> da cancellare?
-        """
-        vuole in ingresso un vettore con shape (1,1,28,28), la configurazione del modello e i pesi
-        """
-        print("reconstruct_handwritedigit_mnist")
-
-        decoded_imgs = self._autoencoder.predict(x_test)
-
-        plt.figure()
-        # display original
-        ax = plt.subplot(2, 1, 1)
-        plt.imshow(x_test.reshape(28, 28))
-        plt.gray()
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
-
-        # display reconstruction
-        ax = plt.subplot(2, 1, 2)
-        plt.imshow(decoded_imgs.reshape(28, 28))
-        plt.gray()
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
-        plt.show()
+    # def reconstruct_handwritedigit_mnist(self, x_test):  # @Diego -> da cancellare?
+    #     """
+    #     vuole in ingresso un vettore con shape (1,1,28,28), la configurazione del modello e i pesi
+    #     """
+    #     print("reconstruct_handwritedigit_mnist")
+    #
+    #     decoded_imgs = self._autoencoder.predict(x_test)
+    #
+    #     plt.figure()
+    #     # display original
+    #     ax = plt.subplot(2, 1, 1)
+    #     plt.imshow(x_test.reshape(28, 28))
+    #     plt.gray()
+    #     ax.get_xaxis().set_visible(False)
+    #     ax.get_yaxis().set_visible(False)
+    #
+    #     # display reconstruction
+    #     ax = plt.subplot(2, 1, 2)
+    #     plt.imshow(decoded_imgs.reshape(28, 28))
+    #     plt.gray()
+    #     ax.get_xaxis().set_visible(False)
+    #     ax.get_yaxis().set_visible(False)
+    #     plt.show()
 
 
 
 
 class EarlyStoppingAuc(Callback):
-    def __init__(self, net, train_label, validation_data, validation_data_label, aucMinImprovment=0.01, patience=20, logPath='log'):
+    def __init__(self, net, train_labels, validation_data, validation_data_label, aucMinImprovment=0.01, patience=20, pathSaveFig='imgForGif'):
         super(Callback, self).__init__()
         self.net = net
-        self.train_label = train_label
+        self.train_labels = train_labels
         self.val_data = validation_data
         self.val_data_lab = validation_data_label
         self.aucMinImprovment = aucMinImprovment
         self.patiance = patience + 1  # il +1 serve per considerare che alla prima epoca non si ha sicuramente un improvment (perchè usao self.auc[-1])
         self.actualPatiance = self.patiance
         self.bestmodel = None
-        self.logPath = logPath #TODO inserire come argomento nel parser
-        self.pathSaveFig = 'imgForGif' #TODO inserire come argomento nel parser
-
+        self.pathSaveFig = pathSaveFig #TODO inserire come argomento nel parser
+        u.makedir(pathSaveFig)
 
     def on_train_begin(self, logs={}):
+        print('---------------------Train beging----------------')
+
         self.aucs = []
         self.losses = []
-    # def on_batch_end(self, batch, logs=None):
-    #     #ProgbarLogger()
-    #     #print('epoch: {}, logs: {}'.format(batch, logs))
-    #     pass
+
         print("EPOCH -1 :")
 
         decoded_images = autoencoder_fall_detection.reconstruct_spectrogram(self.net,
@@ -663,11 +678,20 @@ class EarlyStoppingAuc(Callback):
                                               decoded_images,
                                               self.val_data_lab)
         self.aucs.append(epoch_auc)
+
         print("Epoch -1 auc:" + str(epoch_auc))
 
         #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
-        #pathSaveFigName = os.path.join(self.pathSaveFig, 'img-1.png')
-        #plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
+        # pathSaveFigName = os.path.join(self.pathSaveFig, 'img-1.png')
+        # plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
+
+    # def on_batch_end(self, batch, logs=None):
+    #     #ProgbarLogger()
+    #     #print('epoch: {}, logs: {}'.format(batch, logs))
+    #     pass
+
+    def on_epoch_begin(self, epoch, logs=None):
+        print('---------------------Epoch {}----------------'.format(str(epoch)))
 
     def on_epoch_end(self, epoch, logs={}):
 
@@ -681,8 +705,9 @@ class EarlyStoppingAuc(Callback):
                                               self.val_data_lab)
 
         #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
-        #pathSaveFig = os.path.join(self.pathSaveFig, 'img'+str(epoch)+'.png')
-        #plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
+
+        # pathSaveFigName = os.path.join(self.pathSaveFig, 'img_{:04d}.png'.format(epoch))
+        # plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
 
         self.aucs.append(epoch_auc)
 
@@ -690,8 +715,10 @@ class EarlyStoppingAuc(Callback):
 
         if epoch is 0: # if is the first epoch the first model is the best model
             self.bestmodel = self.model
+            self.bestmodel.name = 'bestModelEpoch{}'.format(epoch)
+            self.best_auc = epoch_auc
 
-        if (epoch_auc - self.aucs[-1]) <= self.aucMinImprovment:  # if the last auc differance of the actual epoch and the last auc is less then a threshold
+        if (epoch_auc - self.best_auc) <= self.aucMinImprovment:  # if the last auc differance of the actual epoch and the last auc is less then a threshold
             print('No improvment for auc')
             self.actualPatiance -= 1
             print('Remaining patiance: {}'.format(self.actualPatiance))
@@ -699,8 +726,13 @@ class EarlyStoppingAuc(Callback):
                 print('Patience finished: STOP FITTING')
                 self.model.stop_training = True
         else:
+            self.best_auc = epoch_auc
             self.actualPatiance = self.patiance  # if the model improves, reset the patiance
             self.bestmodel = self.model  # and the new best model is the actual model
+            self.bestmodel.name = 'bestModelEpoch{}'.format(epoch)
+
+        print('---------------------Epoch {} end----------------'.format(str(epoch)))
+
         return
 
 
