@@ -329,11 +329,11 @@ class autoencoder_fall_detection:
 
         x = Flatten()(x)
 
-        #inputs = [d*h*w]
-        #inputs.extend(params.dense_shapes)
+        inputs = [d*h*w]
+        inputs.extend(params.dense_shapes)
 
-        for i in range(len(params.dense_shapes)):
-            x = Dense(params.dense_shapes[i],
+        for i in range(len(inputs)):
+            x = Dense(inputs[i],
                       init=params.cnn_init,
                       activation=params.cnn_dense_activation,
                       W_regularizer=eval(params.d_w_reg),
@@ -342,14 +342,14 @@ class autoencoder_fall_detection:
                       W_constraint=eval(params.d_w_constr),
                       b_constraint=eval(params.d_b_constr),
                       bias=params.bias)(x)
-            print("dense[" + str(i) + "] -> (" + str(params.dense_shapes[i]) + ")")
-            if params.dropout:
+            print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
+            if (params.dropout):
                 x = Dropout(params.drop_rate)(x)
 
         # ---------------------------------------------------------- Decoding
 
-        for i in range(len(params.dense_shapes) - 2, -1, -1):  # backwards indices last excluded
-            x = Dense(params.dense_shapes[i],
+        for i in range(len(inputs) - 2, -1, -1):  # backwards indices last excluded
+            x = Dense(inputs[i],
                       init=params.cnn_init,
                       activation=params.cnn_dense_activation,
                       W_regularizer=eval(params.d_w_reg),
@@ -358,8 +358,8 @@ class autoencoder_fall_detection:
                       W_constraint=eval(params.d_w_constr),
                       b_constraint=eval(params.d_b_constr),
                       bias=params.bias)(x)
-            print("dense[" + str(i) + "] -> (" + str(params.dense_shapes[i]) + ")")
-            if params.dropout:
+            print("dense[" + str(i) + "] -> (" + str(inputs[i]) + ")")
+            if (params.dropout):
                 x = Dropout(params.drop_rate)(x)#ATTENZIONE: nostra versione keras1.2. nella documentazione ufficiale dropout è cambiato ma a noi serve il vecchio ovverro quello con il parametro "p"
 
         x = Reshape((d, h, w))(x)
