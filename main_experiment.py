@@ -200,8 +200,7 @@ listPath = path.join(root_dir, 'lists', 'dev+test', args.case)
 a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', args.input_type))  # load dataset
 
 # il trainset è 1 e sempre lo stesso per tutti gli esperimenti
-trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[
-    0]  # need a traiset in order to compute the mean and variance.
+trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0]  # need a traiset in order to compute the mean and variance.
 # Then use this mea and variance for normalize all the dataset
 
 trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the trainset and normalize the trainset
@@ -209,7 +208,7 @@ trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the
 a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std)  # normalize the dataset with the mean and std of the trainset
 a3fall_n_z = dm.awgn_padding_set(a3fall_n)
 
-# creo i set partendo dal dataset normalizzato e paddato
+    # creo i set partendo dal dataset normalizzato e paddato
 trainsets = dm.split_A3FALL_from_lists(a3fall_n_z, listTrainpath, args.trainNameLists)
 devsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.devNamesLists)
 testsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.testNamesLists)

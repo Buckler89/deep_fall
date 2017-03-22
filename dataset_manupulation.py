@@ -17,9 +17,9 @@ import numpy as np
 #     #     logger = u.MyLogger(id, logToFile)
 
 def load_A3FALL(spectrogramsPath):
-    '''
+    """
     Carica tutto il dataset (spettri) in una lista di elementi [filename , matrix ]
-    '''
+    """
     print("Loading A3FALL dataset")
     a3fall = list()
     for root, dirnames, filenames in os.walk(spectrogramsPath):
