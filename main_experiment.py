@@ -43,7 +43,7 @@ parser.add_argument("-log", "--logging", dest="log", default=False, action="stor
 parser.add_argument("-sifg", "--save-Img-For-Gif", dest="saveImgForGif", default=False, action="store_true")
 
 parser.add_argument("-cf", "--config-file", dest="config_filename", default=None)
-parser.add_argument("-sp", "--score-path", dest="scorePath", default="score")
+#parser.add_argument("-sp", "--score-path", dest="scorePath", default="score") #non serve più
 parser.add_argument("-tl", "--trainset-list", dest="trainNameLists", action=eval_action, default=["trainset.lst"])
 parser.add_argument("-c", "--case", dest="case", default="case6")
 parser.add_argument("-tln", "--test-list-names", dest="testNamesLists", action=eval_action,
@@ -53,8 +53,8 @@ parser.add_argument("-dl", "--dev-list-names", dest="devNamesLists", action=eval
 parser.add_argument("-it", "--input-type", dest="input_type", default="spectrograms")
 
 # CNN params
-parser.add_argument("-cln", "--conv-layers-numb", dest="conv_layer_numb", default=3, type=int)
 parser.add_argument("-is", "--cnn-input-shape", dest="cnn_input_shape", action=eval_action, default=[1, 129, 197])
+parser.add_argument("-cln", "--conv-layers-numb", dest="conv_layer_numb", default=3, type=int)
 parser.add_argument("-kn", "--kernels-number", dest="kernel_number", action=eval_action, default=[16, 8, 8])
 parser.add_argument("-ks", "--kernel-shape", dest="kernel_shape", action=eval_action, default=[[3, 3], [3, 3], [3, 3]])
 parser.add_argument("-mp", "--max-pool-shape", dest="m_pool", action=eval_action, default=[[2, 2], [2, 2], [2, 2]])
@@ -67,6 +67,7 @@ parser.add_argument("-cwc", "--cnn-w-constr", dest="cnn_w_constr", default="None
 parser.add_argument("-cbc", "--cnn-b-constr", dest="cnn_b_constr", default="None")
 parser.add_argument("-ac", "--cnn-conv-activation", dest="cnn_conv_activation", default="tanh", choices=["tanh"])
 
+#Dense params
 parser.add_argument("-dln", "--dense-layers-numb", dest="dense_layer_numb", default=1, type=int)
 parser.add_argument("-ds", "--dense-shapes", dest="dense_shapes", action=eval_action, default=[64])
 parser.add_argument("-i", "--cnn-init", dest="cnn_init", default="glorot_uniform", choices=["glorot_uniform"])
@@ -129,12 +130,12 @@ nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
 if args.log:
     import logging
     import sys
-    # if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
-    #     fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
-    #     os.rename(nameFileLog, nameFileLog + '_' + str(len(fileInFolder) + 1))  # so the name is different
-    #     # rename also the csv log for the losses
-    #     if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
-    #         os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
+    if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
+        fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
+        os.rename(nameFileLog, nameFileLog + '_old_' + str(len(fileInFolder) + 1))  # so the name is different
+        # rename also the csv log for the losses
+        # if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
+        #     os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
 
     stdout_logger = logging.getLogger(strID)
     sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
@@ -158,33 +159,32 @@ print("experiment start in date: " + st0)
 scoreAucsFileName = 'score_auc.txt'
 thFileName = 'thresholds.txt'
 
-scoreCasePath = os.path.join(args.scorePath, args.case)
-scoreAucsFilePath = os.path.join(scoreCasePath, scoreAucsFileName)
-scoreThsFilePath = os.path.join(scoreCasePath, thFileName)
+BestScorePath = os.path.join(allResultBasePath, 'bestResults')
+scoreAucsFilePath = os.path.join(BestScorePath, scoreAucsFileName)
+scoreThsFilePath = os.path.join(BestScorePath, thFileName)
 argsFolder = 'args'
 modelFolder = 'models'
-argsPath = os.path.join(scoreCasePath, argsFolder)
-modelPath = os.path.join(scoreCasePath, modelFolder)
+argsPath = os.path.join(BestScorePath, argsFolder)
+modelPath = os.path.join(BestScorePath, modelFolder)
 jsonargs = json.dumps(args.__dict__)
 
-if not os.path.exists(scoreCasePath):
-    u.makedir(scoreCasePath)
-    u.makedir(argsPath)
-    u.makedir(modelPath)
+u.makedir(argsPath)
+u.makedir(modelPath)
+u.makedir(BestScorePath)
+
+if not os.path.exists(BestScorePath):
     np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
     np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
-elif not os.listdir(scoreCasePath):  # se è vuota significa che è il primo esperimento
-    # quindi creo le cartelle necessarie e salvo un file delle auc e th inizializzato a 0
-    print("make arg and model dir and init scoreFile")
-    u.makedir(argsPath)
-    u.makedir(modelPath)
+elif len(os.listdir(BestScorePath)) <= 4:  # se non contiene 4 file significa che la struttura non è coerente quindi
+    #devo inizializzare i file mancanti prdendo eventuali dati--> salvo un file delle auc e th inizializzato a 0
+    print("init scoreFile")
     np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
     np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
 
 # TODO in realtà questo controllo non scansiona se mancano i modelli o/e i parametri
 # se la cartella già esiste devo verificare la consistenza dei file all'interno
-elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(set(os.listdir(scoreCasePath))):
-    message = 'Score fold inconsistency detected. Check if all the file are present in ' + scoreCasePath + '. Process aborted'
+elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(set(os.listdir(BestScorePath))):
+    message = 'Score fold inconsistency detected. Check if all the file are present in ' + BestScorePath + '. Process aborted'
     print(message)
 
     raise Exception(message)

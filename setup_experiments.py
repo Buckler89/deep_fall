@@ -60,7 +60,6 @@ parser.add_argument("-log", "--logging", dest="log", default=False, action="stor
 parser.add_argument("-ss", "--search-strategy", dest="search_strategy", default="grid", choices=["grid", "random"])
 parser.add_argument("-rnd", "--rnd-exp-number", dest="N", default=0, type=int)
 parser.add_argument("-cf", "--config-file", dest="config_filename", default=None)
-
 parser.add_argument("-sp", "--score-path", dest="scorePath", default="score")
 parser.add_argument("-shp", "--script-path", dest="scriptPath", default="scripts")
 parser.add_argument("-tl", "--trainset-list", dest="trainNameLists", action=eval_action, default=["trainset.lst"])

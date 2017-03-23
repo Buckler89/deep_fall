@@ -4,6 +4,7 @@ import errno
 import logging
 from datetime import datetime, timedelta
 import re
+import shutil
 
 
 class StreamToLogger(object):
@@ -12,7 +13,7 @@ class StreamToLogger(object):
     are redirected to logger
     """
 
-    def __init__(self, logger, LogFile='test', log_level=logging.INFO):
+    def __init__(self, logger, LogFile='log', log_level=logging.INFO):
         self.logger = logger
         self.log_level = log_level
         self.linebuf = ''
@@ -48,6 +49,17 @@ def makedir(path):  # se esiste già non fa nulla e salta l'exceprtion
         pass
     return
 
+
+def deleteContentFolder(folder):
+    for the_file in os.listdir(folder):
+        file_path = os.path.join(folder, the_file)
+        try:
+            if os.path.isfile(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print(e)
 def GetTime(s):
     '''
 
