@@ -17,6 +17,6 @@ from sklearn.metrics import roc_curve, auc, confusion_matrix, classification_rep
 #config variable
 
 
-pat='/media/buckler/DataSSD/Phd/fall_detection/framework/autoencoder_fall_detection/logs/case6/process_1.log'
-
-u.logcleaner(pat)
+import numpy
+a = numpy.asarray([ [1,2,3], [4,5,6], [7,8,9] ])
+numpy.savetxt("foo.csv", a, delimiter=",")
