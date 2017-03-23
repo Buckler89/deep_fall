@@ -19,6 +19,7 @@ import json
 import fcntl
 import time
 import datetime
+from copy import deepcopy
 import utility as u
 
 ###################################################PARSER ARGUMENT SECTION########################################
@@ -39,6 +40,7 @@ class eval_action(argparse.Action):
 # Global params
 parser.add_argument("-id", "--exp-index", dest="id", default=0, type=int)
 parser.add_argument("-log", "--logging", dest="log", default=False, action="store_true")
+parser.add_argument("-sifg", "--save-Img-For-Gif", dest="saveImgForGif", default=False, action="store_true")
 
 parser.add_argument("-cf", "--config-file", dest="config_filename", default=None)
 parser.add_argument("-sp", "--score-path", dest="scorePath", default="score")
@@ -115,25 +117,24 @@ if args.config_filename is not None:
 ###################################################INIT LOG########################################
 # redirect all the stream of both standar.out, standard.err to the same logger
 strID = str(args.id)
+root_dir = path.realpath('.')
 
 print("init log")
 
+allResultBasePath = os.path.join(root_dir,'resluts',args.case)
 nameFileLogCsv = None  # init the name
-logFolder = os.path.join('logs', args.case)  # need also for saving csv file!
+logFolder = os.path.join(allResultBasePath, 'logs')  # need also for saving csv file!
 u.makedir(logFolder)
 nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
-nameFileLogCsv = os.path.join(logFolder, 'process_' + strID + '.csv')  # log in csv file the losses for further analysis
 if args.log:
     import logging
     import sys
-
-    u.makedir(logFolder)  # crea la fold solo se non esiste
-    if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
-        fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
-        os.rename(nameFileLog, nameFileLog + '_' + str(len(fileInFolder) + 1))  # so the name is different
-        # rename also the csv log for the losses
-        if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
-            os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
+    # if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
+    #     fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
+    #     os.rename(nameFileLog, nameFileLog + '_' + str(len(fileInFolder) + 1))  # so the name is different
+    #     # rename also the csv log for the losses
+    #     if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
+    #         os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
 
     stdout_logger = logging.getLogger(strID)
     sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
@@ -191,7 +192,6 @@ elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(
 ######################################END CHECK SCORE FOLDER STRUCTURE############################################
 
 
-root_dir = path.realpath('.')
 
 listTrainpath = path.join(root_dir, 'lists', 'train')
 listPath = path.join(root_dir, 'lists', 'dev+test', args.case)
@@ -245,20 +245,25 @@ scoreAucNew = np.zeros(len(
 scoreThsNew = np.zeros(len(
     args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
 
+
 models = list()
 f = 0
 for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     print('\n\n\n----------------------------------FOLD {}-----------------------------------'.format(f + 1))
+    logCsvFolder = os.path.join(allResultBasePath, 'logscsv', 'fold_'+str(f+1))  # need also for saving csv file!
+    u.makedir(logCsvFolder)
+    if args.saveImgForGif is True:
+        imgForGifPath = os.path.join(allResultBasePath, 'ImgForGif', 'fold_'+str(f+1),'process_'+strID)
+        u.makedir(imgForGifPath)
     # Need to redefine the same architecture and compile it for each fold.
     # If you do the net does't start fit from the beginnig at the second fold
     net = autoencoder.autoencoder_fall_detection(str(args.id), args.case, str(f + 1))
     # net.define_static_arch()
-    prefit_model = net.define_cnn_arch(args)
-    net.model_compile(optimizer=args.optimizer, loss=args.loss, learning_rate=args.learning_rate)
-
+    net.define_cnn_arch(args)
+    prefitted_model = net.model_compile(optimizer=args.optimizer, loss=args.loss, learning_rate=args.learning_rate)
     # print('\n\n\n----------------------------------PRefitted-----------------------------------')
     #
-    # decoded_images = net.reconstruct_spectrogram(x_dev, prefit_model)
+    # decoded_images = net.reconstruct_spectrogram(x_dev, prefitted_model)
     # auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)
     # print('auc prefitted: ' + str(auc))
     # pathSaveFigName = os.path.join('imgForGif', 'prefitted-img-1'+str(f+1)+'.png')
@@ -268,9 +273,9 @@ for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     # L'eralystopping viene fatto in automatico se vengono passati anche x_dev e y_dev
 
     m = net.model_fit(x_trains[0], y_trains[0], x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch,
-                      batch_size=args.batch_size, shuffle=args.shuffle,
+                      batch_size=args.batch_size, shuffle=args.shuffle, model=prefitted_model,
                       fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment,
-                      logPath=logFolder, nameFileLogCsv=nameFileLogCsv)
+                      pathFileLogCsv=logCsvFolder, imgForGifPath=imgForGifPath)
     models.append(m)
     decoded_images = net.reconstruct_spectrogram(x_dev)
     auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)
@@ -345,7 +350,7 @@ print("experiment start in date: " + st1)
 print("Experiment time (DAYS:HOURS:MIN:SEC):" + u.GetTime(ts1 - ts0))
 
 if args.log is True:
-    u.logcleaner(nameFileLog)  # rmove garbage character from log file
+    u.logcleaner(nameFileLog)  # remove garbage character from log file
 
 
 # # test-finale-------------------------------

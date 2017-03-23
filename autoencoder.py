@@ -521,9 +521,9 @@ class autoencoder_fall_detection:
         return self._autoencoder
 
     def model_fit(self, x_train, y_train, x_dev=None, y_dev=None, nb_epoch=50, batch_size=128, shuffle=True, model=None,
-                  fit_net=True, patiance=20, aucMinImprovment=0.01, logPath='log', nameFileLogCsv='losses.csv'):#TODO inserire logPath come argomento nel parser!!!
+                  fit_net=True, patiance=20, aucMinImprovment=0.01, pathFileLogCsv=None, imgForGifPath=None):#TODO inserire logPath come argomento nel parser!!!
         print("model_fit")
-        if nameFileLogCsv is None:
+        if pathFileLogCsv is None:
             nameFileLogCsv = 'losses.csv'
 
         if model is not None:
@@ -533,9 +533,11 @@ class autoencoder_fall_detection:
             self.load_model('my_model.h5')
 
         else:
-            epochScorePath = os.path.join(logPath, 'epochs_score', 'process_'+self._id)
-            u.makedir(epochScorePath)
-            csv_logger = CSVLogger(os.path.join(epochScorePath, 'lossesProcess_'+str(self._fold)+'.csv'))
+            lossesCsvPath = os.path.join(pathFileLogCsv, 'losses')
+            u.makedir(lossesCsvPath)
+            aucsCsvPath = os.path.join(pathFileLogCsv, 'aucs')
+            u.makedir(aucsCsvPath)
+            csv_logger = CSVLogger(os.path.join(lossesCsvPath, 'Process_'+str(self._id)+'.csv'))
 
             if x_dev is not None and y_dev is not None:  # se ho a disposizione un validation set allora faccio anche l'early stopping
                 earlyStoppingAuc = EarlyStoppingAuc(self.__class__,  # devo passargli la classe stessa perche poi
@@ -546,7 +548,7 @@ class autoencoder_fall_detection:
                                                     validation_data_label=y_dev,
                                                     aucMinImprovment=aucMinImprovment,
                                                     patience=patiance,
-                                                    pathSaveFig=os.path.join('imgForGif', self._case, 'fold_'+self._fold))
+                                                    pathSaveFig=imgForGifPath)
 
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
@@ -554,11 +556,11 @@ class autoencoder_fall_detection:
                                       shuffle=shuffle,
                                       callbacks=[earlyStoppingAuc, csv_logger],
                                       verbose=1)  # with a value != 1 ProbarLogging is not called
-                # print(str(earlyStoppingAuc.losses))
-                # print(str(earlyStoppingAuc.aucs))
+
                 print('losses: {}, \naucs: {},'.format(earlyStoppingAuc.losses, earlyStoppingAuc.aucs))
 
-                np.savetxt(os.path.join(epochScorePath, 'aucProcess_'+str(self._fold)+'.csv'), earlyStoppingAuc.aucs) #save the auc in file for further analisys
+                np.savetxt(os.path.join(aucsCsvPath, 'Process_'+str(self._id)+'.csv'), earlyStoppingAuc.aucs, delimiter=",") #save the auc in file for further analisys
+
                 self._autoencoder = earlyStoppingAuc.bestmodel
 
             else:
@@ -649,7 +651,7 @@ class autoencoder_fall_detection:
 
 
 class EarlyStoppingAuc(Callback):
-    def __init__(self, net, train_labels, validation_data, validation_data_label, aucMinImprovment=0.01, patience=20, pathSaveFig='imgForGif'):
+    def __init__(self, net, train_labels, validation_data, validation_data_label, aucMinImprovment=0.01, patience=20, pathSaveFig=None):
         super(Callback, self).__init__()
         self.net = net
         self.train_labels = train_labels
@@ -682,8 +684,9 @@ class EarlyStoppingAuc(Callback):
         print("Epoch -1 auc:" + str(epoch_auc))
 
         #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
-        # pathSaveFigName = os.path.join(self.pathSaveFig, 'img-1.png')
-        # plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
+        if self.pathSaveFig is not None:
+            pathSaveFigName = os.path.join(self.pathSaveFig, 'img_000.png')
+            plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
 
     # def on_batch_end(self, batch, logs=None):
     #     #ProgbarLogger()
@@ -705,9 +708,9 @@ class EarlyStoppingAuc(Callback):
                                               self.val_data_lab)
 
         #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
-
-        # pathSaveFigName = os.path.join(self.pathSaveFig, 'img_{:04d}.png'.format(epoch))
-        # plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
+        if self.pathSaveFig is not None:
+            pathSaveFigName = os.path.join(self.pathSaveFig, 'img_{:04d}.png'.format(epoch))
+            plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
 
         self.aucs.append(epoch_auc)
 
