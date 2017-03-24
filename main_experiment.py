@@ -38,6 +38,7 @@ class eval_action(argparse.Action):
 
 
 # Global params
+parser.add_argument("-rp", "--root-path", dest="root_path", default=None)
 parser.add_argument("-id", "--exp-index", dest="id", default=0, type=int)
 parser.add_argument("-log", "--logging", dest="log", default=False, action="store_true")
 parser.add_argument("-sifg", "--save-Img-For-Gif", dest="saveImgForGif", default=False, action="store_true")
@@ -118,11 +119,11 @@ if args.config_filename is not None:
 ###################################################INIT LOG########################################
 # redirect all the stream of both standar.out, standard.err to the same logger
 strID = str(args.id)
-root_dir = path.realpath('.')
-
+if args.root_path is None:
+    args.root_path = os.path.realpath(".")
 print("init log")
 
-allResultBasePath = os.path.join(root_dir,'resluts',args.case)
+allResultBasePath = os.path.join(args.root_path,'resluts',args.case)
 nameFileLogCsv = None  # init the name
 logFolder = os.path.join(allResultBasePath, 'logs')  # need also for saving csv file!
 u.makedir(logFolder)
@@ -193,11 +194,11 @@ elif not set([scoreAucsFileName, thFileName, argsFolder, modelFolder]).issubset(
 
 
 
-listTrainpath = path.join(root_dir, 'lists', 'train')
-listPath = path.join(root_dir, 'lists', 'dev+test', args.case)
+listTrainpath = path.join(args.root_path, 'lists', 'train')
+listPath = path.join(args.root_path, 'lists', 'dev+test', args.case)
 
 # Manage DATASET
-a3fall = dm.load_A3FALL(path.join(root_dir, 'dataset', args.input_type))  # load dataset
+a3fall = dm.load_A3FALL(path.join(args.root_path, 'dataset', args.input_type))  # load dataset
 
 # il trainset è 1 e sempre lo stesso per tutti gli esperimenti
 trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0]  # need a traiset in order to compute the mean and variance.
@@ -205,7 +206,7 @@ trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists
 
 trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the trainset and normalize the trainset
 # calcolo il batch size
-batch_size=int(len(trainset)*args.batch_size_fract)
+batch_size = int(len(trainset)*args.batch_size_fract)
 
 a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std)  # normalize the dataset with the mean and std of the trainset
 a3fall_n_z = dm.awgn_padding_set(a3fall_n)
@@ -257,6 +258,8 @@ for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     if args.saveImgForGif is True:
         imgForGifPath = os.path.join(allResultBasePath, 'ImgForGif', 'fold_'+str(f+1),'process_'+strID)
         u.makedir(imgForGifPath)
+    else:
+        imgForGifPath = None
     # Need to redefine the same architecture and compile it for each fold.
     # If you do the net does't start fit from the beginnig at the second fold
     net = autoencoder.autoencoder_fall_detection(str(args.id), args.case, str(f + 1))

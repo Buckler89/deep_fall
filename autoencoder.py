@@ -662,7 +662,8 @@ class EarlyStoppingAuc(Callback):
         self.actualPatiance = self.patiance
         self.bestmodel = None
         self.pathSaveFig = pathSaveFig #TODO inserire come argomento nel parser
-        u.makedir(pathSaveFig)
+        if self.pathSaveFig is not None:
+            u.makedir(self.pathSaveFig)
 
     def on_train_begin(self, logs={}):
         print('---------------------Train beging----------------')

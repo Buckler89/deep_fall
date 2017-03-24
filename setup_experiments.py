@@ -56,6 +56,7 @@ class eval_action(argparse.Action):
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
 
 # Global params
+parser.add_argument("-rp", "--root-path", dest="root_path", default=None)
 parser.add_argument("-log", "--logging", dest="log", default=False, action="store_true")
 parser.add_argument("-ss", "--search-strategy", dest="search_strategy", default="grid", choices=["grid", "random"])
 parser.add_argument("-rnd", "--rnd-exp-number", dest="N", default=0, type=int)
@@ -184,7 +185,7 @@ def grid_search(args):
                                         for ac in args.cnn_conv_activation:
                                             for ad in args.cnn_dense_activation:
                                                 for bm in args.border_mode:
-                                                    for bs in args.batcfh_size:
+                                                    for bs in args.batch_size_fract:
                                                         for o in args.optimizer:
                                                             for l in args.loss:
                                                                 for nb in args.bias:
@@ -309,7 +310,7 @@ def random_search(args):
             e.cnn_dense_activation = np.random.choice(args.cnn_dense_activation)
             e.dropout = np.random.choice(args.dropout)
             e.drop_rate = scipy.stats.norm.rvs(loc=(args.drop_rate[1] + args.drop_rate[0]) / 2,
-                                               scale=(args.drop_rate[1] - args.drop_rate[0]) / 4)
+                                               scale=(args.drop_rate[1] - args.drop_rate[0]) / 2)
             ################################################################################### Learning params
             e.shuffle = np.random.choice(args.shuffle)
             e.optimizer = np.random.choice(args.optimizer)
@@ -326,9 +327,10 @@ def random_search(args):
 
 ############################################ inizializzalizzazioni
 experiments = []
-root_dir = os.path.realpath(".")
-if not os.path.exists(args.scriptPath):
-    u.makedir(args.scriptPath)
+if args.root_path is None:
+    args.root_path = os.path.realpath(".")
+if not os.path.exists(os.path.join(args.scriptPath,args.case)):
+    u.makedir(os.path.join(args.scriptPath,args.case))
 
 ############################################ creazione della lista dei parametri secondo la strategia scelta
 if args.search_strategy == "grid":
@@ -341,12 +343,12 @@ elif args.search_strategy == "random":
 ############################################ creazione dei file per lo scheduler
 i=0
 for e in experiments:
-    script_name = os.path.join(args.scriptPath, str(i).zfill(5) + "_fall.pbs")  #--------------------------- dove vanno gli script?
-    copyfile(os.path.join(root_dir, "template_script.txt"), script_name)  #-------------------------------------- da settare virtual env su template
+    script_name = os.path.join(args.scriptPath, args.case, str(i).zfill(5) + "_fall.pbs")  #--------------------------- dove vanno gli script?
+    copyfile(os.path.join(os.getcwd(), "template_script.txt"), script_name)  #-------------------------------------- da settare virtual env su template
     command = "THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python " + \
-              os.path.join(root_dir, "main_experiment.py") + \
+              os.path.join(args.root_path, "main_experiment.py") + \
+              " --root-path " +'"'+ str(args.root_path)+ '"' + \
               " --exp-index " + str(e.id) + \
-              " --score-path " + str(args.scorePath) + \
               " --trainset-list " + '"' + str(args.trainNameLists).replace(" ", "") + '"' + \
               " --case " + str(args.case) + \
               " --test-list-names " + '"' + str(args.testNamesLists).replace(" ", "") + '"' + \
@@ -399,4 +401,4 @@ for e in experiments:
 
     i+=1
 
-np.save(os.path.join(root_dir, "scripts", "experiments.npy"), experiments)
+np.save(os.path.join(os.getcwd(), "experiments.npy"), experiments)
