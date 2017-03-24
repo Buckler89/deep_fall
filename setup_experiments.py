@@ -381,7 +381,6 @@ for e in experiments:
               " --batch-size " + str(e.batch_size_fract) + \
               " --optimizer " + str(e.optimizer) + \
               " --loss " + str(e.loss) + \
-              " --dropout " + str(e.dropout) + \
               " --drop-rate " + str(e.drop_rate) + \
               " --learning-rate " + str(e.learning_rate) + \
               " --patiance " + str(args.patiance) + \
@@ -395,6 +394,8 @@ for e in experiments:
         command += " --logging"
     if args.fit_net:
         command += " --fit-net"
+    if e.dropout:
+        command += " --dropout"
 
     with open(script_name, "a") as f:
         f.write(command)
