@@ -12,7 +12,7 @@ os.environ["THEANO_FLAGS"] = "mode=FAST_RUN,device=gpu,floatX=float32"
 from keras.models import Model, load_model
 from keras.layers import Input, Dense, Dropout, Flatten, Reshape, Convolution2D, MaxPooling2D, UpSampling2D, \
     ZeroPadding2D, Cropping2D
-from keras.optimizers import Adam, Adadelta
+from keras.optimizers import Adadelta, Adam
 from keras.callbacks import Callback, ProgbarLogger, CSVLogger
 import numpy as np
 import matplotlib.pyplot as plt

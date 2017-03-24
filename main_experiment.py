@@ -88,7 +88,7 @@ parser.add_argument("-p", "--pool-type", dest="pool_type", default="all", choice
 # fit params
 parser.add_argument("-e", "--epoch", dest="epoch", default=50, type=int)
 parser.add_argument("-ns", "--no-shuffle", dest="shuffle", default=True, action="store_false")
-parser.add_argument("-bs", "--batch-size", dest="batch_size", default=128, type=int)
+parser.add_argument("-bs", "--batch-size-fract", dest="batch_size_fract", default=0.1, type=float)
 parser.add_argument("-f", "--fit-net", dest="fit_net", default=False, action="store_true")
 parser.add_argument("-o", "--optimizer", dest="optimizer", default="adadelta", choices=["adadelta", "adam", "sgd"])
 parser.add_argument("-l", "--loss", dest="loss", default="mse", choices=["mse", "msle"])
@@ -204,6 +204,8 @@ trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists
 # Then use this mea and variance for normalize all the dataset
 
 trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the trainset and normalize the trainset
+# calcolo il batch size
+batch_size=int(len(trainset)*args.batch_size_fract)
 
 a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std)  # normalize the dataset with the mean and std of the trainset
 a3fall_n_z = dm.awgn_padding_set(a3fall_n)
