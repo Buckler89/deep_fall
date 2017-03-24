@@ -273,9 +273,8 @@ for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
     # print('\n\n\n----------------------------------end PRefitted-----------------------------------')
 
     # L'eralystopping viene fatto in automatico se vengono passati anche x_dev e y_dev
-
     m = net.model_fit(x_trains[0], y_trains[0], x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch,
-                      batch_size=args.batch_size, shuffle=args.shuffle, model=prefitted_model,
+                      batch_size=batch_size, shuffle=args.shuffle, model=prefitted_model,
                       fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment,
                       pathFileLogCsv=logCsvFolder, imgForGifPath=imgForGifPath)
     models.append(m)
