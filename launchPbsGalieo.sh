@@ -1,8 +1,8 @@
  #!/bin/bash
-
-baselogPath=pbsLog/scripts/prova_galileo
+case="case1"
+baselogPath=pbsLog/scripts/case
 mkdir -p $baselogPath
-for entry in scripts/prova_galileo/*.pbs
+for entry in scripts/case/*.pbs
 do
         touch pbsLog/$entry
         echo $entry
