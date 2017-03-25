@@ -23,7 +23,7 @@ from scipy.spatial.distance import euclidean
 import dataset_manupulation as dm
 import json
 import utility as u
-
+import copy
 
 # import matplotlib.image as img
 
@@ -557,6 +557,7 @@ class autoencoder_fall_detection:
                                       callbacks=[earlyStoppingAuc, csv_logger],
                                       verbose=1)  # with a value != 1 ProbarLogging is not called
 
+                print('best epoch: {},'.format(earlyStoppingAuc.bestEpoch))
                 print('losses: {}, \naucs: {},'.format(earlyStoppingAuc.losses, earlyStoppingAuc.aucs))
 
                 np.savetxt(os.path.join(aucsCsvPath, 'Process_'+str(self._id)+'.csv'), earlyStoppingAuc.aucs, delimiter=",") #save the auc in file for further analisys
@@ -660,6 +661,7 @@ class EarlyStoppingAuc(Callback):
         self.aucMinImprovment = aucMinImprovment
         self.patiance = patience + 1  # il +1 serve per considerare che alla prima epoca non si ha sicuramente un improvment (perchè usao self.auc[-1])
         self.actualPatiance = self.patiance
+        self.bestEpoch = 0
         self.bestmodel = None
         self.pathSaveFig = pathSaveFig #TODO inserire come argomento nel parser
         if self.pathSaveFig is not None:
@@ -719,6 +721,7 @@ class EarlyStoppingAuc(Callback):
 
         if epoch is 0: # if is the first epoch the first model is the best model
             self.bestmodel = self.model
+            self.bestEpoch = epoch
             self.bestmodel.name = 'bestModelEpoch{}'.format(epoch)
             self.best_auc = epoch_auc
 
@@ -731,6 +734,7 @@ class EarlyStoppingAuc(Callback):
                 self.model.stop_training = True
         else:
             self.best_auc = epoch_auc
+            self.bestEpoch = epoch
             self.actualPatiance = self.patiance  # if the model improves, reset the patiance
             self.bestmodel = self.model  # and the new best model is the actual model
             self.bestmodel.name = 'bestModelEpoch{}'.format(epoch)

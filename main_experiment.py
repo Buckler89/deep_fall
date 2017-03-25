@@ -394,8 +394,10 @@ try:
     #
     # net.print_score(my_cm, tot_y_pred, tot_y_true)
 
-except:
+except Exception as err:
+
     with open('Status_Pocesses_Report.txt', 'a') as statusFile:
         statusFile.write('process_'+str(args.id)+' ERROR')
 
-
+    print(err)
+    raise
