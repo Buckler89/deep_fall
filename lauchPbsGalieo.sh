@@ -1,5 +1,6 @@
  #!/bin/bash
-baselogPath=logprova/scripts/prova_galileo
+
+baselogPath=pbsLog/scripts/prova_galileo
 mkdir -p $baselogPath
 for entry in scripts/prova_galileo/*.pbs
 do
