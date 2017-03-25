@@ -7,5 +7,5 @@ do
         touch pbsLog/$entry
         echo $entry
         echo pbsLog/$entry
-        qsub -o logprova/$entry $entry
+        qsub -o pbsLog/$entry $entry
 done
