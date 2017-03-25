@@ -131,23 +131,23 @@ try:
     logFolder = os.path.join(allResultBasePath, 'logs')  # need also for saving csv file!
     u.makedir(logFolder)
     nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
-    if args.log:
-        import logging
-        import sys
-        if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
-            fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
-            os.rename(nameFileLog, nameFileLog + '_old_' + str(len(fileInFolder) + 1))  # so the name is different
-            # rename also the csv log for the losses
-            # if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
-            #     os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
-
-        stdout_logger = logging.getLogger(strID)
-        sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
-        sys.stdout = sl  # ovverride funcion
-
-        stderr_logger = logging.getLogger(strID)
-        sl = u.StreamToLogger(stderr_logger, nameFileLog, logging.ERROR)
-        sys.stderr = sl  # ovverride funcion
+    # if args.log:
+    #     import logging
+    #     import sys
+    #     if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
+    #         fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
+    #         os.rename(nameFileLog, nameFileLog + '_old_' + str(len(fileInFolder) + 1))  # so the name is different
+    #         # rename also the csv log for the losses
+    #         # if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
+    #         #     os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
+    #
+    #     stdout_logger = logging.getLogger(strID)
+    #     sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
+    #     sys.stdout = sl  # ovverride funcion
+    #
+    #     stderr_logger = logging.getLogger(strID)
+    #     sl = u.StreamToLogger(stderr_logger, nameFileLog, logging.ERROR)
+    #     sys.stderr = sl  # ovverride funcion
     ###################################################END INIT LOG########################################
 
     print("LOG OF PROCESS ID = " + strID)
