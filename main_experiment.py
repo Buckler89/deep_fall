@@ -252,6 +252,12 @@ try:
     f = 0
     for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
         print('\n\n\n----------------------------------FOLD {}-----------------------------------'.format(f + 1))
+        #timestamp info
+        ts1 = time.time()
+        st1 = datetime.datetime.fromtimestamp(ts0).strftime('%Y-%m-%d %H:%M:%S')
+        print("experiment timestamp: " + st1)
+        print("Experiment time from start (DAYS:HOURS:MIN:SEC):" + u.GetTime(ts1 - ts0))
+
         logCsvFolder = os.path.join(allResultBasePath, 'logscsv', 'fold_'+str(f+1))  # need also for saving csv file!
         u.makedir(logCsvFolder)
         if args.saveImgForGif is True:
@@ -295,7 +301,7 @@ try:
             print("open File to lock")
             fileToLock = open(scoreAucsFilePath, 'a+')  # se metto w+ mi cancella il vecchio!!!
         except OSError as exception:
-            stderr_logger.error(exception)
+            print(exception)
             raise
         # prova a bloccare il file: se non riesce ritenta dopo un po. Non va avanti finche non riesce a bloccare il file
         try:
@@ -310,8 +316,8 @@ try:
                     # raise on unrelated IOErrors
                     if e.errno != errno.EAGAIN:
                         # print('ERROR occured trying acquuire file')
-                        stderr_logger.error('ERROR occured trying acquuire file')
-                        stderr_logger.error(e)
+                        print('ERROR occured trying acquuire file')
+                        print(e)
                         raise
                     else:
                         print("wait fo file to Lock")
@@ -349,7 +355,7 @@ try:
 
     ts1 = time.time()
     st1 = datetime.datetime.fromtimestamp(ts0).strftime('%Y-%m-%d %H:%M:%S')
-    print("experiment start in date: " + st1)
+    print("experiment ends in date: " + st1)
     print("Experiment time (DAYS:HOURS:MIN:SEC):" + u.GetTime(ts1 - ts0))
 
     if args.log is True:
