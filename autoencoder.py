@@ -61,11 +61,11 @@ def compute_optimal_th(fpr, tpr, thresholds, method='std'):
 
 def compute_score(original_image, decoded_images, labels):
     """
-
-    :param original_image:
-    :param decoded_images:
-    :param labels:
-    :return:
+    
+    :param original_image: 
+    :param decoded_images: 
+    :param labels: 
+    :return: 
     """
     print("compute_score")
 
@@ -221,9 +221,9 @@ def print_score(cm, y_pred, y_true):
     print("Fall \t" + str(cm[0, 0]) + "\t" + str(cm[0, 1]))
     print("NoFall \t" + str(cm[1, 0]) + "\t" + str(cm[1, 1]))
 
-    print("F1measure: " + str(f1_score(y_true, y_pred, pos_label=1)))
+    f1 = f1_score(y_true, y_pred, pos_label=1)
+    print("F1measure: " + str(f1))
     print(classification_report(y_true, y_pred, target_names=['NoFall', 'Fall']))
-
 
 def plot_decoded_imgs(original, decoded_imgs, n=2):
    #plot reconstructed image ( mnist_dataset only )

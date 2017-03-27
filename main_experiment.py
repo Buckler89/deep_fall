@@ -21,6 +21,7 @@ import time
 import datetime
 from copy import deepcopy
 import utility as u
+from sklearn.metrics import f1_score
 
 
 ###################################################PARSER ARGUMENT SECTION########################################
@@ -131,23 +132,23 @@ try:
     logFolder = os.path.join(allResultBasePath, 'logs')  # need also for saving csv file!
     u.makedir(logFolder)
     nameFileLog = os.path.join(logFolder, 'process_' + strID + '.log')
-    # if args.log:
-    #     import logging
-    #     import sys
-    #     if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
-    #         fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
-    #         os.rename(nameFileLog, nameFileLog + '_old_' + str(len(fileInFolder) + 1))  # so the name is different
-    #         # rename also the csv log for the losses
-    #         # if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
-    #         #     os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
-    #
-    #     stdout_logger = logging.getLogger(strID)
-    #     sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
-    #     sys.stdout = sl  # ovverride funcion
-    #
-    #     stderr_logger = logging.getLogger(strID)
-    #     sl = u.StreamToLogger(stderr_logger, nameFileLog, logging.ERROR)
-    #     sys.stderr = sl  # ovverride funcion
+    if args.log:
+        import logging
+        import sys
+        if os.path.isfile(nameFileLog):  # if there is a old log, save it with another name
+            fileInFolder = [x for x in os.listdir(logFolder) if x.startswith('process_')]
+            os.rename(nameFileLog, nameFileLog + '_old_' + str(len(fileInFolder) + 1))  # so the name is different
+            # rename also the csv log for the losses
+            # if os.path.isfile(nameFileLogCsv):  # if there is a old log, save it with another name
+            #     os.rename(nameFileLogCsv, nameFileLogCsv + '_' + str(len(fileInFolder) + 1))  # so the name is different
+
+        stdout_logger = logging.getLogger(strID)
+        sl = u.StreamToLogger(stdout_logger, nameFileLog, logging.INFO)
+        sys.stdout = sl  # ovverride funcion
+
+        stderr_logger = logging.getLogger(strID)
+        sl = u.StreamToLogger(stderr_logger, nameFileLog, logging.ERROR)
+        sys.stderr = sl  # ovverride funcion
     ###################################################END INIT LOG########################################
 
     print("LOG OF PROCESS ID = " + strID)
@@ -246,8 +247,8 @@ try:
         args.testNamesLists))  # matrice che conterra tutte le auc ottenute per le diverse fold e diversi set di parametri
     scoreThsNew = np.zeros(len(
         args.testNamesLists))  # matrice che conterra tutte le threshold ottime ottenute per le diverse fold e diversi set di parametri
-
-
+    devsCm = []
+    f1Devs = []
     models = list()
     f = 0
     for x_dev, y_dev in zip(x_devs, y_devs):  # sarebbero le fold
@@ -287,13 +288,48 @@ try:
                           pathFileLogCsv=logCsvFolder, imgForGifPath=imgForGifPath)
         models.append(m)
         decoded_images = net.reconstruct_spectrogram(x_dev)
-        auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)
+        auc, optimal_th, devCm, y_true, y_pred = autoencoder.compute_score(x_dev, decoded_images, y_dev)
+
+        f1dev = f1_score(y_true, y_pred, pos_label=1)
+        f1Devs.append(f1dev)
         scoreAucNew[f] = auc
         scoreThsNew[f] = optimal_th
+        devsCm.append(devCm)
+
 
         f += 1
 
-    print("------------------------SCORE SELECTION---------------")
+    print("------------------------TEST---------------")
+    idx = 0
+    my_cm = np.zeros((2, 2))
+    old_my_cm = np.zeros((2, 2))  # matrice d'appoggio
+    sk_cm = np.zeros((2, 2))
+    tot_y_pred = []
+    tot_y_true = []
+    testFoldAucs = np.zeros(4,)
+    for x_test, y_test in zip(x_tests, y_tests):
+
+        decoded_images = net.reconstruct_spectrogram(x_test, model=models[idx]) #use the relative model of the fold
+        auc, _, my_cm, y_true, y_pred = autoencoder.compute_score(x_test, decoded_images, y_test)
+        # raccolto tutti i risultati delle fold, per poter fare un report generale
+
+        for x in y_pred:
+            tot_y_pred.append(x)
+        for x in y_true:
+            tot_y_true.append(x)
+        testFoldAucs[idx] = auc #save the test-set auc for each fold
+        my_cm = np.add(old_my_cm, my_cm) #this is the total confusion matrix of the entire experimet
+        old_my_cm = my_cm
+        idx += 1
+
+    # report finale
+    print('\n\n\n')
+    print("------------------------FINAL REPORT---------------")
+    f1Final = f1_score(tot_y_pred, tot_y_true, pos_label=1)
+    autoencoder.print_score(my_cm, tot_y_pred, tot_y_true)
+
+
+    print("------------------------LOCK FILE---------------")
 
     # check score and save data
     if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perche viene creata precedentemente
@@ -316,12 +352,18 @@ try:
                     # raise on unrelated IOErrors
                     if e.errno != errno.EAGAIN:
                         # print('ERROR occured trying acquuire file')
-                        print('ERROR occured trying acquuire file')
+                        print('ERROR occured trying acquire file')
                         print(e)
                         raise
                     else:
                         print("wait fo file to Lock")
                         time.sleep(0.1)
+            print("------------------------SAVE DATA FOR ANALISYS---------------")
+
+
+
+            print("------------------------SCORE SELECTION---------------")
+
             print("loadtxt")
             scoreAuc = np.loadtxt(scoreAucsFilePath)
             scoreThs = np.loadtxt(scoreThsFilePath)
@@ -359,40 +401,11 @@ try:
     print("Experiment time (DAYS:HOURS:MIN:SEC):" + u.GetTime(ts1 - ts0))
 
     if args.log is True:
-        u.logcleaner(nameFileLog)  # remove garbage character from log file
+        if os.path.isfile(nameFileLog):
+            u.logcleaner(nameFileLog)  # remove garbage character from log file
 
     print('DONE')
 
-    # # test-finale-------------------------------
-    # print("------------------------TEST---------------")
-    # idx = 0
-    # my_cm = np.zeros((2, 2))
-    # old_my_cm = np.zeros((2, 2))  # matrice d'appoggio
-    # sk_cm = np.zeros((2, 2))
-    # tot_y_pred = []
-    # tot_y_true = []
-    # for x_test, y_test in zip(x_tests, y_tests):
-    #
-    #     # in realtà questo fit non serve più: va caricato il modello fittato nella validation!!!
-    #     net.model_compile()
-    #     net.model_fit(x_trains[0], _)
-    #
-    #     decoded_images = net.reconstruct_spectrogram(x_test)
-    #     auc, _, my_cm, y_true, y_pred = net.compute_score(x_test, decoded_images, y_test)
-    #     # raccolto tutti i risultati delle fold, per poter fare un report generale
-    #     for x in y_pred:
-    #         tot_y_pred.append(x)
-    #     for x in y_true:
-    #         tot_y_true.append(x)
-    #     my_cm = np.add(old_my_cm, my_cm)
-    #     old_my_cm = my_cm
-    #     idx += 1
-    #
-    # # report finale
-    # print('\n\n\n')
-    # print("------------------------FINAL REPORT---------------")
-    #
-    # net.print_score(my_cm, tot_y_pred, tot_y_true)
 
 except Exception as err:
 
