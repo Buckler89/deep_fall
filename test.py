@@ -28,14 +28,15 @@ root_dir = path.realpath('.')
 listTrainpath = path.join(root_dir, 'lists', 'train')
 listPath = path.join(root_dir, 'lists', 'dev+test', case)
 
-scoreAucFileName = 'score_auc.txt'
-thFileName = 'thresholds.txt'
+# scoreAucFileName = 'score_auc.txt'
+# thFileName = 'thresholds.txt'
 argsFolder = 'args'
 modelFolder = 'models'
-scorePath = path.join('score')
-scoreCasePath = path.join(scorePath, case)
-scoreModelPath = path.join(scorePath, case, modelFolder)
-scoreArgsPath = path.join(scorePath, case, argsFolder)
+resultsPath=path.join(root_dir, 'results', case)
+BestScorePath = path.join(resultsPath,'bestResults')
+scoreCasePath = path.join(BestScorePath)
+scoreModelPath = path.join(BestScorePath, modelFolder)
+scoreArgsPath = path.join(BestScorePath,  argsFolder)
 nameFileLog = path.join(scoreCasePath, 'test_'+case+'.log')
 
 #LOGGER

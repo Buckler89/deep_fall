@@ -216,7 +216,6 @@ def print_score(cm, y_pred, y_true):
     print the final results for the all fold test
     """
     cm = cm.astype(int)
-    print("FINAL REPORT")
     print("\t\t Fall \t NoFall")
     print("Fall \t" + str(cm[0, 0]) + "\t" + str(cm[0, 1]))
     print("NoFall \t" + str(cm[1, 0]) + "\t" + str(cm[1, 1]))

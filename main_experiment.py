@@ -127,7 +127,7 @@ try:
         args.root_path = os.path.realpath(".")
     print("init log")
 
-    allResultBasePath = os.path.join(args.root_path,'resluts',args.case)
+    allResultBasePath = os.path.join(args.root_path,'results',args.case)
     totReportFile = os.path.join(allResultBasePath, 'totalReport.csv') #file to save all data from all process
     nameFileLogCsv = None  # init the name
     logFolder = os.path.join(allResultBasePath, 'logs')  # need also for saving csv file!
