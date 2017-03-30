@@ -347,7 +347,7 @@ for e in experiments:
     copyfile(os.path.join(os.getcwd(), "template_script.txt"), script_name)  #-------------------------------------- da settare virtual env su template
     command = "THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32,optimizer_including=cudnn python " + \
               os.path.join(args.root_path, "main_experiment.py") + \
-              " --root-path " +'"'+ str(args.root_path)+ '"' + \
+              " --root-path " + str(args.root_path)+ \
               " --exp-index " + str(e.id) + \
               " --trainset-list " + '"' + str(args.trainNameLists).replace(" ", "") + '"' + \
               " --case " + str(args.case) + \

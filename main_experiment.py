@@ -22,7 +22,7 @@ import datetime
 from copy import deepcopy
 import utility as u
 from sklearn.metrics import f1_score
-
+import csv
 
 ###################################################PARSER ARGUMENT SECTION########################################
 print('parser')
@@ -128,6 +128,7 @@ try:
     print("init log")
 
     allResultBasePath = os.path.join(args.root_path,'resluts',args.case)
+    totReportFile = os.path.join(allResultBasePath, 'totalReport.csv') #file to save all data from all process
     nameFileLogCsv = None  # init the name
     logFolder = os.path.join(allResultBasePath, 'logs')  # need also for saving csv file!
     u.makedir(logFolder)
@@ -191,9 +192,17 @@ try:
         #     raise Exception(message)
 
     ######################################END CHECK SCORE FOLDER STRUCTURE############################################
+    ####dictionalry init for datacsv saving
+    #foldDict = {'fold1': 0, 'fold2': 0, 'fold3': 0, 'fold4': 0}
+    # dictsckeleton = {'AucDevs': foldDict, 'f1Devs': foldDict, 'CmDevs': foldDict, 'AucTest': foldDict,
+    #                  'CmTest': foldDict, 'f1Test': foldDict, 'cmTot': 0, 'f1Final': 0}
 
-
-
+    dictsckeleton = {'AucDevsFold1': 0, 'AucDevsFold2': 0, 'AucDevsFold3': 0, 'AucDevsFold4': 0,
+                     'f1DevsFold1': 0, 'f1DevsFold2': 0, 'f1DevsFold3': 0, 'f1DevsFold4': 0,
+                     'AucTestFold1': 0, 'AucTestFold2': 0, 'AucTestFold3': 0, 'AucTestFold4': 0,
+                     'f1TestFold1': 0, 'f1TestFold2': 0, 'f1TestFold3': 0, 'f1TestFold4': 0,
+                     'f1Final': 0}
+    #train and dev path
     listTrainpath = path.join(args.root_path, 'lists', 'train')
     listPath = path.join(args.root_path, 'lists', 'dev+test', args.case)
 
@@ -290,12 +299,11 @@ try:
         decoded_images = net.reconstruct_spectrogram(x_dev)
         auc, optimal_th, devCm, y_true, y_pred = autoencoder.compute_score(x_dev, decoded_images, y_dev)
 
-        f1dev = f1_score(y_true, y_pred, pos_label=1)
-        f1Devs.append(f1dev)
+        f1Dev = f1_score(y_true, y_pred, pos_label=1)
+        f1Devs.append(f1Dev)
         scoreAucNew[f] = auc
         scoreThsNew[f] = optimal_th
         devsCm.append(devCm)
-
 
         f += 1
 
@@ -307,11 +315,18 @@ try:
     tot_y_pred = []
     tot_y_true = []
     testFoldAucs = np.zeros(4,)
+    f1Test = list()
+    cmTest = list()
     for x_test, y_test in zip(x_tests, y_tests):
 
         decoded_images = net.reconstruct_spectrogram(x_test, model=models[idx]) #use the relative model of the fold
         auc, _, my_cm, y_true, y_pred = autoencoder.compute_score(x_test, decoded_images, y_test)
+        autoencoder.print_score(my_cm, y_pred, y_true)
+
         # raccolto tutti i risultati delle fold, per poter fare un report generale
+        f1 = f1_score(y_true, y_pred, pos_label=1)
+        f1Test.append(f1)
+        cmTest.append(my_cm)
 
         for x in y_pred:
             tot_y_pred.append(x)
@@ -360,6 +375,41 @@ try:
                         time.sleep(0.1)
             print("------------------------SAVE DATA FOR ANALISYS---------------")
 
+            # http: // stackoverflow.com / questions / 4893689 / save - a - dictionary - to - a - file - alternative - to - pickle - in -python
+            # for c in range(0, 4):
+            #     dictsckeleton['AucDevs']['fold'+str(c+1)] = scoreAucNew[c]
+            #     dictsckeleton['f1Devs']['fold'+str(c+1)] = f1Devs[c]
+            #     dictsckeleton['CmDevs']['fold'+str(c+1)] = devsCm[c]
+            #     dictsckeleton['AucTest']['fold'+str(c+1)] = testFoldAucs[c]
+            #     dictsckeleton['CmTest']['fold'+str(c+1)] = cmTest[c]
+            #     dictsckeleton['f1Test']['fold'+str(c+1)] = f1Test[c]
+            # dictsckeleton['CmTot'] = my_cm
+            # dictsckeleton['f1Final'] = f1Final
+            for c in range(0, 4):
+                dictsckeleton['AucDevsFold'+str(c+1)] = scoreAucNew[c]
+                dictsckeleton['f1DevsFold'+str(c+1)] = f1Devs[c]
+                dictsckeleton['AucTestFold'+str(c+1)] = testFoldAucs[c]
+                dictsckeleton['f1TestFold'+str(c+1)] = f1Test[c]
+            dictsckeleton['f1Final'] = f1Final
+
+            if not os.path.isfile(totReportFile):
+                with open(totReportFile, 'a') as f:  # Just use 'w' mode in 3.x
+                    # w = csv.DictWriter(f, sorted(dictsckeleton.keys()))
+                    # w.writeheader()
+                    # w.writerow(dictsckeleton)
+                    for key  in sorted(dictsckeleton.keys()):
+                        f.write(','+key)
+
+                    f.write('\nprocess_'+strID)
+                    for key in sorted(dictsckeleton.keys()):
+                        f.write(','+str(dictsckeleton[key]))
+            else:
+                with open(totReportFile, 'a') as f:  # Just use 'w' mode in 3.x
+                    # w = csv.writer(f)
+                    # w.writerow(dictsckeleton)
+                    f.write('\nprocess_'+strID)
+                    for key in sorted(dictsckeleton.keys()):
+                        f.write(','+str(dictsckeleton[key]))
 
 
             print("------------------------SCORE SELECTION---------------")
