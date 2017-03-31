@@ -23,7 +23,10 @@ log=False
 
 # devNamesLists=['devset_1.lst','devset_2.lst','devset_3.lst','devset_4.lst']
 testNamesLists = ['testset_1.lst', 'testset_2.lst', 'testset_3.lst', 'testset_4.lst']
-root_dir = path.realpath('.')
+if(path.exists('/gpfs/work/IscrC_DASHE/fall_detection/deep_fall')):
+    root_dir = path.realpath('/gpfs/work/IscrC_DASHE/fall_detection/deep_fall')
+else:
+    root_dir = path.realpath('.')
 
 listTrainpath = path.join(root_dir, 'lists', 'train')
 listPath = path.join(root_dir, 'lists', 'dev+test', case)
