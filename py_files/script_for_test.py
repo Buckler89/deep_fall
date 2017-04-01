@@ -7,22 +7,26 @@ Created on Fri Feb  3 16:00:29 2017
 """
 
 
-
-
-#config variable
-
-
+import random
 import numpy
-foldDict = {'fold1': 0, 'fold2': 0, 'fold3': 0, 'fold4': 0}
-dictsckeleton = {'AucDevs': foldDict, 'f1Devs': foldDict, 'CmDevs': foldDict, 'AucTest': foldDict, 'CmTest': foldDict, 'f1Test': foldDict, 'cmTot': 0, 'f1Final': 0}
+from matplotlib import pyplot
+from autoencoder import ROCCurve
 
-dictsckeleton['AucDevs']['fold1']
+x = [random.gauss(3,1) for _ in range(400)]
+y = [random.gauss(0,2) for _ in range(400)]
 
-dictsckeleton = {'AucDevsFold1': 0, 'AucDevsFold2': 0, 'AucDevsFold3': 0, 'AucDevsFold4': 0,
-                 'f1DevsFold1': 0, 'f1DevsFold2': 0, 'f1DevsFold3': 0, 'f1DevsFold4': 0,
-                 'CmDevsFold1': 0, 'CmDevsFold2': 0, 'CmDevsFold3': 0, 'CmDevsFold4': 0,
-                 'AucTestFold1': 0, 'AucTestFold2': 0, 'AucTestFold3': 0, 'AucTestFold4': 0,
-                 'CmTestFold1': 0, 'CmTestFold2': 0, 'CmTestFold3': 0, 'CmTestFold4': 0,
-                 'f1TestFold1': 0, 'f1TestFold2': 0, 'f1TestFold3': 0, 'f1TestFold4': 0,
-                 'cmFinal': 0,
-                 'f1Final': 0}
+bins = numpy.linspace(-20, 20, 1000)
+
+pyplot.hist(x, bins, alpha=0.5, label='x')
+pyplot.hist(y, bins, alpha=0.5, label='y')
+pyplot.legend(loc='upper right')
+pyplot.show()
+data=[]
+labels=[]
+for d in x:
+    data.append(d)
+    labels.append(1)
+for d in y:
+    data.append(d)
+    labels.append(0)
+ROCCurve(labels, data, None, pos_label=1, makeplot='yes', opt_th_plot='yes')

@@ -127,7 +127,7 @@ try:
         args.root_path = os.path.realpath(".")
     print("init log")
 
-    allResultBasePath = os.path.join(args.root_path,'results',args.case)
+    allResultBasePath = os.path.join(args.root_path,'results', args.case)
     totReportFile = os.path.join(allResultBasePath, 'totalReport.csv') #file to save all data from all process
     nameFileLogCsv = None  # init the name
     logFolder = os.path.join(allResultBasePath, 'logs')  # need also for saving csv file!
@@ -174,10 +174,11 @@ try:
     modelPath = os.path.join(BestScorePath, modelFolder)
     jsonargs = json.dumps(args.__dict__)
 
-    if args.id == 0: #if is the first process init the best score folder and file
-        u.makedir(argsPath)
-        u.makedir(modelPath)
-        u.makedir(BestScorePath)
+    u.makedir(argsPath)
+    u.makedir(modelPath)
+    u.makedir(BestScorePath)
+
+    if not os.path.exists(scoreAucsFilePath) or not os.path.exists(scoreThsFilePath): #if is the first process init the best score folder and file
 
         print("init scoreFile")
         np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
@@ -211,9 +212,10 @@ try:
 
     # il trainset è 1 e sempre lo stesso per tutti gli esperimenti
     trainset = dm.split_A3FALL_from_lists(a3fall, listTrainpath, args.trainNameLists)[0]  # need a traiset in order to compute the mean and variance.
-    # Then use this mea and variance for normalize all the dataset
 
+    # Then use this mean and variance for normalize the whole dataset
     trainset, mean, std = dm.normalize_data(trainset)  # compute mean and std of the trainset and normalize the trainset
+
     # calcolo il batch size
     batch_size = int(len(trainset)*args.batch_size_fract)
 
@@ -281,14 +283,6 @@ try:
         # net.define_static_arch()
         net.define_cnn_arch(args)
         prefitted_model = net.model_compile(optimizer=args.optimizer, loss=args.loss, learning_rate=args.learning_rate)
-        # print('\n\n\n----------------------------------PRefitted-----------------------------------')
-        #
-        # decoded_images = net.reconstruct_spectrogram(x_dev, prefitted_model)
-        # auc, optimal_th, _, _, _ = autoencoder.compute_score(x_dev, decoded_images, y_dev)
-        # print('auc prefitted: ' + str(auc))
-        # pathSaveFigName = os.path.join('imgForGif', 'prefitted-img-1'+str(f+1)+'.png')
-        # autoencoder.plot_decoded_img(y_dev[11], x_dev[11], decoded_images[11], pathSaveFigName)
-        # print('\n\n\n----------------------------------end PRefitted-----------------------------------')
 
         # L'eralystopping viene fatto in automatico se vengono passati anche x_dev e y_dev
         m = net.model_fit(x_trains[0], y_trains[0], x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch,
@@ -321,7 +315,7 @@ try:
 
         decoded_images = net.reconstruct_spectrogram(x_test, model=models[idx]) #use the relative model of the fold
         auc, _, my_cm, y_true, y_pred = autoencoder.compute_score(x_test, decoded_images, y_test)
-        autoencoder.print_score(my_cm, y_pred, y_true)
+        #autoencoder.print_score(my_cm, y_pred, y_true)
 
         # raccolto tutti i risultati delle fold, per poter fare un report generale
         f1 = f1_score(y_true, y_pred, pos_label=1)
@@ -347,97 +341,83 @@ try:
     print("------------------------LOCK FILE---------------")
 
     # check score and save data
-    if os.path.exists(scoreAucsFilePath):  # sarà presumibilmente sempre vero perche viene creata precedentemente
-        try:
-            print("open File to lock")
-            fileToLock = open(scoreAucsFilePath, 'a+')  # se metto w+ mi cancella il vecchio!!!
-        except OSError as exception:
-            print(exception)
-            raise
-        # prova a bloccare il file: se non riesce ritenta dopo un po. Non va avanti finche non riesce a bloccare il file
-        try:
-            while True:
-                try:
-                    print("file Lock")
-                    fcntl.flock(fileToLock,
-                                fcntl.LOCK_EX | fcntl.LOCK_NB)  # NOTA BENE: file locks on Unix are advisory only:ecco perche
-                    # serve tutto questo giro
-                    break
-                except IOError as e:
-                    # raise on unrelated IOErrors
-                    if e.errno != errno.EAGAIN:
-                        # print('ERROR occured trying acquuire file')
-                        print('ERROR occured trying acquire file')
-                        print(e)
-                        raise
-                    else:
-                        print("wait fo file to Lock")
-                        time.sleep(0.1)
-            print("------------------------SAVE DATA FOR ANALISYS---------------")
+    try:
+        print("open File to lock")
+        fileToLock = open(scoreAucsFilePath, 'a+')  # se metto w+ mi cancella il vecchio!!!
+    except OSError as exception:
+        print(exception)
+        raise
+    # prova a bloccare il file: se non riesce ritenta dopo un po. Non va avanti finche non riesce a bloccare il file
+    try:
+        while True:
+            try:
+                print("file Lock")
+                fcntl.flock(fileToLock,
+                            fcntl.LOCK_EX | fcntl.LOCK_NB)  # NOTA BENE: file locks on Unix are advisory only:ecco perche
+                # serve tutto questo giro
+                break
+            except IOError as e:
+                # raise on unrelated IOErrors
+                if e.errno != errno.EAGAIN:
+                    # print('ERROR occured trying acquuire file')
+                    print('ERROR occured trying acquire file')
+                    print(e)
+                    raise
+                else:
+                    print("wait fo file to Lock")
+                    time.sleep(0.1)
+        print("------------------------SAVE DATA FOR ANALISYS---------------")
 
-            # http: // stackoverflow.com / questions / 4893689 / save - a - dictionary - to - a - file - alternative - to - pickle - in -python
-            # for c in range(0, 4):
-            #     dictsckeleton['AucDevs']['fold'+str(c+1)] = scoreAucNew[c]
-            #     dictsckeleton['f1Devs']['fold'+str(c+1)] = f1Devs[c]
-            #     dictsckeleton['CmDevs']['fold'+str(c+1)] = devsCm[c]
-            #     dictsckeleton['AucTest']['fold'+str(c+1)] = testFoldAucs[c]
-            #     dictsckeleton['CmTest']['fold'+str(c+1)] = cmTest[c]
-            #     dictsckeleton['f1Test']['fold'+str(c+1)] = f1Test[c]
-            # dictsckeleton['CmTot'] = my_cm
-            # dictsckeleton['f1Final'] = f1Final
-            for c in range(0, 4):
-                dictsckeleton['AucDevsFold'+str(c+1)] = scoreAucNew[c]
-                dictsckeleton['f1DevsFold'+str(c+1)] = f1Devs[c]
-                dictsckeleton['AucTestFold'+str(c+1)] = testFoldAucs[c]
-                dictsckeleton['f1TestFold'+str(c+1)] = f1Test[c]
-            dictsckeleton['f1Final'] = f1Final
+        # http: // stackoverflow.com / questions / 4893689 / save - a - dictionary - to - a - file - alternative - to - pickle - in -python
+        for c in range(0, 4):
+            dictsckeleton['AucDevsFold'+str(c+1)] = scoreAucNew[c]
+            dictsckeleton['f1DevsFold'+str(c+1)] = f1Devs[c]
+            dictsckeleton['AucTestFold'+str(c+1)] = testFoldAucs[c]
+            dictsckeleton['f1TestFold'+str(c+1)] = f1Test[c]
+        dictsckeleton['f1Final'] = f1Final
 
-            if not os.path.isfile(totReportFile):
-                with open(totReportFile, 'a') as f:  # Just use 'w' mode in 3.x
-                    # w = csv.DictWriter(f, sorted(dictsckeleton.keys()))
-                    # w.writeheader()
-                    # w.writerow(dictsckeleton)
-                    for key  in sorted(dictsckeleton.keys()):
-                        f.write(','+key)
+        if not os.path.isfile(totReportFile):
+            with open(totReportFile, 'a') as f:
+                # w = csv.DictWriter(f, sorted(dictsckeleton.keys()))
+                # w.writeheader()
+                # w.writerow(dictsckeleton)
+                for key in sorted(dictsckeleton.keys()):
+                    f.write(','+key)
 
-                    f.write('\nprocess_'+strID)
-                    for key in sorted(dictsckeleton.keys()):
-                        f.write(','+str(dictsckeleton[key]))
-            else:
-                with open(totReportFile, 'a') as f:  # Just use 'w' mode in 3.x
-                    # w = csv.writer(f)
-                    # w.writerow(dictsckeleton)
-                    f.write('\nprocess_'+strID)
-                    for key in sorted(dictsckeleton.keys()):
-                        f.write(','+str(dictsckeleton[key]))
+        with open(totReportFile, 'a') as f:
+            # w = csv.writer(f)
+            # w.writerow(dictsckeleton)
+            f.write('\nprocess_'+strID)
+            for key in sorted(dictsckeleton.keys()):
+                f.write(','+str(dictsckeleton[key]))
 
 
-            print("------------------------SCORE SELECTION---------------")
+        print("------------------------SCORE SELECTION---------------")
 
-            print("loadtxt")
-            scoreAuc = np.loadtxt(scoreAucsFilePath)
-            scoreThs = np.loadtxt(scoreThsFilePath)
-            print('check if new best score is achieved')
-            for auc, oldAuc, foldsIdx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
-                if auc > oldAuc:  # se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
-                    # allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
-                    # che per la threshold ottime, i parametri usati e il modello adattato.
-                    # per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
-                    scoreAucNew[foldsIdx[0]] = auc
-                    scoreThs[foldsIdx[0]] = scoreThsNew[foldsIdx[0]]
-                    # per args e model uso file separati per ogni fold
-                    # salvo i parametri
-                    with open(os.path.join(argsPath, 'argsfold' + str(foldsIdx[0] + 1) + '.json'), 'w') as file:
-                        file.write(json.dumps(jsonargs, indent=4))
-                    # salvo modello e pesi
-                    net.save_model(models[foldsIdx[0]], modelPath, 'modelfold' + str(foldsIdx[0] + 1))
+        print("loadtxt")
+        scoreAuc = np.loadtxt(scoreAucsFilePath)
+        scoreThs = np.loadtxt(scoreThsFilePath)
+        print('check if new best score is achieved')
+        for auc, oldAuc, foldsIdx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
+            if auc > oldAuc:  # se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
+                # allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
+                # che per la threshold ottime, i parametri usati e il modello adattato.
+                # per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
+                scoreAucNew[foldsIdx[0]] = auc
+                scoreThs[foldsIdx[0]] = scoreThsNew[foldsIdx[0]]
+                # per args e model uso file separati per ogni fold
+                # salvo i parametri
+                with open(os.path.join(argsPath, 'argsfold' + str(foldsIdx[0] + 1) + '.json'), 'w') as file:
+                    file.write(json.dumps(jsonargs, indent=4))
+                # salvo modello e pesi
+                net.save_model(models[foldsIdx[0]], modelPath, 'modelfold' + str(foldsIdx[0] + 1))
 
-            print("savetxt")
-            np.savetxt(scoreAucsFilePath, scoreAucNew)
-            np.savetxt(scoreThsFilePath, scoreThs)
-        finally:
-            print("file UnLock")
-            fcntl.flock(fileToLock, fcntl.LOCK_UN)
+        print("savetxt")
+        np.savetxt(scoreAucsFilePath, scoreAucNew)
+        np.savetxt(scoreThsFilePath, scoreThs)
+    finally:
+        print("file UnLock")
+        fcntl.flock(fileToLock, fcntl.LOCK_UN)
     print("------------------------END CROSS VALIDATION---------------")
     print("------------------------Cross Validation Summary---------------")
     f = 0

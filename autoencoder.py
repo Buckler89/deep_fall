@@ -153,6 +153,7 @@ def compute_score(original_image, decoded_images, labels):
     #        tnr=tn/(tn+fp)
     #        fpr=fp/(fp+tn)
     #        fnr=fn/(fn+tp)
+    #todo togliere questa parte visto che ci sta la funzione print_score appostista: verificare dove serviva lo stamp della comfusion matrix ed aggiungere print_score
     print("confusion matrix:")
     # sk_cm=confusion_matrix(true_numeric_labels,y_pred)
     my_cm = np.array([[tp, fn], [fp, tn]])
@@ -687,8 +688,11 @@ class EarlyStoppingAuc(Callback):
 
         #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
         if self.pathSaveFig is not None:
-            pathSaveFigName = os.path.join(self.pathSaveFig, 'img_000.png')
-            plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
+            for vdl, vd, di in zip(self.val_data_lab, self.val_data, decoded_images):
+                pathSaveFig = os.path.join(self.pathSaveFig, vdl)
+                u.makedir(pathSaveFig)
+                pathSaveFigName = os.path.join(pathSaveFig, 'img_000.png')
+                plot_decoded_img(vdl, vd, di, pathSaveFigName)
 
     # def on_batch_end(self, batch, logs=None):
     #     #ProgbarLogger()
@@ -711,8 +715,11 @@ class EarlyStoppingAuc(Callback):
 
         #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
         if self.pathSaveFig is not None:
-            pathSaveFigName = os.path.join(self.pathSaveFig, 'img_{:04d}.png'.format(epoch))
-            plot_decoded_img(self.val_data_lab[11], self.val_data[11], decoded_images[11], pathSaveFigName)
+            for vdl, vd, di in zip(self.val_data_lab, self.val_data, decoded_images):
+                pathSaveFig = os.path.join(self.pathSaveFig, vdl)
+                u.makedir(pathSaveFig)
+                pathSaveFigName = os.path.join(pathSaveFig, 'img_{:04d}.png'.format(epoch))
+                plot_decoded_img(vdl, vd, di, pathSaveFigName)
 
         self.aucs.append(epoch_auc)
 
