@@ -47,9 +47,7 @@ Thumbs.db
 *~
 
 dataset/
-model/
-models/
-score/
 *.idea/
 
 scripts/
+*_fall.pbs

@@ -24,6 +24,7 @@ import utility as u
 from sklearn.metrics import f1_score
 import csv
 
+done=False #status flag for this process
 ###################################################PARSER ARGUMENT SECTION########################################
 print('parser')
 parser = argparse.ArgumentParser(description="Novelty Deep Fall Detection")
@@ -433,14 +434,16 @@ try:
     if args.log is True:
         if os.path.isfile(nameFileLog):
             u.logcleaner(nameFileLog)  # remove garbage character from log file
+    done=True
 
     print('DONE')
 
 
 except Exception as err:
 
-    with open('Status_Pocesses_Report.txt', 'a') as statusFile:
-        statusFile.write('process_'+str(args.id)+' ERROR')
+    if not done:
+        with open('Status_Pocesses_Report.txt', 'a') as statusFile:
+            statusFile.write('process_'+str(args.id)+' ERROR')
 
     print(err)
     raise
