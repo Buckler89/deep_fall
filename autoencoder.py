@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc, roc_auc_score, classification_report, f1_score
 import matplotlib
 import math
-from scipy.spatial.distance import euclidean
+from scipy.spatial.distance import euclidean, cosine
 import dataset_manupulation as dm
 import json
 import utility as u
@@ -44,6 +44,27 @@ def compute_distances(x_test, decoded_images):#TODO adatta per i channel > 1
 
     return e_d
 
+def compute_distances_from_list(x_test, decoded_images, distType='cosine'):#TODO adatta per i channel > 1
+    """
+    calcola le distanze euclide tra 2 vettori di immagini con shape (n_img,1,row,col)
+    ritorna un vettore con le distanze con shape (n_img,1)
+    """
+    print("compute_distance")
+
+    # e_d2d = np.zeros(x_test.shape)
+    e_d = np.zeros(len(x_test))
+
+    for i in range(len(decoded_images)):
+        # e_d2d[i,0,:,:] = euclidean_distances(decoded_images[i,0,:,:],x_test[i,0,:,:])
+        # e_d[i] = euclidean_distances(decoded_images[i,0,:,:],x_test[i,0,:,:]).sum()
+        if distType is 'cosine':
+            e_d[i] = cosine(np.asarray(decoded_images[i]).flatten(), np.asarray(x_test[i][1]).flatten())
+        if distType is 'euclidean':
+            e_d[i] = euclidean(decoded_images[i].flatten(), x_test[i][1].flatten())
+
+    return e_d
+
+
 
 def compute_optimal_th(fpr, tpr, thresholds, method='std'):
     """
@@ -59,23 +80,27 @@ def compute_optimal_th(fpr, tpr, thresholds, method='std'):
         return optimal_th, indx
 
 
-def compute_score(original_image, decoded_images, labels):
+def compute_score(original_image, decoded_images, labels=None, printFlag=True):
     """
     
-    :param original_image: 
-    :param decoded_images: 
-    :param labels: 
+    :param original_image: this are the original image: list(label,data)
+    :param decoded_images: this are the decoded images as a array of matrix (without labels information)
+    :param labels:  are the label of the data (optional because this are the same of the list original_image)
+    :param printFlag: if is true, print the classification report before retuning
+
     :return: 
     """
     print("compute_score")
+    if labels is None:
+        labels = [l[0] for l in original_image]
 
     true_numeric_labels = dm.labelize_data(labels)
-    euclidean_distances = compute_distances(original_image, decoded_images)
+    euclidean_distances = compute_distances_from_list(original_image, decoded_images)
 
     fpr, tpr, roc_auc, thresholds = ROCCurve(true_numeric_labels, euclidean_distances, pos_label=1,
-                                             makeplot='no', opt_th_plot='yes') #TODO need a ebetter system for makeplot
+                                             makeplot='no', opt_th_plot='yes') #TODO need a better system for makeplot
     if max(fpr) != 1 or max(tpr) != 1 or min(fpr) != 0 or min(
-            tpr) != 0:  # in teoria questi mi e max dovrebbero essere sempre 1 e 0 rispettivamente
+            tpr) != 0:  # in teoria questi min e max dovrebbero essere sempre 1 e 0 rispettivamente
         print("max min tpr fpr error")
     optimal_th, indx = compute_optimal_th(fpr, tpr, thresholds, method='std')
     ROCCurve(true_numeric_labels, euclidean_distances, indx, pos_label=1, makeplot='no', opt_th_plot='yes')
@@ -153,15 +178,15 @@ def compute_score(original_image, decoded_images, labels):
     #        tnr=tn/(tn+fp)
     #        fpr=fp/(fp+tn)
     #        fnr=fn/(fn+tp)
-    #todo togliere questa parte visto che ci sta la funzione print_score appostista: verificare dove serviva lo stamp della comfusion matrix ed aggiungere print_score
     print("confusion matrix:")
     # sk_cm=confusion_matrix(true_numeric_labels,y_pred)
     my_cm = np.array([[tp, fn], [fp, tn]])
-    print("\t Fall \t NoFall")
-    print("Fall \t" + str(tp) + "\t" + str(fn))
-    print("NoFall \t" + str(fp) + "\t" + str(tn))
-    print("F1measure: " + str(f1_score(true_numeric_labels, y_pred, pos_label=1)))
-    print(classification_report(true_numeric_labels, y_pred, target_names=['NoFall', 'Fall']))
+    if printFlag is True:
+        print("\t Fall \t NoFall")
+        print("Fall \t" + str(tp) + "\t" + str(fn))
+        print("NoFall \t" + str(fp) + "\t" + str(tn))
+        print("F1measure: " + str(f1_score(true_numeric_labels, y_pred, pos_label=1)))
+        print(classification_report(true_numeric_labels, y_pred, target_names=['NoFall', 'Fall']))
 
     return roc_auc, optimal_th, my_cm, true_numeric_labels, y_pred
 
@@ -382,6 +407,7 @@ class autoencoder_fall_detection:
         x = Flatten()(x)
 
         inputs = [d*h*w]
+        #inputs = []
         inputs.extend(params.dense_shapes)
 
         for i in range(len(inputs)):
@@ -493,7 +519,6 @@ class autoencoder_fall_detection:
 
         self._autoencoder = Model(input_img, decoded)
         self._autoencoder.summary()
-        self._autoencoder.name = 'AlreadyDefModel'
 
         return self._autoencoder
 
@@ -522,8 +547,8 @@ class autoencoder_fall_detection:
         return self._autoencoder
 
     def model_fit(self, x_train, y_train, x_dev=None, y_dev=None, nb_epoch=50, batch_size=128, shuffle=True, model=None,
-                  fit_net=True, patiance=20, aucMinImprovment=0.01, pathFileLogCsv=None, imgForGifPath=None):#TODO inserire logPath come argomento nel parser!!!
-        print("model_fit")
+                  fit_net=True, patiance=20, aucMinImprovment=0.01, pathFileLogCsv=None, imgForGifPath=None, devset_origin=None): #TODO sistemare il fatto che ora si passa devset_origin che di fatto contiene sia x_dev he y_dev che quindi sono superficiali
+        print("model_fit")                                                                                                        #todo devset_origin è necesario per il computo delle distanze senza zero padding 8SOLO LE LISTE POSSONO CONTENERE FILE DI LUNGHEZZA DIVERSA
         if pathFileLogCsv is None:
             nameFileLogCsv = 'losses.csv'
 
@@ -549,7 +574,8 @@ class autoencoder_fall_detection:
                                                     validation_data_label=y_dev,
                                                     aucMinImprovment=aucMinImprovment,
                                                     patience=patiance,
-                                                    pathSaveFig=imgForGifPath)
+                                                    pathSaveFig=imgForGifPath,
+                                                    devset_origin=devset_origin)
 
                 self._autoencoder.fit(x_train, x_train,
                                       nb_epoch=nb_epoch,
@@ -653,7 +679,7 @@ class autoencoder_fall_detection:
 
 
 class EarlyStoppingAuc(Callback):
-    def __init__(self, net, train_labels, validation_data, validation_data_label, aucMinImprovment=0.01, patience=20, pathSaveFig=None):
+    def __init__(self, net, train_labels, validation_data, validation_data_label, aucMinImprovment=0.01, patience=20, pathSaveFig=None, devset_origin=None):
         super(Callback, self).__init__()
         self.net = net
         self.train_labels = train_labels
@@ -665,6 +691,8 @@ class EarlyStoppingAuc(Callback):
         self.bestEpoch = 0
         self.bestmodel = None
         self.pathSaveFig = pathSaveFig #TODO inserire come argomento nel parser
+        self.devset_origin = devset_origin
+
         if self.pathSaveFig is not None:
             u.makedir(self.pathSaveFig)
 
@@ -679,15 +707,14 @@ class EarlyStoppingAuc(Callback):
         decoded_images = autoencoder_fall_detection.reconstruct_spectrogram(self.net,
                                                                             x_test=self.val_data,
                                                                             model=self.model)
+        decoded_images_noPad = dm.remove_padding_set(decoded_images, self.val_data_lab, self.devset_origin)
 
-        epoch_auc, _, _, _, _ = compute_score(self.val_data,
-                                              decoded_images,
-                                              self.val_data_lab)
+        epoch_auc, _, _, _, _ = compute_score(self.devset_origin,
+                                              decoded_images_noPad)
         self.aucs.append(epoch_auc)
 
         print("Epoch -1 auc:" + str(epoch_auc))
 
-        #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
         if self.pathSaveFig is not None:
             for vdl, vd, di in zip(self.val_data_lab, self.val_data, decoded_images):
                 pathSaveFig = os.path.join(self.pathSaveFig, vdl)
@@ -710,11 +737,10 @@ class EarlyStoppingAuc(Callback):
         decoded_images = autoencoder_fall_detection.reconstruct_spectrogram(self.net,
                                                                             x_test=self.val_data,
                                                                             model=self.model)
-        epoch_auc, _, _, _, _ = compute_score(self.val_data,
-                                              decoded_images,
-                                              self.val_data_lab)
+        decoded_images_noPad = dm.remove_padding_set(decoded_images, self.val_data_lab, self.devset_origin)
+        epoch_auc, _, _, _, _ = compute_score(self.devset_origin,
+                                              decoded_images_noPad)
 
-        #TODO mettere un parametro nel parser che abilita il salvataggio delle figure ( solo a scopo di debug)
         if self.pathSaveFig is not None:
             for vdl, vd, di in zip(self.val_data_lab, self.val_data, decoded_images):
                 pathSaveFig = os.path.join(self.pathSaveFig, vdl)

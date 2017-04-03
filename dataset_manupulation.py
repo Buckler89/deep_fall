@@ -45,6 +45,21 @@ def awgn_padding_set(set_to_pad, loc=0.0, scale=1.0):
         awgn_padded_set.append([e[0], np.hstack((e[1], awgn_matrix))])
     return awgn_padded_set
 
+def remove_padding_set(set, label, origin_set):
+    """
+    remove the padding added previously from the set.
+    
+    :param label: label of the set (shape list of string)
+    :param set: set from which to remove the padding (shape: number matrix)
+    :param origin_set: the original set (list: string, matrix_sample)
+    :return: a list representing the set without the padding ( the list is needed because each element has different shape) 
+    """
+    newSet = list()
+    for (s, l, o) in zip(set, label, origin_set):
+        if l == o[0]: #TODO in realtà questo controlllo non è necessario e si portrebbe togliere "label" dai parametri passati
+            newSet.append( s[0, :, :o[1].shape[1]])
+
+    return newSet
 
 def reshape_set(set_to_reshape, channels=1):
     """

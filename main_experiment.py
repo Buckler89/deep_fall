@@ -19,10 +19,12 @@ import json
 import fcntl
 import time
 import datetime
-from copy import deepcopy
 import utility as u
 from sklearn.metrics import f1_score
-import csv
+import sys
+# import gc
+from copy import deepcopy
+sys.setrecursionlimit(10000) #for deepcopy net model
 
 done=False #status flag for this process
 ###################################################PARSER ARGUMENT SECTION########################################
@@ -222,11 +224,15 @@ try:
 
     a3fall_n, _, _ = dm.normalize_data(a3fall, mean, std)  # normalize the dataset with the mean and std of the trainset
     a3fall_n_z = dm.awgn_padding_set(a3fall_n)
-
+    del a3fall
         # creo i set partendo dal dataset normalizzato e paddato
     trainsets = dm.split_A3FALL_from_lists(a3fall_n_z, listTrainpath, args.trainNameLists)
     devsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.devNamesLists)
     testsets = dm.split_A3FALL_from_lists(a3fall_n_z, listPath, args.testNamesLists)
+
+    #set with no padding. For the distance final computation.
+    devsets_origin = dm.split_A3FALL_from_lists(a3fall_n, listPath, args.devNamesLists)
+    testsets_origin = dm.split_A3FALL_from_lists(a3fall_n, listPath, args.testNamesLists)
 
     # reshape dataset per darli in ingresso alla rete
 
@@ -237,18 +243,23 @@ try:
     x_tests = list()
     y_tests = list()
 
+
     for s in trainsets:
         x, y = dm.reshape_set(s)
         x_trains.append(x)
         y_trains.append(y)
-    for s in devsets:
-        x, y = dm.reshape_set(s)
+
+    for d in devsets:
+        x, y = dm.reshape_set(d)
         x_devs.append(x)
         y_devs.append(y)
-    for s in testsets:
-        x, y = dm.reshape_set(s)
+
+    for t in testsets:
+        x, y = dm.reshape_set(t)
         x_tests.append(x)
         y_tests.append(y)
+
+
 
     # CROSS VALIDATION
     print("------------------------CROSS VALIDATION---------------")
@@ -282,24 +293,30 @@ try:
         # If you do the net does't start fit from the beginnig at the second fold
         net = autoencoder.autoencoder_fall_detection(str(args.id), args.case, str(f + 1))
         #net.define_static_arch()
-        net.define_cnn_arch(args)
+        m = net.define_cnn_arch(args)
 
-        prefitted_model = net.model_compile(optimizer=args.optimizer, loss=args.loss, learning_rate=args.learning_rate)
-
+        m = net.model_compile(optimizer=args.optimizer, loss=args.loss, learning_rate=args.learning_rate)
+        m.name = 'prefit'+str(f+1)
         # L'eralystopping viene fatto in automatico se vengono passati anche x_dev e y_dev
         m = net.model_fit(x_trains[0], y_trains[0], x_dev=x_dev, y_dev=y_dev, nb_epoch=args.epoch,
-                          batch_size=batch_size, shuffle=args.shuffle, model=prefitted_model,
+                          batch_size=batch_size, shuffle=args.shuffle, model=m,
                           fit_net=args.fit_net, patiance=args.patiance, aucMinImprovment=args.aucMinImprovment,
-                          pathFileLogCsv=logCsvFolder, imgForGifPath=imgForGifPath)
+                          pathFileLogCsv=logCsvFolder, imgForGifPath=imgForGifPath, devset_origin=devsets_origin[f])
         models.append(m)
         decoded_images = net.reconstruct_spectrogram(x_dev)
-        auc, optimal_th, devCm, y_true, y_pred = autoencoder.compute_score(x_dev, decoded_images, y_dev)
+        decoded_images_noPad = dm.remove_padding_set(decoded_images, y_dev, devsets_origin[f])
+        auc, optimal_th, devCm, y_true, y_pred = autoencoder.compute_score(devsets_origin[f], decoded_images_noPad)
 
         f1Dev = f1_score(y_true, y_pred, pos_label=1)
         f1Devs.append(f1Dev)
         scoreAucNew[f] = auc
         scoreThsNew[f] = optimal_th
         devsCm.append(devCm)
+        # del net
+        # del m
+        # gc.collect(generation=0)
+        # gc.collect(generation=1)
+        # gc.collect(generation=2)
 
         f += 1
 
@@ -316,8 +333,9 @@ try:
     for x_test, y_test in zip(x_tests, y_tests):
 
         decoded_images = net.reconstruct_spectrogram(x_test, model=models[idx]) #use the relative model of the fold
-        auc, _, my_cm, y_true, y_pred = autoencoder.compute_score(x_test, decoded_images, y_test)
-        #autoencoder.print_score(my_cm, y_pred, y_true)
+        decoded_images_noPad = dm.remove_padding_set(decoded_images, y_test, testsets_origin[idx])
+        auc, _, my_cm, y_true, y_pred = autoencoder.compute_score(testsets_origin[idx], decoded_images_noPad, printFlag=False)
+        autoencoder.print_score(my_cm, y_pred, y_true) #viene gia usata una stampa dentro compute_score TODO sarebbe da togliere qulla interna a compute score
 
         # raccolto tutti i risultati delle fold, per poter fare un report generale
         f1 = f1_score(y_true, y_pred, pos_label=1)
