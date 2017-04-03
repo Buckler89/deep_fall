@@ -325,6 +325,7 @@ class autoencoder_fall_detection:
         #        layer1 = Model(input_img, decoded)
         #        layer1.summary()
         self._autoencoder = Model(input_img, decoded)
+        self._autoencoder.summary()
 
         return self._autoencoder
 

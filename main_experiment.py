@@ -281,8 +281,9 @@ try:
         # Need to redefine the same architecture and compile it for each fold.
         # If you do the net does't start fit from the beginnig at the second fold
         net = autoencoder.autoencoder_fall_detection(str(args.id), args.case, str(f + 1))
-        # net.define_static_arch()
+        #net.define_static_arch()
         net.define_cnn_arch(args)
+
         prefitted_model = net.model_compile(optimizer=args.optimizer, loss=args.loss, learning_rate=args.learning_rate)
 
         # L'eralystopping viene fatto in automatico se vengono passati anche x_dev e y_dev
@@ -443,7 +444,7 @@ except Exception as err:
 
     if not done:
         with open('Status_Pocesses_Report.txt', 'a') as statusFile:
-            statusFile.write('process_'+str(args.id)+' ERROR')
+            statusFile.write('\nprocess_'+str(args.id)+' ERROR\n')
 
     print(err)
     raise
