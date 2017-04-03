@@ -44,7 +44,7 @@ def compute_distances(x_test, decoded_images):#TODO adatta per i channel > 1
 
     return e_d
 
-def compute_distances_from_list(x_test, decoded_images, distType='cosine'):#TODO adatta per i channel > 1
+def compute_distances_from_list(x_test, decoded_images, distType='cosine', norm=True):#TODO adatta per i channel > 1
     """
     calcola le distanze euclide tra 2 vettori di immagini con shape (n_img,1,row,col)
     ritorna un vettore con le distanze con shape (n_img,1)
@@ -52,17 +52,20 @@ def compute_distances_from_list(x_test, decoded_images, distType='cosine'):#TODO
     print("compute_distance")
 
     # e_d2d = np.zeros(x_test.shape)
-    e_d = np.zeros(len(x_test))
+    d = np.zeros(len(x_test))
+    if distType is 'cosine':
+        for i in range(len(decoded_images)):
+            d[i] = cosine(np.asarray(decoded_images[i]).flatten(), np.asarray(x_test[i][1]).flatten())
 
-    for i in range(len(decoded_images)):
-        # e_d2d[i,0,:,:] = euclidean_distances(decoded_images[i,0,:,:],x_test[i,0,:,:])
-        # e_d[i] = euclidean_distances(decoded_images[i,0,:,:],x_test[i,0,:,:]).sum()
-        if distType is 'cosine':
-            e_d[i] = cosine(np.asarray(decoded_images[i]).flatten(), np.asarray(x_test[i][1]).flatten())
-        if distType is 'euclidean':
-            e_d[i] = euclidean(decoded_images[i].flatten(), x_test[i][1].flatten())
+    if distType is 'euclidean':
+        for i in range(len(decoded_images)):
+            # e_d2d[i,0,:,:] = euclidean_distances(decoded_images[i,0,:,:],x_test[i,0,:,:])
+            # e_d[i] = euclidean_distances(decoded_images[i,0,:,:],x_test[i,0,:,:]).sum()
+                d[i] = euclidean(decoded_images[i].flatten(), x_test[i][1].flatten())
+        if norm == True:
+            d = d/d.max()
 
-    return e_d
+    return d
 
 
 
@@ -95,20 +98,20 @@ def compute_score(original_image, decoded_images, labels=None, printFlag=True):
         labels = [l[0] for l in original_image]
 
     true_numeric_labels = dm.labelize_data(labels)
-    euclidean_distances = compute_distances_from_list(original_image, decoded_images)
+    distances = compute_distances_from_list(original_image, decoded_images, distType='cosine')
 
-    fpr, tpr, roc_auc, thresholds = ROCCurve(true_numeric_labels, euclidean_distances, pos_label=1,
-                                             makeplot='no', opt_th_plot='yes') #TODO need a better system for makeplot
+    fpr, tpr, roc_auc, thresholds = ROCCurve(true_numeric_labels, distances, pos_label=1,
+                                             makeplot='no', opt_th_plot='no') #TODO need a better system for makeplot
     if max(fpr) != 1 or max(tpr) != 1 or min(fpr) != 0 or min(
             tpr) != 0:  # in teoria questi min e max dovrebbero essere sempre 1 e 0 rispettivamente
         print("max min tpr fpr error")
     optimal_th, indx = compute_optimal_th(fpr, tpr, thresholds, method='std')
-    ROCCurve(true_numeric_labels, euclidean_distances, indx, pos_label=1, makeplot='no', opt_th_plot='yes')
+    ROCCurve(true_numeric_labels, distances, indx, pos_label=1, makeplot='no', opt_th_plot='yes')
 
     # compute tpr fpr fnr tnr metrics
     #        npoint=5000
-    #        minth=min(euclidean_distances)
-    #        maxth=max(euclidean_distances)
+    #        minth=min(distances)
+    #        maxth=max(distances)
     #        step=(maxth-minth)/npoint
     #        ths=np.arange(minth,maxth,step)
     #        tp=np.zeros(len(ths))
@@ -119,7 +122,7 @@ def compute_score(original_image, decoded_images, labels=None, printFlag=True):
     #        k=0
     #        for th in ths:
     #            i=0
-    #            for d in euclidean_distances:
+    #            for d in distances:
     #                if d > th:
     #                    if true_numeric_labels[i]==1:
     #                        tp[k]+=1
@@ -159,8 +162,8 @@ def compute_score(original_image, decoded_images, labels=None, printFlag=True):
     tn = 0
     fp = 0
     i = 0
-    y_pred = np.zeros(len(euclidean_distances))
-    for d in euclidean_distances:
+    y_pred = np.zeros(len(distances))
+    for d in distances:
         if d > optimal_th:
             y_pred[i] = 1
             if true_numeric_labels[i] == 1:
