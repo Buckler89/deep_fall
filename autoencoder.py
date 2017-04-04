@@ -83,7 +83,7 @@ def compute_optimal_th(fpr, tpr, thresholds, method='std'):
         return optimal_th, indx
 
 
-def compute_score(original_image, decoded_images, labels=None, printFlag=True):
+def compute_score(original_image, decoded_images, labels=None, distType='cosine', printFlag=True):
     """
     
     :param original_image: this are the original image: list(label,data)
@@ -98,7 +98,7 @@ def compute_score(original_image, decoded_images, labels=None, printFlag=True):
         labels = [l[0] for l in original_image]
 
     true_numeric_labels = dm.labelize_data(labels)
-    distances = compute_distances_from_list(original_image, decoded_images, distType='cosine')
+    distances = compute_distances_from_list(original_image, decoded_images, distType=distType)
 
     fpr, tpr, roc_auc, thresholds = ROCCurve(true_numeric_labels, distances, pos_label=1,
                                              makeplot='no', opt_th_plot='no') #TODO need a better system for makeplot

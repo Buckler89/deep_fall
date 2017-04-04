@@ -461,7 +461,7 @@ try:
 except Exception as err:
 
     if not done:
-        with open('Status_Pocesses_Report.txt', 'a') as statusFile:
+        with open('Status_Pocesses_Report_'+args.case+'.txt', 'a') as statusFile:
             statusFile.write('\nprocess_'+str(args.id)+' ERROR\n')
 
     print(err)
