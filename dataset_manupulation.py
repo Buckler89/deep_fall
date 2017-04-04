@@ -7,7 +7,7 @@ Created on Fri Feb  3 17:36:52 2017
 """
 import os
 import numpy as np
-
+from keras import backend as T
 
 # def __init__(id):
 #     global logger
@@ -60,6 +60,21 @@ def remove_padding_set(set, label, origin_set):
             newSet.append( s[0, :, :o[1].shape[1]])
 
     return newSet
+
+def assert_matrix_is_not_all_zero(data):
+    """
+    assert that all the matrix in the list named "data" are not all zeros. 
+    If a matrix is all zeros set the first element: data[x][0,0] = keras.backend.epsilon()
+    :param data: list of matrix ( although various dimensions)  
+    :return: 
+    """
+    for d in data:
+        # print(str(img.max()))
+        if d.max() == 0:
+            d[0, 0] = T.epsilon() #python use references!!!
+            # print("changed:"+str(img[0,0])+" Into:"+str(img[0,0]))
+
+    return data
 
 def reshape_set(set_to_reshape, channels=1):
     """

@@ -54,8 +54,9 @@ def compute_distances_from_list(x_test, decoded_images, distType='cosine', norm=
     # e_d2d = np.zeros(x_test.shape)
     d = np.zeros(len(x_test))
     if distType is 'cosine':
+        decoded_images = dm.assert_matrix_is_not_all_zero(decoded_images)
         for i in range(len(decoded_images)):
-            d[i] = cosine(np.asarray(decoded_images[i]).flatten(), np.asarray(x_test[i][1]).flatten())
+            d[i] = cosine(np.asarray(decoded_images[i]).flatten(), np.asarray(x_test[i][1]).flatten()) #output range [0:2]
 
     if distType is 'euclidean':
         for i in range(len(decoded_images)):
@@ -710,6 +711,12 @@ class EarlyStoppingAuc(Callback):
         decoded_images = autoencoder_fall_detection.reconstruct_spectrogram(self.net,
                                                                             x_test=self.val_data,
                                                                             model=self.model)
+        if self.pathSaveFig is not None:
+            for vdl, vd, di in zip(self.val_data_lab, self.val_data, decoded_images):
+                pathSaveFig = os.path.join(self.pathSaveFig, vdl)
+                u.makedir(pathSaveFig)
+                pathSaveFigName = os.path.join(pathSaveFig, 'img_000.png')
+                plot_decoded_img(vdl, vd, di, pathSaveFigName)
         decoded_images_noPad = dm.remove_padding_set(decoded_images, self.val_data_lab, self.devset_origin)
 
         epoch_auc, _, _, _, _ = compute_score(self.devset_origin,
@@ -718,12 +725,7 @@ class EarlyStoppingAuc(Callback):
 
         print("Epoch -1 auc:" + str(epoch_auc))
 
-        if self.pathSaveFig is not None:
-            for vdl, vd, di in zip(self.val_data_lab, self.val_data, decoded_images):
-                pathSaveFig = os.path.join(self.pathSaveFig, vdl)
-                u.makedir(pathSaveFig)
-                pathSaveFigName = os.path.join(pathSaveFig, 'img_000.png')
-                plot_decoded_img(vdl, vd, di, pathSaveFigName)
+
 
     # def on_batch_end(self, batch, logs=None):
     #     #ProgbarLogger()
