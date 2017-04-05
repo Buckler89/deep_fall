@@ -423,7 +423,7 @@ try:
                 # allora sostituisco i valori di quella fold (ovvero una riga) con i nuovi: lo faccio sia per le auc
                 # che per la threshold ottime, i parametri usati e il modello adattato.
                 # per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
-                scoreAucNew[foldsIdx[0]] = auc
+                scoreAuc[foldsIdx[0]] = auc
                 scoreThs[foldsIdx[0]] = scoreThsNew[foldsIdx[0]]
                 # per args e model uso file separati per ogni fold
                 # salvo i parametri
@@ -433,7 +433,7 @@ try:
                 net.save_model(models[foldsIdx[0]], modelPath, 'modelfold' + str(foldsIdx[0] + 1))
 
         print("savetxt")
-        np.savetxt(scoreAucsFilePath, scoreAucNew)
+        np.savetxt(scoreAucsFilePath, scoreAuc)
         np.savetxt(scoreThsFilePath, scoreThs)
     finally:
         print("file UnLock")
