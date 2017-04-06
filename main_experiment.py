@@ -167,10 +167,11 @@ try:
     # in questi 2 file ogni riga corrisponde ad una fold
     scoreAucsFileName = 'score_auc.txt'
     thFileName = 'thresholds.txt'
-
+    processIDFileName = 'bestId.txt'
     BestScorePath = os.path.join(allResultBasePath, 'bestResults')
     scoreAucsFilePath = os.path.join(BestScorePath, scoreAucsFileName)
     scoreThsFilePath = os.path.join(BestScorePath, thFileName)
+    processIDFilePath = os.path.join(BestScorePath, processIDFileName)
     argsFolder = 'args'
     modelFolder = 'models'
     argsPath = os.path.join(BestScorePath, argsFolder)
@@ -186,6 +187,7 @@ try:
         print("init scoreFile")
         np.savetxt(scoreAucsFilePath, np.zeros(len(args.testNamesLists)))
         np.savetxt(scoreThsFilePath, np.zeros(len(args.testNamesLists)))
+        np.savetxt(processIDFilePath, np.zeros(len(args.testNamesLists)))
 
         # # TODO in realtà questo controllo non scansiona se mancano i modelli o/e i parametri
         # # se la cartella già esiste devo verificare la consistenza dei file all'interno
@@ -417,6 +419,7 @@ try:
         print("loadtxt")
         scoreAuc = np.loadtxt(scoreAucsFilePath)
         scoreThs = np.loadtxt(scoreThsFilePath)
+        processID = np.loadtxt(processIDFilePath)
         print('check if new best score is achieved')
         for auc, oldAuc, foldsIdx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
             if auc > oldAuc:  # se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
@@ -425,6 +428,8 @@ try:
                 # per le auc e le th uso dei file singoli (ogni riga una fold) per comodità
                 scoreAuc[foldsIdx[0]] = auc
                 scoreThs[foldsIdx[0]] = scoreThsNew[foldsIdx[0]]
+                processID[foldsIdx[0]] = args.id
+
                 # per args e model uso file separati per ogni fold
                 # salvo i parametri
                 with open(os.path.join(argsPath, 'argsfold' + str(foldsIdx[0] + 1) + '.json'), 'w') as file:
@@ -435,6 +440,8 @@ try:
         print("savetxt")
         np.savetxt(scoreAucsFilePath, scoreAuc)
         np.savetxt(scoreThsFilePath, scoreThs)
+        np.savetxt(processIDFilePath, processID)
+
     finally:
         print("file UnLock")
         fcntl.flock(fileToLock, fcntl.LOCK_UN)
