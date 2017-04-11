@@ -364,6 +364,7 @@ class autoencoder_fall_detection:
         d = params.cnn_input_shape[0]
         h = params.cnn_input_shape[1]
         w = params.cnn_input_shape[2]
+        dims = [[h,w]]
         print("(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         input_img = Input(shape=params.cnn_input_shape)
@@ -400,6 +401,7 @@ class autoencoder_fall_detection:
                 h = math.ceil(h / params.m_pool[i][0])
                 w = math.ceil(w / params.m_pool[i][1])
                 print("pool(" + str(i) + ") -> (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+            dims.append([h, w])
 
         if params.pool_type=="only_end":
             x = MaxPooling2D(params.m_pool[0], border_mode='same')(x)
@@ -407,11 +409,11 @@ class autoencoder_fall_detection:
             h = math.ceil(h / params.m_pool[-1][0])
             w = math.ceil(w / params.m_pool[-1][1])
             print("pool  -> (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
-
+            dims[-1]=[h, w]
+        print(dims)
         x = Flatten()(x)
 
         inputs = [d*h*w]
-        #inputs = []
         inputs.extend(params.dense_shapes)
 
         for i in range(len(inputs)):
@@ -454,8 +456,8 @@ class autoencoder_fall_detection:
                               params.kernel_shape[i][1],
                               init=params.cnn_init,
                               activation=params.cnn_conv_activation,
-                              border_mode=params.border_mode,
-                              subsample=tuple(params.strides[i]),
+                              border_mode='same',
+                              subsample=(1,1),
                               W_regularizer=eval(params.cnn_w_reg),
                               b_regularizer=eval(params.cnn_b_reg),
                               activity_regularizer=eval(params.cnn_a_reg),
@@ -463,26 +465,15 @@ class autoencoder_fall_detection:
                               b_constraint=eval(params.cnn_b_constr),
                               bias=params.bias)(x)
 
-            if params.border_mode == 'same':
-                ph = params.kernel_shape[i][0] - 1
-                pw = params.kernel_shape[i][1] - 1
-            else:
-                ph = pw = 0
-            h = int((h - params.kernel_shape[i][0] + ph) / params.strides[i][0]) + 1
-            w = int((w - params.kernel_shape[i][1] + pw) / params.strides[i][1]) + 1
             d = params.kernel_number[i]
             print("conv " + str(i) + "->(" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
-            if params.pool_type == "only_end" and i == len(params.kernel_number) - 1:
-                x = UpSampling2D(params.m_pool[i])(x)
-                h = h * params.m_pool[i][0]
-                w = w * params.m_pool[i][1]
-                print("up->   (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
-            elif params.pool_type=="all":
-                x = UpSampling2D(params.m_pool[i])(x)
-                h = h * params.m_pool[i][0]
-                w = w * params.m_pool[i][1]
-                print("up " + str(i) + "->  (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
+            up_h = math.ceil(dims[i][0] / h)
+            up_w = math.ceil(dims[i][1] / w)
+            h *= up_h
+            w *= up_w
+            x = UpSampling2D((up_h,up_w))(x)
+            print("up->   (" + str(d) + ", " + str(h) + ", " + str(w) + ")")
 
         dh = h - params.cnn_input_shape[1]
         dw = w - params.cnn_input_shape[2]
@@ -512,7 +503,7 @@ class autoencoder_fall_detection:
                                 params.kernel_shape[0][1],
                                 init=params.cnn_init,
                                 activation=params.cnn_conv_activation,
-                                border_mode=params.border_mode,
+                                border_mode='same',
                                 subsample=(1,1),
                                 W_regularizer=eval(params.cnn_w_reg),
                                 b_regularizer=eval(params.cnn_b_reg),
