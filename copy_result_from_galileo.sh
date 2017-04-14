@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 # -r for folder
-scp mfagiani@login.galileo.cineca.it:/gpfs/work/IscrC_DASHE/fall_detection/deep_fall/results/case1/totalReport.csv ./galielo_results/
+scp mfagiani@login.galileo.cineca.it:/gpfs/work/IscrC_DASHE/fall_detection/deep_fall/results/case5/totalReport.csv ./galielo_results/case5

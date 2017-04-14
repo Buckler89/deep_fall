@@ -419,7 +419,11 @@ try:
         print("loadtxt")
         scoreAuc = np.loadtxt(scoreAucsFilePath)
         scoreThs = np.loadtxt(scoreThsFilePath)
-        processID = np.loadtxt(processIDFilePath)
+        try:
+            processID = np.loadtxt(processIDFilePath)
+        except:
+            print("No such file or directory: "+processIDFilePath+" \nException passed")#TODO questo serve solo perchè processIDFilePath è stato inserito a esperimenti già iniziati
+            pass
         print('check if new best score is achieved')
         for auc, oldAuc, foldsIdx in zip(scoreAucNew, scoreAuc, enumerate(scoreAuc)):
             if auc > oldAuc:  # se in una fold ho ottenuto una auc migliore rispetto ad un esperimento precedente
