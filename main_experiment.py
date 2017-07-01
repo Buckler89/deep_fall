@@ -292,7 +292,7 @@ try:
         else:
             imgForGifPath = None
         # Need to redefine the same architecture and compile it for each fold.
-        # If you do the net does't start fit from the beginnig at the second fold
+        # If you don't do this here, at the second fold net does't start fit from the beginnig
         net = autoencoder.autoencoder_fall_detection(str(args.id), args.case, str(f + 1))
         #net.define_static_arch()
         m = net.define_cnn_arch(args)

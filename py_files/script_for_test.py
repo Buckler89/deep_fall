@@ -10,10 +10,10 @@ Created on Fri Feb  3 16:00:29 2017
 import random
 import numpy
 from matplotlib import pyplot
-from autoencoder import ROCCurve
+from autoencoder import ROCCurve, compute_optimal_th
 
-x = [random.gauss(3,1) for _ in range(400)]
-y = [random.gauss(0,2) for _ in range(400)]
+x = [random.gauss(3,1) for _ in range(22)]
+y = [random.gauss(0,2) for _ in range(22)]
 
 bins = numpy.linspace(-20, 20, 1000)
 
@@ -29,4 +29,9 @@ for d in x:
 for d in y:
     data.append(d)
     labels.append(0)
-ROCCurve(labels, data, None, pos_label=1, makeplot='yes', opt_th_plot='yes')
+
+fpr, tpr, roc_auc, thresholds = ROCCurve(labels, data, pos_label=1, makeplot='yes', opt_th_plot='yes')
+optimal_th, indx = compute_optimal_th(fpr, tpr, thresholds, method='std')
+ROCCurve(labels, data, indx, pos_label=1, makeplot='yes', opt_th_plot='yes')
+
+#ROCCurve(labels, data, None, pos_label=1, makeplot='yes', opt_th_plot='yes')

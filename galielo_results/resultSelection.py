@@ -1,13 +1,17 @@
 import csv
 import numpy as np
 import os
+import sys
 valueLab = dict()
 results = []
 
 finalBest = []
 
-case = 'case6'
-with open(os.path.join(case, 'totalReport.csv'), newline='') as csvfile:
+case = 'case1_upto_999'#sys.argv[1]
+ingored=0;
+sourceFile = 'totalReport.csv'
+targetFileName = 'bestResults.csv'
+with open(os.path.join(case, sourceFile), newline='') as csvfile:
     #read first line: the label of column
     firstLine = csvfile.readline()
     rowval = firstLine.split(',')
@@ -21,18 +25,23 @@ with open(os.path.join(case, 'totalReport.csv'), newline='') as csvfile:
     for row in lines: #the fist line is already parsed
         rowval = row.split(',')
         rowval[0] = rowval[0].replace('process_', '')
-        for i, val in enumerate(rowval):
-            if i != 0:
-                if float(val) > 1:
-                    val = float(val)*0.001
-                    print(val)
-            results.append(float(val))
+        if int(rowval[0]) < 1000:
+            for i, val in enumerate(rowval):
+                if i != 0:
+                    if float(val) > 1:
+                        val = float(val)*0.001
+                        print(val)
+                try:
+                    results.append(float(val))
+                except:
+                    print(row)
 
-            #result.append({})
-        #print(', '.join(row))
-
+                #result.append({})
+            #print(', '.join(row))
+        else:
+            ingored+=1;
 results = np.array(results)
-results = results.reshape(nline, len(valueLab))
+results = results.reshape(nline-ingored, len(valueLab))
 print()
 
 fold = 1
@@ -111,7 +120,19 @@ for fold in range(1, 5):
                 potentialBestResults.append(row)
 
 
-with open(os.path.join(case,'bestResults.csv'), mode='w') as file:
+meanBestResults = []
+lab = 'f1Final'
+col = results[:, [valueLab[lab]]]
+best = col.max()
+for row in results:
+    if row[valueLab[lab]] == best:
+        # the fist time the potentialBestResults list is empty
+        if not meanBestResults and not row[valueLab['id']] in [r[valueLab['id']] for r in finalBest_]:
+            meanBestResults.append(row)
+        elif not row[valueLab['id']] in [r[valueLab['id']] for r in meanBestResults] and not row[valueLab['id']] in [r[valueLab['id']] for r in finalBest_]:
+            meanBestResults.append(row)
+
+with open(os.path.join(case,targetFileName), mode='w') as file:
     lab='id,AucDevsFold1,AucDevsFold2,AucDevsFold3,AucDevsFold4,AucTestFold1,AucTestFold2,AucTestFold3,AucTestFold4,f1DevsFold1,f1DevsFold2,f1DevsFold3,f1DevsFold4,f1Final,f1TestFold1,f1TestFold2,f1TestFold3,f1TestFold4\n'
     file.write(lab.replace(',','\t'))
     for l in finalBest_:
