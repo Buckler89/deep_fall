@@ -30,7 +30,7 @@ mistune==0.7.3
 nbconvert==5.0.0
 nbformat==4.2.0
 numexpr==2.4.3
-numpy==1.11.3
+numpy==1.22.0
 pandas==0.17.1
 pandocfilters==1.4.1
 pep8==1.7.0
