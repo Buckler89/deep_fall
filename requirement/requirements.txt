@@ -57,7 +57,7 @@ pyzmq==15.2.0
 QtAwesome==0.4.1
 qtconsole==4.2.1
 QtPy==1.2.0
-reportlab==3.3.0
+reportlab==3.5.55
 requests==2.9.1
 roman==2.0.0
 rope-py3k==0.9.4.post1
