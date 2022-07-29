@@ -26,7 +26,7 @@ language-selector==0.1
 lxml==3.5.0
 MarkupSafe==0.23
 matplotlib==1.5.1
-mistune==0.7.3
+mistune==2.0.3
 nbconvert==5.0.0
 nbformat==4.2.0
 numexpr==2.4.3
