@@ -27,7 +27,7 @@ lxml==3.5.0
 MarkupSafe==0.23
 matplotlib==1.5.1
 mistune==0.7.3
-nbconvert==5.0.0
+nbconvert==6.5.1
 nbformat==4.2.0
 numexpr==2.4.3
 numpy==1.11.3
